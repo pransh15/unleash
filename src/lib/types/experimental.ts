@@ -14,7 +14,6 @@ export type IFlagKey =
     | 'strictSchemaValidation'
     | 'proPlanAutoCharge'
     | 'personalAccessTokensKillSwitch'
-    | 'cleanClientApi'
     | 'migrationLock'
     | 'demo'
     | 'googleAuthEnabled'
@@ -27,7 +26,10 @@ export type IFlagKey =
     | 'slackAppAddon'
     | 'emitPotentiallyStaleEvents'
     | 'configurableFeatureTypeLifetimes'
-    | 'filterInvalidClientMetrics';
+    | 'filterInvalidClientMetrics'
+    | 'frontendNavigationUpdate'
+    | 'lastSeenByEnvironment'
+    | 'segmentChangeRequests';
 
 export type IFlags = Partial<{ [key in IFlagKey]: boolean | Variant }>;
 
@@ -81,7 +83,6 @@ const flags: IFlags = {
         process.env.UNLEASH_PAT_KILL_SWITCH,
         false,
     ),
-    cleanClientApi: parseEnvVarBoolean(process.env.CLEAN_CLIENT_API, false),
     migrationLock: parseEnvVarBoolean(process.env.MIGRATION_LOCK, false),
     demo: parseEnvVarBoolean(process.env.UNLEASH_DEMO, false),
     googleAuthEnabled: parseEnvVarBoolean(
@@ -117,13 +118,24 @@ const flags: IFlags = {
         process.env.UNLEASH_EXPERIMENTAL_EMIT_POTENTIALLY_STALE_EVENTS,
         false,
     ),
-
     configurableFeatureTypeLifetimes: parseEnvVarBoolean(
         process.env.UNLEASH_EXPERIMENTAL_CONFIGURABLE_FEATURE_TYPE_LIFETIMES,
         false,
     ),
     filterInvalidClientMetrics: parseEnvVarBoolean(
         process.env.FILTER_INVALID_CLIENT_METRICS,
+        false,
+    ),
+    frontendNavigationUpdate: parseEnvVarBoolean(
+        process.env.UNLEASH_NAVIGATION_UPDATE,
+        false,
+    ),
+    lastSeenByEnvironment: parseEnvVarBoolean(
+        process.env.LAST_SEEN_BY_ENVIRONMENT,
+        false,
+    ),
+    segmentChangeRequests: parseEnvVarBoolean(
+        process.env.UNLEASH_EXPERIMENTAL_SEGMENT_CHANGE_REQUESTS,
         false,
     ),
 };

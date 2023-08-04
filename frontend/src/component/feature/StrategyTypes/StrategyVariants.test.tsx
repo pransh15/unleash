@@ -17,7 +17,7 @@ test('should render variants', async () => {
                 name: 'variantName',
                 stickiness: 'default',
                 weight: 1000,
-                weightType: 'variable',
+                weightType: 'variable' as const,
                 payload: {
                     type: 'string',
                     value: 'variantValue',
@@ -32,7 +32,12 @@ test('should render variants', async () => {
         currentStrategy = strategy;
 
         return (
-            <StrategyVariants strategy={strategy} setStrategy={setStrategy} />
+            <StrategyVariants
+                strategy={strategy}
+                setStrategy={setStrategy}
+                projectId={'default'}
+                environment={'development'}
+            />
         );
     };
     render(

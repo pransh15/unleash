@@ -7,10 +7,12 @@ import { UPDATE_FEATURE_ENVIRONMENT_VARIANTS } from '../../providers/AccessProvi
 import { v4 as uuidv4 } from 'uuid';
 import { WeightType } from '../../../constants/variantTypes';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
-import { styled, Typography, useTheme } from '@mui/material';
+import { Link, styled, Typography, useTheme } from '@mui/material';
 import { useRequiredQueryParam } from 'hooks/useRequiredQueryParam';
 import { IFeatureStrategy } from 'interfaces/strategy';
 import SplitPreviewSlider from './SplitPreviewSlider/SplitPreviewSlider';
+import { HelpIcon } from '../../common/HelpIcon/HelpIcon';
+import { StrategyVariantsUpgradeAlert } from '../../common/StrategyVariantsUpgradeAlert/StrategyVariantsUpgradeAlert';
 
 const StyledVariantForms = styled('div')({
     display: 'flex',
@@ -22,9 +24,9 @@ export const StrategyVariants: FC<{
         React.SetStateAction<Partial<IFeatureStrategy>>
     >;
     strategy: Partial<IFeatureStrategy>;
-}> = ({ strategy, setStrategy }) => {
-    const projectId = useRequiredPathParam('projectId');
-    const environment = useRequiredQueryParam('environmentId');
+    projectId: string;
+    environment: string;
+}> = ({ strategy, setStrategy, projectId, environment }) => {
     const [variantsEdit, setVariantsEdit] = useState<IFeatureVariantEdit[]>([]);
     const theme = useTheme();
     const stickiness =
@@ -86,10 +88,33 @@ export const StrategyVariants: FC<{
 
     return (
         <>
-            <Typography component="h3" sx={{ m: 0 }} variant="h3">
+            <Typography
+                component="h3"
+                sx={{ m: 0, display: 'flex', gap: '1ch' }}
+                variant="h3"
+            >
                 Variants
+                <HelpIcon
+                    htmlTooltip={true}
+                    tooltip={
+                        <>
+                            <span>
+                                Variants allow to attach one or more values to
+                                this strategy. Variants at the strategy level
+                                override variants at the feature level.
+                            </span>
+                            <Link
+                                target="_blank"
+                                href="https://docs.getunleash.io/reference/feature-strategy-variants"
+                            >
+                                Learn more
+                            </Link>
+                        </>
+                    }
+                />
             </Typography>
             <StyledVariantForms>
+                <StrategyVariantsUpgradeAlert />
                 {variantsEdit.map((variant, i) => (
                     <VariantForm
                         disableOverrides={true}

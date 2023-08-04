@@ -640,10 +640,13 @@ export default class ExportImportService {
                     ...rest,
                 };
             }),
-            featureEnvironments: featureEnvironments.map((item) => ({
-                ...item,
-                name: item.featureName,
-            })),
+            featureEnvironments: featureEnvironments.map((item) => {
+                const { lastSeenAt, ...rest } = item;
+                return {
+                    ...rest,
+                    name: item.featureName,
+                };
+            }),
             contextFields: filteredContextFields.map((item) => {
                 const { createdAt, ...rest } = item;
                 return rest;

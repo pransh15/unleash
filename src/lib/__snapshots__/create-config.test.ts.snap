@@ -69,7 +69,6 @@ exports[`should create default config 1`] = `
     "flags": {
       "anonymiseEventLog": false,
       "caseInsensitiveInOperators": false,
-      "cleanClientApi": false,
       "configurableFeatureTypeLifetimes": false,
       "customRootRoles": false,
       "demo": false,
@@ -80,7 +79,9 @@ exports[`should create default config 1`] = `
       "emitPotentiallyStaleEvents": false,
       "featuresExportImport": true,
       "filterInvalidClientMetrics": false,
+      "frontendNavigationUpdate": false,
       "googleAuthEnabled": false,
+      "lastSeenByEnvironment": false,
       "maintenanceMode": false,
       "messageBanner": {
         "enabled": false,
@@ -95,6 +96,7 @@ exports[`should create default config 1`] = `
       "personalAccessTokensKillSwitch": false,
       "proPlanAutoCharge": false,
       "responseTimeWithAppNameKillSwitch": false,
+      "segmentChangeRequests": false,
       "slackAppAddon": false,
       "strategyVariant": false,
       "strictSchemaValidation": false,
@@ -104,7 +106,6 @@ exports[`should create default config 1`] = `
     "experiments": {
       "anonymiseEventLog": false,
       "caseInsensitiveInOperators": false,
-      "cleanClientApi": false,
       "configurableFeatureTypeLifetimes": false,
       "customRootRoles": false,
       "demo": false,
@@ -115,7 +116,9 @@ exports[`should create default config 1`] = `
       "emitPotentiallyStaleEvents": false,
       "featuresExportImport": true,
       "filterInvalidClientMetrics": false,
+      "frontendNavigationUpdate": false,
       "googleAuthEnabled": false,
+      "lastSeenByEnvironment": false,
       "maintenanceMode": false,
       "messageBanner": {
         "enabled": false,
@@ -130,6 +133,7 @@ exports[`should create default config 1`] = `
       "personalAccessTokensKillSwitch": false,
       "proPlanAutoCharge": false,
       "responseTimeWithAppNameKillSwitch": false,
+      "segmentChangeRequests": false,
       "slackAppAddon": false,
       "strategyVariant": false,
       "strictSchemaValidation": false,

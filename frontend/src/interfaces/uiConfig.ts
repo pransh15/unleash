@@ -54,6 +54,8 @@ export interface IFlags {
     strategyVariant?: boolean;
     newProjectLayout?: boolean;
     configurableFeatureTypeLifetimes?: boolean;
+    frontendNavigationUpdate?: boolean;
+    segmentChangeRequests?: boolean;
 }
 
 export interface IVersionInfo {
