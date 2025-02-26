@@ -1,8 +1,8 @@
 import { Box, styled, Typography } from '@mui/material';
-import React, { FC } from 'react';
+import type { FC } from 'react';
 import { StyledAvatar } from '../ChangeRequestHeader/ChangeRequestHeader.styles';
-import { CheckCircle } from '@mui/icons-material';
-
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Cancel from '@mui/icons-material/Cancel';
 interface IChangeRequestReviewerProps {
     name?: string;
     imageUrl?: string;
@@ -21,26 +21,41 @@ export const StyledSuccessIcon = styled(CheckCircle)(({ theme }) => ({
     marginLeft: 'auto',
 }));
 
-export const ChangeRequestReviewer: FC<IChangeRequestReviewerProps> = ({
+export const StyledErrorIcon = styled(Cancel)(({ theme }) => ({
+    color: theme.palette.error.main,
+    marginLeft: 'auto',
+}));
+
+export const ReviewerName = styled(Typography)({
+    maxWidth: '170px',
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    color: 'text.primary',
+});
+
+export const ChangeRequestApprover: FC<IChangeRequestReviewerProps> = ({
     name,
     imageUrl,
 }) => {
     return (
         <StyledBox>
-            <StyledAvatar src={imageUrl} />
-            <Typography
-                variant="body1"
-                color="text.primary"
-                sx={{
-                    maxWidth: '170px',
-                    textOverflow: 'ellipsis',
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                }}
-            >
-                {name}
-            </Typography>
+            <StyledAvatar user={{ name, imageUrl }} />
+            <ReviewerName variant='body1'>{name}</ReviewerName>
             <StyledSuccessIcon />
+        </StyledBox>
+    );
+};
+
+export const ChangeRequestRejector: FC<IChangeRequestReviewerProps> = ({
+    name,
+    imageUrl,
+}) => {
+    return (
+        <StyledBox>
+            <StyledAvatar user={{ name, imageUrl }} />
+            <ReviewerName variant='body1'>{name}</ReviewerName>
+            <StyledErrorIcon />
         </StyledBox>
     );
 };

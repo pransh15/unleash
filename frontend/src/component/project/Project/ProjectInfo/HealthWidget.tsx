@@ -37,10 +37,10 @@ export const HealthWidget = ({ projectId, health }: IHealthWidgetProps) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: theme => theme.spacing(2),
+                    gap: (theme) => theme.spacing(2),
                 }}
             >
-                <StyledPercentageText>
+                <StyledPercentageText data-loading>
                     <PercentageCircle percentage={health} />
                 </StyledPercentageText>
                 <StyledParagraphEmphasizedText data-loading>

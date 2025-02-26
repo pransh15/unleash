@@ -9,7 +9,7 @@ import PasswordMatcher from 'component/user/common/ResetPasswordForm/PasswordMat
 import { usePasswordApi } from 'hooks/api/actions/usePasswordApi/usePasswordApi';
 import useAuthSettings from 'hooks/api/getters/useAuthSettings/useAuthSettings';
 import useToast from 'hooks/useToast';
-import { SyntheticEvent, useState } from 'react';
+import { type SyntheticEvent, useState } from 'react';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { AuthenticationError } from 'utils/apiUtils';
 
@@ -34,10 +34,20 @@ export const PasswordTab = () => {
     const [oldPassword, setOldPassword] = useState('');
     const { changePassword } = usePasswordApi();
 
+    const passwordsDoNotMatch = password !== confirmPassword;
+    const sameAsOldPassword = oldPassword === confirmPassword;
+    const allPasswordsFilled =
+        password.length > 0 &&
+        confirmPassword.length > 0 &&
+        oldPassword.length > 0;
+
+    const hasError =
+        !allPasswordsFilled || passwordsDoNotMatch || sameAsOldPassword;
+
     const submit = async (e: SyntheticEvent) => {
         e.preventDefault();
 
-        if (password !== confirmPassword) {
+        if (hasError) {
             return;
         } else if (!validPassword) {
             setError(PASSWORD_FORMAT_MESSAGE);
@@ -52,8 +62,7 @@ export const PasswordTab = () => {
                     oldPassword,
                 });
                 setToastData({
-                    title: 'Password changed successfully',
-                    text: 'Now you can sign in using your new password.',
+                    text: 'Password changed',
                     type: 'success',
                 });
             } catch (error: unknown) {
@@ -73,11 +82,11 @@ export const PasswordTab = () => {
     if (authSettingsLoading) return null;
 
     return (
-        <PageContent isLoading={loading} header="Change password">
+        <PageContent isLoading={loading} header='Change password'>
             <ConditionallyRender
                 condition={simpleAuthConfig.disabled}
                 show={
-                    <Alert severity="error">
+                    <Alert severity='error'>
                         Password based login is currently disabled for your
                         Unleash instance.
                     </Alert>
@@ -91,49 +100,51 @@ export const PasswordTab = () => {
                         />
                         <PasswordField
                             data-loading
-                            label="Old password"
-                            name="oldPassword"
+                            label='Old password'
+                            name='oldPassword'
                             value={oldPassword}
                             error={Boolean(authenticationError)}
                             helperText={authenticationError}
-                            autoComplete="current-password"
+                            autoComplete='current-password'
                             onChange={(
-                                e: React.ChangeEvent<HTMLInputElement>
+                                e: React.ChangeEvent<HTMLInputElement>,
                             ) => setOldPassword(e.target.value)}
                         />
                         <PasswordField
                             data-loading
-                            label="Password"
-                            name="password"
+                            label='Password'
+                            name='password'
                             value={password}
                             error={Boolean(error)}
                             helperText={error}
-                            autoComplete="new-password"
+                            autoComplete='new-password'
                             onChange={(
-                                e: React.ChangeEvent<HTMLInputElement>
+                                e: React.ChangeEvent<HTMLInputElement>,
                             ) => setPassword(e.target.value)}
                         />
                         <PasswordField
                             data-loading
-                            label="Confirm password"
-                            name="confirmPassword"
+                            label='Confirm password'
+                            name='confirmPassword'
                             value={confirmPassword}
-                            autoComplete="new-password"
+                            autoComplete='new-password'
                             onChange={(
-                                e: React.ChangeEvent<HTMLInputElement>
+                                e: React.ChangeEvent<HTMLInputElement>,
                             ) => setConfirmPassword(e.target.value)}
                         />
                         <PasswordMatcher
                             data-loading
-                            started={Boolean(password && confirmPassword)}
-                            matchingPasswords={password === confirmPassword}
+                            started={allPasswordsFilled}
+                            passwordsDoNotMatch={passwordsDoNotMatch}
+                            sameAsOldPassword={sameAsOldPassword}
                         />
                         <Button
                             data-loading
-                            variant="contained"
-                            color="primary"
-                            type="submit"
+                            variant='contained'
+                            color='primary'
+                            type='submit'
                             onClick={submit}
+                            disabled={hasError}
                         >
                             Save
                         </Button>

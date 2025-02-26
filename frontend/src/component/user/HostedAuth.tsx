@@ -1,4 +1,4 @@
-import { FormEventHandler, useState, VFC } from 'react';
+import { type FormEventHandler, useState, type VFC } from 'react';
 import { Button, Grid, styled, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router';
 import useQueryParams from 'hooks/useQueryParams';
@@ -9,9 +9,10 @@ import PasswordField from 'component/common/PasswordField/PasswordField';
 import { useAuthApi } from 'hooks/api/actions/useAuthApi/useAuthApi';
 import { useAuthUser } from 'hooks/api/getters/useAuth/useAuthUser';
 import { LOGIN_BUTTON, LOGIN_EMAIL_ID, LOGIN_PASSWORD_ID } from 'utils/testIds';
-import { IAuthEndpointDetailsResponse } from 'hooks/api/getters/useAuth/useAuthEndpoint';
+import type { IAuthEndpointDetailsResponse } from 'hooks/api/getters/useAuth/useAuthEndpoint';
 import { BadRequestError, NotFoundError } from 'utils/apiUtils';
 import { contentSpacingY } from 'themes/themeStyles';
+import useToast from 'hooks/useToast';
 
 interface IHostedAuthProps {
     authDetails: IAuthEndpointDetailsResponse;
@@ -47,18 +48,19 @@ const HostedAuth: VFC<IHostedAuthProps> = ({ authDetails, redirect }) => {
         passwordError?: string;
         apiError?: string;
     }>({});
+    const { setToastData } = useToast();
 
-    const handleSubmit: FormEventHandler<HTMLFormElement> = async evt => {
+    const handleSubmit: FormEventHandler<HTMLFormElement> = async (evt) => {
         evt.preventDefault();
 
         if (!username) {
-            setErrors(prev => ({
+            setErrors((prev) => ({
                 ...prev,
                 usernameError: 'This is a required field',
             }));
         }
         if (!password) {
-            setErrors(prev => ({
+            setErrors((prev) => ({
                 ...prev,
                 passwordError: 'This is a required field',
             }));
@@ -69,7 +71,17 @@ const HostedAuth: VFC<IHostedAuthProps> = ({ authDetails, redirect }) => {
         }
 
         try {
-            await passwordAuth(authDetails.path, username, password);
+            const data = await passwordAuth(
+                authDetails.path,
+                username,
+                password,
+            );
+            if (data.deletedSessions && data.activeSessions) {
+                setToastData({
+                    type: 'success',
+                    text: `Maximum session limit of ${data.activeSessions} reached`,
+                });
+            }
             refetchUser();
             navigate(redirect, { replace: true });
         } catch (error: any) {
@@ -77,7 +89,7 @@ const HostedAuth: VFC<IHostedAuthProps> = ({ authDetails, redirect }) => {
                 error instanceof NotFoundError ||
                 error instanceof BadRequestError
             ) {
-                setErrors(prev => ({
+                setErrors((prev) => ({
                     ...prev,
                     apiError: 'Invalid login details',
                 }));
@@ -101,7 +113,7 @@ const HostedAuth: VFC<IHostedAuthProps> = ({ authDetails, redirect }) => {
                 show={
                     <>
                         <AuthOptions options={options} />
-                        <DividerText text="or signin with username" />
+                        <DividerText text='or signin with username' />
                     </>
                 }
             />
@@ -110,39 +122,43 @@ const HostedAuth: VFC<IHostedAuthProps> = ({ authDetails, redirect }) => {
                 condition={!authDetails.defaultHidden}
                 show={
                     <form onSubmit={handleSubmit}>
-                        <StyledTypography variant="subtitle2">
+                        <StyledTypography variant='subtitle2'>
                             {apiError}
                         </StyledTypography>
                         <StyledDiv>
                             <TextField
-                                label="Username or email"
-                                name="username"
-                                id="username"
-                                type="text"
-                                onChange={evt => setUsername(evt.target.value)}
+                                label='Username or email'
+                                name='username'
+                                id='username'
+                                type='text'
+                                onChange={(evt) =>
+                                    setUsername(evt.target.value)
+                                }
                                 value={username}
                                 error={Boolean(usernameError)}
                                 helperText={usernameError}
-                                variant="outlined"
-                                size="small"
+                                variant='outlined'
+                                size='small'
                                 data-testid={LOGIN_EMAIL_ID}
                             />
                             <PasswordField
-                                label="Password"
-                                onChange={evt => setPassword(evt.target.value)}
-                                name="password"
-                                id="password"
+                                label='Password'
+                                onChange={(evt) =>
+                                    setPassword(evt.target.value)
+                                }
+                                name='password'
+                                id='password'
                                 value={password}
                                 error={Boolean(passwordError)}
                                 helperText={passwordError}
-                                autoComplete="current-password"
+                                autoComplete='current-password'
                                 data-testid={LOGIN_PASSWORD_ID}
                             />
                             <Grid container>
                                 <StyledButton
-                                    variant="contained"
-                                    color="primary"
-                                    type="submit"
+                                    variant='contained'
+                                    color='primary'
+                                    type='submit'
                                     data-testid={LOGIN_BUTTON}
                                 >
                                     Sign in

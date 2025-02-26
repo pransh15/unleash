@@ -1,6 +1,4 @@
-import EnvironmentStrategyDialog from 'component/common/EnvironmentStrategiesDialog/EnvironmentStrategyDialog';
-import { IFeatureToggle } from 'interfaces/featureToggle';
-import { useState } from 'react';
+import type { IFeatureToggle } from 'interfaces/featureToggle';
 import { FeatureOverviewSidePanelEnvironmentSwitch } from 'component/feature/FeatureView/FeatureOverview/FeatureOverviewSidePanel/FeatureOverviewSidePanelEnvironmentSwitches/FeatureOverviewSidePanelEnvironmentSwitch/FeatureOverviewSidePanelEnvironmentSwitch';
 import { Link, styled, Tooltip } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
@@ -53,15 +51,13 @@ export const FeatureOverviewSidePanelEnvironmentSwitches = ({
     hiddenEnvironments,
     setHiddenEnvironments,
 }: IFeatureOverviewSidePanelEnvironmentSwitchesProps) => {
-    const [showInfoBox, setShowInfoBox] = useState(false);
-    const [environmentName, setEnvironmentName] = useState('');
     const someEnabledEnvironmentHasVariants = feature.environments.some(
-        environment => environment.enabled && environment.variants?.length
+        (environment) => environment.enabled && environment.variants?.length,
     );
     return (
-        <StyledContainer data-testid="feature-toggle-status">
+        <StyledContainer data-testid='feature-flag-status'>
             {header}
-            {feature.environments.map(environment => {
+            {feature.environments.map((environment) => {
                 const strategiesLabel =
                     environment.strategies.length === 1
                         ? '1 strategy'
@@ -72,11 +68,11 @@ export const FeatureOverviewSidePanelEnvironmentSwitches = ({
                 const variantsLink = variants.length > 0 && (
                     <>
                         <StyledSeparator />
-                        <Tooltip title="View variants" arrow describeChild>
+                        <Tooltip title='View variants' arrow describeChild>
                             <StyledLink
                                 component={RouterLink}
                                 to={`/projects/${feature.project}/features/${feature.name}/variants`}
-                                underline="hover"
+                                underline='hover'
                             >
                                 {variants.length === 1
                                     ? '1 variant'
@@ -96,10 +92,6 @@ export const FeatureOverviewSidePanelEnvironmentSwitches = ({
                         environment={environment}
                         hiddenEnvironments={hiddenEnvironments}
                         setHiddenEnvironments={setHiddenEnvironments}
-                        showInfoBox={() => {
-                            setEnvironmentName(environment.name);
-                            setShowInfoBox(true);
-                        }}
                     >
                         <StyledSwitchLabel>
                             <StyledLabel>{environment.name}</StyledLabel>
@@ -120,13 +112,6 @@ export const FeatureOverviewSidePanelEnvironmentSwitches = ({
                     </FeatureOverviewSidePanelEnvironmentSwitch>
                 );
             })}
-            <EnvironmentStrategyDialog
-                open={showInfoBox}
-                onClose={() => setShowInfoBox(false)}
-                projectId={feature.project}
-                featureId={feature.name}
-                environmentName={environmentName}
-            />
         </StyledContainer>
     );
 };

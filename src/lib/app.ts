@@ -1,4 +1,4 @@
-import express, { Application, RequestHandler } from 'express';
+import express, { type Application, type RequestHandler } from 'express';
 import compression from 'compression';
 import favicon from 'serve-favicon';
 import cookieParser from 'cookie-parser';
@@ -8,27 +8,29 @@ import { responseTimeMetrics } from './middleware/response-time-metrics';
 import { corsOriginMiddleware } from './middleware/cors-origin-middleware';
 import rbacMiddleware from './middleware/rbac-middleware';
 import apiTokenMiddleware from './middleware/api-token-middleware';
-import { IUnleashServices } from './types/services';
-import { IAuthType, IUnleashConfig } from './types/option';
-import { IUnleashStores } from './types/stores';
+import type { IUnleashServices } from './types/services';
+import { IAuthType, type IUnleashConfig } from './types/option';
+import type { IUnleashStores } from './types';
 
 import IndexRouter from './routes';
 
 import requestLogger from './middleware/request-logger';
 import demoAuthentication from './middleware/demo-authentication';
 import ossAuthentication from './middleware/oss-authentication';
-import noAuthentication from './middleware/no-authentication';
+import noAuthentication, { noApiToken } from './middleware/no-authentication';
 import secureHeaders from './middleware/secure-headers';
 
 import { loadIndexHTML } from './util/load-index-html';
 import { findPublicFolder } from './util/findPublicFolder';
-import { conditionalMiddleware } from './middleware/conditional-middleware';
 import patMiddleware from './middleware/pat-middleware';
-import { Knex } from 'knex';
-import maintenanceMiddleware from './middleware/maintenance-middleware';
+import type { Knex } from 'knex';
+import maintenanceMiddleware from './features/maintenance/maintenance-middleware';
 import { unless } from './middleware/unless-middleware';
 import { catchAllErrorHandler } from './middleware/catch-all-error-handler';
 import NotFoundError from './error/notfound-error';
+import { bearerTokenMiddleware } from './middleware/bearer-token-middleware';
+import { auditAccessMiddleware } from './middleware';
+import { originMiddleware } from './middleware/origin-middleware';
 
 export default async function getApp(
     config: IUnleashConfig,
@@ -41,7 +43,8 @@ export default async function getApp(
 
     const baseUriPath = config.server.baseUriPath || '';
     const publicFolder = config.publicFolder || findPublicFolder();
-    let indexHTML = await loadIndexHTML(config, publicFolder);
+    const indexHTML = await loadIndexHTML(config, publicFolder);
+    const logger = config.getLogger('lib/app.ts');
 
     app.set('trust proxy', true);
     app.disable('x-powered-by');
@@ -59,11 +62,16 @@ export default async function getApp(
 
     app.use(requestLogger(config));
 
+    app.use(`${baseUriPath}/api`, bearerTokenMiddleware(config)); // We only need bearer token compatibility on /api paths.
+
     if (typeof config.preHook === 'function') {
         config.preHook(app, config, services, db);
     }
 
-    app.use(compression());
+    if (!config.server.disableCompression) {
+        app.use(compression());
+    }
+
     app.use(cookieParser());
 
     app.use((req, res, next) => {
@@ -102,10 +110,11 @@ export default async function getApp(
     // so this must be handled before the API token middleware.
     app.options(
         `${baseUriPath}/api/frontend*`,
-        conditionalMiddleware(
-            () => config.flagResolver.isEnabled('embedProxy'),
-            corsOriginMiddleware(services, config),
-        ),
+        corsOriginMiddleware(services, config),
+    );
+    app.options(
+        `${baseUriPath}/api/streaming*`,
+        corsOriginMiddleware(services, config),
     );
 
     app.use(baseUriPath, patMiddleware(config, services));
@@ -118,12 +127,16 @@ export default async function getApp(
         }
         case IAuthType.ENTERPRISE: {
             app.use(baseUriPath, apiTokenMiddleware(config, services));
-            config.authentication.customAuthHandler(app, config, services);
+            if (config.authentication.customAuthHandler) {
+                config.authentication.customAuthHandler(app, config, services);
+            }
             break;
         }
         case IAuthType.HOSTED: {
             app.use(baseUriPath, apiTokenMiddleware(config, services));
-            config.authentication.customAuthHandler(app, config, services);
+            if (config.authentication.customAuthHandler) {
+                config.authentication.customAuthHandler(app, config, services);
+            }
             break;
         }
         case IAuthType.DEMO: {
@@ -138,10 +151,17 @@ export default async function getApp(
         }
         case IAuthType.CUSTOM: {
             app.use(baseUriPath, apiTokenMiddleware(config, services));
-            config.authentication.customAuthHandler(app, config, services);
+            if (config.authentication.customAuthHandler) {
+                config.authentication.customAuthHandler(app, config, services);
+            }
             break;
         }
         case IAuthType.NONE: {
+            logger.warn(
+                'The AuthType=none option for Unleash is no longer recommended and will be removed in version 6.',
+            );
+            noApiToken(baseUriPath, app);
+            app.use(baseUriPath, apiTokenMiddleware(config, services));
             noAuthentication(baseUriPath, app);
             break;
         }
@@ -162,6 +182,9 @@ export default async function getApp(
         rbacMiddleware(config, stores, services.accessService),
     );
 
+    app.use(`${baseUriPath}/api/admin`, originMiddleware(config));
+
+    app.use(`${baseUriPath}/api/admin`, auditAccessMiddleware(config));
     app.use(
         `${baseUriPath}/api/admin`,
         maintenanceMiddleware(config, services.maintenanceService),
@@ -174,10 +197,6 @@ export default async function getApp(
     // Setup API routes
     app.use(`${baseUriPath}/`, new IndexRouter(config, services, db).router);
 
-    if (services.openApiService) {
-        services.openApiService.useErrorHandler(app);
-    }
-
     if (process.env.NODE_ENV !== 'production') {
         app.use(errorHandler());
     } else {
@@ -185,6 +204,7 @@ export default async function getApp(
     }
 
     app.get(`${baseUriPath}`, (req, res) => {
+        res.set('Content-Type', 'text/html');
         res.send(indexHTML);
     });
 
@@ -198,6 +218,14 @@ export default async function getApp(
     });
 
     app.get(`${baseUriPath}/*`, (req, res) => {
+        res.set('Content-Type', 'text/html');
+        const requestPath = path.parse(req.url);
+        // appropriately return 404 requests for assets with an extension (js, css, etc)
+        if (requestPath.ext !== '' && requestPath.ext !== 'html') {
+            res.set('Cache-Control', 'no-cache');
+            res.status(404).send(indexHTML);
+            return;
+        }
         res.send(indexHTML);
     });
 

@@ -1,10 +1,4 @@
 import useAPI from '../useApi/useApi';
-import {
-    handleBadRequest,
-    handleForbidden,
-    handleNotFound,
-    handleUnauthorized,
-} from './errorHandlers';
 
 interface IUserPayload {
     name: string;
@@ -16,10 +10,7 @@ export const REMOVE_USER_ERROR = 'removeUser';
 
 const useAdminUsersApi = () => {
     const { loading, makeRequest, createRequest, errors } = useAPI({
-        handleBadRequest,
-        handleNotFound,
-        handleUnauthorized,
-        handleForbidden,
+        propagateErrors: true,
     });
 
     const addUser = async (user: IUserPayload) => {
@@ -30,7 +21,7 @@ const useAdminUsersApi = () => {
                 method: 'POST',
                 body: JSON.stringify(user),
             },
-            requestId
+            requestId,
         );
 
         return makeRequest(req.caller, req.id);
@@ -41,7 +32,7 @@ const useAdminUsersApi = () => {
         const req = createRequest(
             `api/admin/user-admin/${userId}`,
             { method: 'DELETE' },
-            requestId
+            requestId,
         );
 
         return makeRequest(req.caller, req.id);
@@ -55,7 +46,7 @@ const useAdminUsersApi = () => {
                 method: 'PUT',
                 body: JSON.stringify(user),
             },
-            requestId
+            requestId,
         );
 
         return makeRequest(req.caller, req.id);
@@ -69,7 +60,7 @@ const useAdminUsersApi = () => {
                 method: 'POST',
                 body: JSON.stringify({ password }),
             },
-            requestId
+            requestId,
         );
 
         return makeRequest(req.caller, req.id);
@@ -83,7 +74,34 @@ const useAdminUsersApi = () => {
                 method: 'POST',
                 body: JSON.stringify({ password }),
             },
-            requestId
+            requestId,
+        );
+
+        return makeRequest(req.caller, req.id);
+    };
+
+    const resetPassword = async (email: string) => {
+        const requestId = 'resetPassword';
+        const req = createRequest(
+            'api/admin/user-admin/reset-password',
+            {
+                method: 'POST',
+                body: JSON.stringify({ id: email }),
+            },
+            requestId,
+        );
+
+        return makeRequest(req.caller, req.id);
+    };
+
+    const deleteScimUsers = async () => {
+        const requestId = 'deleteScimUsers';
+        const req = createRequest(
+            'api/admin/user-admin/scim-users',
+            {
+                method: 'DELETE',
+            },
+            requestId,
         );
 
         return makeRequest(req.caller, req.id);
@@ -95,6 +113,8 @@ const useAdminUsersApi = () => {
         removeUser,
         changePassword,
         validatePassword,
+        resetPassword,
+        deleteScimUsers,
         userApiErrors: errors,
         userLoading: loading,
     };

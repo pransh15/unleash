@@ -1,6 +1,7 @@
 // The "official" OpenAPI tags that we use. These tags are added to the OpenAPI
 // spec as the root-level "tags" list. Consider creating a new entry here when
-// creating a new endpoint.
+// creating a new endpoint. This list should always be sorted alphabetically on
+// the tag name.
 const OPENAPI_TAGS = [
     {
         name: 'Addons',
@@ -18,21 +19,21 @@ const OPENAPI_TAGS = [
             'Create, update, and delete [Unleash API tokens](https://docs.getunleash.io/reference/api-tokens-and-client-keys).',
     },
     {
-        name: 'Personal access tokens',
-        description:
-            'Create, update, and delete [Personal access tokens](https://docs.getunleash.io/reference/api-tokens-and-client-keys#personal-access-tokens).',
-    },
-    {
-        name: 'Service Accounts',
-        description:
-            'Endpoints for managing [Service Accounts](https://docs.getunleash.io/reference/service-accounts), which enable programmatic access to the Unleash API.',
-    },
-    {
         name: 'Archive',
         description:
-            'Revive or permanently delete [archived feature toggles](https://docs.getunleash.io/advanced/archived_toggles).',
+            'Revive or permanently delete [archived feature flags](https://docs.getunleash.io/advanced/archived_toggles).',
     },
     { name: 'Auth', description: 'Manage logins, passwords, etc.' },
+    {
+        name: 'Banners',
+        description:
+            'Create, update, flag, and delete [banners](https://docs.getunleash.io/reference/banners).',
+    },
+    {
+        name: 'Change Requests',
+        description:
+            'API for managing [change requests](https://docs.getunleash.io/reference/change-requests).',
+    },
     {
         name: 'Client',
         description:
@@ -44,20 +45,35 @@ const OPENAPI_TAGS = [
             'Create, update, and delete [context fields](https://docs.getunleash.io/reference/unleash-context) that Unleash is aware of.',
     },
     {
+        name: 'Dependencies',
+        description: 'Manage feature dependencies.',
+    },
+    { name: 'Edge', description: 'Endpoints related to Unleash on the Edge.' },
+    {
         name: 'Environments',
         description:
             'Create, update, delete, enable or disable [environments](https://docs.getunleash.io/reference/environments) for this Unleash instance.',
     },
     { name: 'Events', description: 'Read events from this Unleash instance.' },
     {
+        name: 'Feature Types',
+        description:
+            'Manage [feature flag types](https://docs.getunleash.io/reference/feature-toggles#feature-flag-types).',
+    },
+    {
         name: 'Features',
         description:
-            'Create, update, and delete [features toggles](https://docs.getunleash.io/reference/feature-toggles).',
+            'Create, update, and delete [feature flags](https://docs.getunleash.io/reference/feature-toggles).',
+    },
+    {
+        name: 'Frontend API',
+        description:
+            'API for connecting client-side (frontend) applications to Unleash.',
     },
     {
         name: 'Import/Export',
         description:
-            '[Import and export](https://docs.getunleash.io/deploy/import_export) the state of your Unleash instance.',
+            '[Import and export](https://docs.getunleash.io/how-to/how-to-environment-import-export) the state of your Unleash instance.',
     },
     {
         name: 'Instance Admin',
@@ -65,8 +81,17 @@ const OPENAPI_TAGS = [
             'Instance admin endpoints used to manage the Unleash instance itself.',
     },
     {
+        name: 'Maintenance',
+        description: 'Enable/disable the maintenance mode of Unleash.',
+    },
+    {
         name: 'Metrics',
         description: 'Register, read, or delete metrics recorded by Unleash.',
+    },
+    {
+        name: 'Notifications',
+        description:
+            'API for managing [notifications](https://docs.getunleash.io/reference/notifications).',
     },
     {
         name: 'Operational',
@@ -74,9 +99,13 @@ const OPENAPI_TAGS = [
             'Endpoints related to the operational status of this Unleash instance.',
     },
     {
-        name: 'Playground',
+        name: 'Personal access tokens',
         description:
-            'Evaluate an Unleash context against your feature toggles.',
+            'Create, update, and delete [Personal access tokens](https://docs.getunleash.io/reference/api-tokens-and-client-keys#personal-access-tokens).',
+    },
+    {
+        name: 'Playground',
+        description: 'Evaluate an Unleash context against your feature flags.',
     },
     {
         name: 'Projects',
@@ -88,10 +117,16 @@ const OPENAPI_TAGS = [
         description:
             'Create, update, and delete [Unleash Public Signup tokens](https://docs.getunleash.io/reference/public-signup-tokens).',
     },
+    { name: 'Search', description: 'Search for features.' },
     {
         name: 'Segments',
         description:
             'Create, update, delete, and manage [segments](https://docs.getunleash.io/reference/segments).',
+    },
+    {
+        name: 'Service Accounts',
+        description:
+            'Endpoints for managing [Service Accounts](https://docs.getunleash.io/reference/service-accounts), which enable programmatic access to the Unleash API.',
     },
     {
         name: 'Strategies',
@@ -101,45 +136,23 @@ const OPENAPI_TAGS = [
     {
         name: 'Tags',
         description:
-            'Create, update, and delete [tags and tag types](https://docs.getunleash.io/reference/tags).',
-    },
-    { name: 'Users', description: 'Manage users and passwords.' },
-    {
-        name: 'Unstable',
-        description:
-            'Experimental endpoints that may change or disappear at any time.',
-    },
-    { name: 'Edge', description: 'Endpoints related to Unleash on the Edge.' },
-    {
-        name: 'Frontend API',
-        description:
-            'API for connecting client-side (frontend) applications to Unleash.',
-    },
-    {
-        name: 'Maintenance',
-        description: 'Enable/disable the maintenance mode of Unleash.',
-    },
-    {
-        name: 'Change Requests',
-        description:
-            'API for managing [change requests](https://docs.getunleash.io/reference/change-requests).',
+            'Create, update, and delete [tags and tag types](https://docs.getunleash.io/reference/feature-toggles#tags).',
     },
     {
         name: 'Telemetry',
         description: 'API for information about telemetry collection',
     },
     {
-        name: 'Notifications',
+        name: 'Unstable',
         description:
-            'API for managing [notifications](https://docs.getunleash.io/reference/notifications).',
+            'Experimental endpoints that may change or disappear at any time.',
     },
+    { name: 'Users', description: 'Manage users and passwords.' },
 ] as const;
 
 // make the export mutable, so it can be used in a schema
-export const openApiTags = [...OPENAPI_TAGS].sort((a, b) =>
-    a.name.localeCompare(b.name),
-);
+export const openApiTags = [...OPENAPI_TAGS];
 
 export type OpenApiTag =
     // The official OpenAPI tags that we use.
-    typeof OPENAPI_TAGS[number]['name'];
+    (typeof OPENAPI_TAGS)[number]['name'];

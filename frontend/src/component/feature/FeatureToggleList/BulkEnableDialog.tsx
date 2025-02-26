@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Alert, Box, styled, Typography } from '@mui/material';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import GeneralSelect from 'component/common/GeneralSelect/GeneralSelect';
@@ -7,7 +7,6 @@ import type { FeatureSchema } from 'openapi';
 
 import { formatUnknownError } from 'utils/formatUnknownError';
 import useFeatureApi from 'hooks/api/actions/useFeatureApi/useFeatureApi';
-import useProject from 'hooks/api/getters/useProject/useProject';
 import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
 import { useChangeRequestApi } from 'hooks/api/actions/useChangeRequestApi/useChangeRequestApi';
 import { usePendingChangeRequests } from 'hooks/api/getters/usePendingChangeRequests/usePendingChangeRequests';
@@ -43,20 +42,19 @@ export const BulkEnableDialog = ({
     const [selected, setSelected] = useState(environments[0]);
     const { bulkToggleFeaturesEnvironmentOn } = useFeatureApi();
     const { addChange } = useChangeRequestApi();
-    const { refetch: refetchProject } = useProject(projectId);
     const { setToastApiError, setToastData } = useToast();
     const { isChangeRequestConfigured } = useChangeRequestsEnabled(projectId);
     const { refetch: refetchChangeRequests } =
         usePendingChangeRequests(projectId);
     const alreadyEnabledCount = data.filter(
-        feature =>
+        (feature) =>
             feature.environments?.find(
-                environment => selected === environment.name
-            )?.enabled === true
+                (environment) => selected === environment.name,
+            )?.enabled === true,
     ).length;
 
     const getOptions = () =>
-        environments.map(env => ({
+        environments.map((env) => ({
             key: env,
             label: env,
         }));
@@ -67,29 +65,26 @@ export const BulkEnableDialog = ({
                 await addChange(
                     projectId,
                     selected,
-                    data.map(feature => ({
+                    data.map((feature) => ({
                         action: 'updateEnabled',
                         feature: feature.name,
                         payload: { enabled: true },
-                    }))
+                    })),
                 );
                 refetchChangeRequests();
                 setToastData({
-                    text: 'Your enable feature toggles changes have been added to change request',
                     type: 'success',
-                    title: 'Changes added to a draft',
+                    text: 'Changes added to draft',
                 });
             } else {
                 await bulkToggleFeaturesEnvironmentOn(
                     projectId,
-                    data.map(feature => feature.name),
-                    selected
+                    data.map((feature) => feature.name),
+                    selected,
                 );
-                refetchProject();
                 setToastData({
-                    text: 'Your feature toggles have been enabled',
                     type: 'success',
-                    title: 'Features enabled',
+                    text: 'Feature flags enabled',
                 });
             }
 
@@ -102,20 +97,19 @@ export const BulkEnableDialog = ({
 
     const buttonText = isChangeRequestConfigured(selected)
         ? 'Add to change request'
-        : 'Enable toggles';
+        : 'Enable flags';
 
     return (
         <Dialogue
             open={showExportDialog}
-            title="Enable feature toggles"
+            title='Enable feature flags'
             onClose={onClose}
             onClick={onClick}
             primaryButtonText={buttonText}
-            secondaryButtonText="Cancel"
+            secondaryButtonText='Cancel'
         >
             <Box>
-                You have selected <b>{data.length}</b> feature toggles to
-                enable.
+                You have selected <b>{data.length}</b> feature flags to enable.
                 <br />
                 <br />
                 <Typography>
@@ -129,7 +123,7 @@ export const BulkEnableDialog = ({
                 <ConditionallyRender
                     condition={isChangeRequestConfigured(selected)}
                     show={
-                        <SpacedAlert severity="warning">
+                        <SpacedAlert severity='warning'>
                             Change requests are enabled for this environment.
                         </SpacedAlert>
                     }
@@ -137,11 +131,11 @@ export const BulkEnableDialog = ({
                 <ConditionallyRender
                     condition={alreadyEnabledCount > 0}
                     show={
-                        <SpacedAlert severity="info">
+                        <SpacedAlert severity='info'>
                             {alreadyEnabledCount} feature{' '}
                             {alreadyEnabledCount > 1
-                                ? 'toggles are '
-                                : 'toggle is '}
+                                ? 'flags are '
+                                : 'flag is '}
                             already enabled.
                         </SpacedAlert>
                     }

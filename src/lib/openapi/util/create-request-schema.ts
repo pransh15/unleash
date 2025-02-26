@@ -1,4 +1,4 @@
-import { OpenAPIV3 } from 'openapi-types';
+import type { OpenAPIV3 } from 'openapi-types';
 
 export const createRequestSchema = (
     schemaName: string,
@@ -9,7 +9,9 @@ export const createRequestSchema = (
         content: {
             'application/json': {
                 schema: {
-                    $ref: `#/components/schemas/${schemaName}`,
+                    $ref: schemaName.startsWith('#')
+                        ? schemaName
+                        : `#/components/schemas/${schemaName}`,
                 },
             },
         },

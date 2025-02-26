@@ -1,10 +1,11 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import StandaloneBanner from 'component/user/StandaloneBanner';
 import { styled } from '@mui/material';
 
 interface IStandaloneLayout {
     BannerComponent?: JSX.Element;
     showMenu?: boolean;
+    children?: React.ReactNode;
 }
 
 const StyledContainer = styled('div')(({ theme }) => ({
@@ -67,7 +68,7 @@ const StandaloneLayout: FC<IStandaloneLayout> = ({
     children,
     BannerComponent,
 }) => {
-    let banner = <StandaloneBanner title="Unleash" />;
+    let banner = <StandaloneBanner title='Unleash' />;
 
     if (BannerComponent) {
         banner = BannerComponent;

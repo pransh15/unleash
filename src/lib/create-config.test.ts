@@ -1,4 +1,4 @@
-import { createConfig } from './create-config';
+import { createConfig, resolveIsOss } from './create-config';
 import { ApiTokenType } from './types/models/api-token';
 
 test('should create default config', async () => {
@@ -15,7 +15,13 @@ test('should create default config', async () => {
         },
     });
 
-    expect(config).toMatchSnapshot();
+    const { experimental, flagResolver, ...configWithoutExperimental } = config;
+    expect(configWithoutExperimental).toMatchSnapshot();
+    expect(flagResolver).toMatchObject({
+        getAll: expect.any(Function),
+        isEnabled: expect.any(Function),
+        getVariant: expect.any(Function),
+    });
 });
 
 test('should add initApiToken for admin token from options', async () => {
@@ -223,6 +229,11 @@ test('should handle cases where no env var specified for tokens', async () => {
     });
 
     expect(config.authentication.initApiTokens).toHaveLength(1);
+});
+
+test('should default demo admin login to false', async () => {
+    const config = createConfig({});
+    expect(config.authentication.demoAllowAdminLogin).toBeFalsy();
 });
 
 test('should load environment overrides from env var', async () => {
@@ -439,19 +450,19 @@ test('Environment variables for frontend CORS origins takes priority over option
 });
 
 test('baseUriPath defaults to the empty string', async () => {
-    let config = createConfig({});
+    const config = createConfig({});
     expect(config.server.baseUriPath).toBe('');
 });
 test('BASE_URI_PATH defined in env is passed through', async () => {
     process.env.BASE_URI_PATH = '/demo';
-    let config = createConfig({});
+    const config = createConfig({});
     expect(config.server.baseUriPath).toBe('/demo');
     delete process.env.BASE_URI_PATH;
 });
 
 test('environment variable takes precedence over configured variable', async () => {
     process.env.BASE_URI_PATH = '/demo';
-    let config = createConfig({
+    const config = createConfig({
         server: {
             baseUriPath: '/other',
         },
@@ -463,7 +474,7 @@ test('environment variable takes precedence over configured variable', async () 
 test.each(['demo', '/demo', '/demo/'])(
     'Trailing and leading slashes gets normalized for base path %s',
     async (path) => {
-        let config = createConfig({
+        const config = createConfig({
             server: {
                 baseUriPath: path,
             },
@@ -471,3 +482,52 @@ test.each(['demo', '/demo', '/demo/'])(
         expect(config.server.baseUriPath).toBe('/demo');
     },
 );
+
+test('Config with enterpriseVersion set and pro environment should set isEnterprise to false', async () => {
+    const config = createConfig({
+        enterpriseVersion: '5.3.0',
+        ui: { environment: 'pro' },
+    });
+    expect(config.isEnterprise).toBe(false);
+});
+
+test('Config with enterpriseVersion set and not pro environment should set isEnterprise to true', async () => {
+    const config = createConfig({
+        enterpriseVersion: '5.3.0',
+        ui: { environment: 'Enterprise' },
+    });
+    expect(config.isEnterprise).toBe(true);
+});
+
+describe('isOSS', () => {
+    test('Config with pro environment should set isOss to false regardless of pro casing', async () => {
+        const isOss = resolveIsOss(false, false, 'Pro');
+        expect(isOss).toBe(false);
+        const lowerCase = resolveIsOss(false, false, 'pro');
+        expect(lowerCase).toBe(false);
+        const strangeCase = resolveIsOss(false, false, 'PrO');
+        expect(strangeCase).toBe(false);
+    });
+    test('Config with enterpriseVersion set should set isOss to false', async () => {
+        const isOss = resolveIsOss(true, false, 'Enterprise');
+        expect(isOss).toBe(false);
+    });
+    test('Config with no enterprise version and any other environment than pro should have isOss as true', async () => {
+        const isOss = resolveIsOss(false, false, 'my oss environment');
+        expect(isOss).toBe(true);
+    });
+    test('Config with enterprise false and isOss option set to false should return false in test mode', async () => {
+        const isOss = resolveIsOss(false, false, 'my environment', true);
+        expect(isOss).toBe(false);
+    });
+    test('Config with isOss option set to true should return true when test environment is active', async () => {
+        let isOss = resolveIsOss(false, true, 'Pro', true);
+        expect(isOss).toBe(true);
+
+        isOss = resolveIsOss(true, true, 'Pro', true);
+        expect(isOss).toBe(true);
+
+        isOss = resolveIsOss(false, true, 'some environment', true);
+        expect(isOss).toBe(true);
+    });
+});

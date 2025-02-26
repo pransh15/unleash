@@ -1,5 +1,8 @@
-import { Fragment, VFC } from 'react';
-import { PlaygroundConstraintSchema, PlaygroundRequestSchema } from 'openapi';
+import { Fragment, type VFC } from 'react';
+import type {
+    PlaygroundConstraintSchema,
+    PlaygroundRequestSchema,
+} from 'openapi';
 import { objectId } from 'utils/objectId';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { StrategySeparator } from 'component/common/StrategySeparator/StrategySeparator';
@@ -31,7 +34,7 @@ export const ConstraintExecution: VFC<IConstraintExecutionProps> = ({
                 <Fragment key={objectId(constraint)}>
                     <ConditionallyRender
                         condition={index > 0}
-                        show={<StrategySeparator text="AND" />}
+                        show={<StrategySeparator text='AND' />}
                     />
                     <ConstraintAccordionView
                         constraint={constraint}

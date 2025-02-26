@@ -4,7 +4,7 @@ import {
     FormControl,
     InputLabel,
     Select,
-    SelectChangeEvent,
+    type SelectChangeEvent,
     styled,
     Tooltip,
     Typography,
@@ -13,12 +13,14 @@ import { Badge } from 'component/common/Badge/Badge';
 import { UserAvatar } from 'component/common/UserAvatar/UserAvatar';
 import { useProfile } from 'hooks/api/getters/useProfile/useProfile';
 import { useLocationSettings } from 'hooks/useLocationSettings';
-import { IUser } from 'interfaces/user';
+import type { IUser } from 'interfaces/user';
 import TopicOutlinedIcon from '@mui/icons-material/TopicOutlined';
 import { useNavigate } from 'react-router-dom';
 import { PageContent } from 'component/common/PageContent/PageContent';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { RoleBadge } from 'component/common/RoleBadge/RoleBadge';
+import { useUiFlag } from 'hooks/useUiFlag';
+import { ProductivityEmailSubscription } from './ProductivityEmailSubscription';
 
 const StyledHeader = styled('div')(({ theme }) => ({
     display: 'flex',
@@ -85,7 +87,7 @@ interface IProfileTabProps {
 }
 
 export const ProfileTab = ({ user }: IProfileTabProps) => {
-    const { profile } = useProfile();
+    const { profile, refetchProfile } = useProfile();
     const navigate = useNavigate();
     const { locationSettings, setLocationSettings } = useLocationSettings();
     const [currentLocale, setCurrentLocale] = useState<string>();
@@ -104,12 +106,14 @@ export const ProfileTab = ({ user }: IProfileTabProps) => {
     ]);
 
     useEffect(() => {
-        const found = possibleLocales.find(locale =>
-            locale.toLowerCase().includes(locationSettings.locale.toLowerCase())
+        const found = possibleLocales.find((locale) =>
+            locale
+                .toLowerCase()
+                .includes(locationSettings.locale.toLowerCase()),
         );
         setCurrentLocale(found);
         if (!found) {
-            setPossibleLocales(prev => [...prev, locationSettings.locale]);
+            setPossibleLocales((prev) => [...prev, locationSettings.locale]);
         }
     }, [locationSettings]);
 
@@ -119,6 +123,8 @@ export const ProfileTab = ({ user }: IProfileTabProps) => {
         setLocationSettings({ locale });
     };
 
+    const productivityReportEmailEnabled = useUiFlag('productivityReportEmail');
+
     return (
         <>
             <StyledHeader>
@@ -127,7 +133,7 @@ export const ProfileTab = ({ user }: IProfileTabProps) => {
                     <StyledInfoName>
                         {user.name || user.username}
                     </StyledInfoName>
-                    <Typography variant="body1">{user.email}</Typography>
+                    <Typography variant='body1'>{user.email}</Typography>
                 </StyledInfo>
             </StyledHeader>
             <PageContent>
@@ -138,7 +144,7 @@ export const ProfileTab = ({ user }: IProfileTabProps) => {
                             condition={Boolean(profile?.rootRole)}
                             show={() => (
                                 <>
-                                    <Typography variant="body2">
+                                    <Typography variant='body2'>
                                         Your root role
                                     </Typography>
                                     <RoleBadge roleId={profile?.rootRole.id!}>
@@ -149,23 +155,23 @@ export const ProfileTab = ({ user }: IProfileTabProps) => {
                         />
                     </Box>
                     <Box>
-                        <Typography variant="body2">Projects</Typography>
+                        <Typography variant='body2'>Projects</Typography>
                         <ConditionallyRender
                             condition={Boolean(profile?.projects.length)}
-                            show={profile?.projects.map(project => (
+                            show={profile?.projects.map((project) => (
                                 <Tooltip
                                     key={project}
-                                    title="View project"
+                                    title='View project'
                                     arrow
-                                    placement="bottom-end"
+                                    placement='bottom-end'
                                     describeChild
                                 >
                                     <StyledBadge
-                                        onClick={e => {
+                                        onClick={(e) => {
                                             e.preventDefault();
                                             navigate(`/projects/${project}`);
                                         }}
-                                        color="secondary"
+                                        color='secondary'
                                         icon={<TopicOutlinedIcon />}
                                     >
                                         {project}
@@ -174,7 +180,7 @@ export const ProfileTab = ({ user }: IProfileTabProps) => {
                             ))}
                             elseShow={
                                 <Tooltip
-                                    title="You are not assigned to any projects"
+                                    title='You are not assigned to any projects'
                                     arrow
                                     describeChild
                                 >
@@ -185,16 +191,16 @@ export const ProfileTab = ({ user }: IProfileTabProps) => {
                     </Box>
                 </StyledAccess>
                 <StyledDivider />
-                <StyledSectionLabel>Settings</StyledSectionLabel>
-                <Typography variant="body2">
+                <StyledSectionLabel>Date/Time Settings</StyledSectionLabel>
+                <Typography variant='body2'>
                     This is the format used across the system for time and date
                 </Typography>
-                <StyledFormControl variant="outlined" size="small">
-                    <StyledInputLabel htmlFor="locale-select">
+                <StyledFormControl variant='outlined' size='small'>
+                    <StyledInputLabel htmlFor='locale-select'>
                         Date/Time formatting
                     </StyledInputLabel>
                     <Select
-                        id="locale-select"
+                        id='locale-select'
                         value={currentLocale || ''}
                         native
                         onChange={changeLocale}
@@ -204,7 +210,7 @@ export const ProfileTab = ({ user }: IProfileTabProps) => {
                             },
                         }}
                     >
-                        {possibleLocales.map(locale => {
+                        {possibleLocales.map((locale) => {
                             return (
                                 <option key={locale} value={locale}>
                                     {locale}
@@ -213,6 +219,24 @@ export const ProfileTab = ({ user }: IProfileTabProps) => {
                         })}
                     </Select>
                 </StyledFormControl>
+                {productivityReportEmailEnabled ? (
+                    <>
+                        <StyledDivider />
+                        <StyledSectionLabel>Email Settings</StyledSectionLabel>
+                        {profile?.subscriptions && (
+                            <ProductivityEmailSubscription
+                                status={
+                                    profile.subscriptions.includes(
+                                        'productivity-report',
+                                    )
+                                        ? 'subscribed'
+                                        : 'unsubscribed'
+                                }
+                                onChange={refetchProfile}
+                            />
+                        )}
+                    </>
+                ) : null}
             </PageContent>
         </>
     );

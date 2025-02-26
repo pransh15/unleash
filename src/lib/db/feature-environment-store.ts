@@ -1,15 +1,16 @@
-import EventEmitter from 'events';
-import {
+import type EventEmitter from 'events';
+import type {
     FeatureEnvironmentKey,
     IFeatureEnvironmentStore,
 } from '../types/stores/feature-environment-store';
-import { Logger, LogProvider } from '../logger';
+import type { Logger } from '../logger';
 import metricsHelper from '../util/metrics-helper';
 import { DB_TIME } from '../metric-events';
-import { IFeatureEnvironment, IVariant } from '../types/model';
+import type { IFeatureEnvironment, IVariant } from '../types/model';
 import NotFoundError from '../error/notfound-error';
 import { v4 as uuidv4 } from 'uuid';
-import { Db } from './db';
+import type { Db } from './db';
+import type { IUnleashConfig } from '../types';
 
 const T = {
     featureEnvs: 'feature_environments',
@@ -36,7 +37,12 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
 
     private readonly timer: Function;
 
-    constructor(db: Db, eventBus: EventEmitter, getLogger: LogProvider) {
+    private readonly isOss: boolean;
+    constructor(
+        db: Db,
+        eventBus: EventEmitter,
+        { getLogger, isOss }: Pick<IUnleashConfig, 'getLogger' | 'isOss'>,
+    ) {
         this.db = db;
         this.logger = getLogger('feature-environment-store.ts');
         this.timer = (action) =>
@@ -44,6 +50,7 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
                 store: 'feature-environments',
                 action,
             });
+        this.isOss = isOss;
     }
 
     async delete({
@@ -96,11 +103,30 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
         );
     }
 
+    addOssFilterIfNeeded(queryBuilder) {
+        if (this.isOss) {
+            return queryBuilder
+                .join(
+                    'environments',
+                    'environments.name',
+                    '=',
+                    `${T.featureEnvs}.environment`,
+                )
+                .whereIn('environments.name', [
+                    'default',
+                    'development',
+                    'production',
+                ]);
+        }
+        return queryBuilder;
+    }
+
     async getAll(query?: Object): Promise<IFeatureEnvironment[]> {
         let rows = this.db(T.featureEnvs);
         if (query) {
             rows = rows.where(query);
         }
+        this.addOssFilterIfNeeded(rows);
         return (await rows).map((r) => ({
             enabled: r.enabled,
             featureName: r.feature_name,
@@ -119,6 +145,7 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
         if (environment) {
             rows = rows.where({ environment });
         }
+        this.addOssFilterIfNeeded(rows);
         return (await rows).map((r) => ({
             enabled: r.enabled,
             featureName: r.feature_name,
@@ -152,7 +179,7 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
         await this.db('feature_environments')
             .insert({ feature_name: featureName, environment, enabled })
             .onConflict(['environment', 'feature_name'])
-            .merge('enabled');
+            .merge(['enabled']);
     }
 
     // TODO: move to project store.
@@ -303,41 +330,6 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
             .del();
     }
 
-    // TODO: remove this once variants per env are GA
-    async clonePreviousVariants(
-        environment: string,
-        project: string,
-    ): Promise<void> {
-        const rows = await this.db(`${T.features} as f`)
-            .select([
-                this.db.raw(`'${environment}' as environment`),
-                'fe.enabled',
-                'fe.feature_name',
-                'fe.variants',
-            ])
-            .distinctOn(['environment', 'feature_name'])
-            .join(`${T.featureEnvs} as fe`, 'f.name', 'fe.feature_name')
-            .whereNot({ environment })
-            .andWhere({ project });
-
-        const newRows = rows.map((row) => {
-            const r = row as any as IFeatureEnvironmentRow;
-            return {
-                variants: JSON.stringify(r.variants),
-                enabled: r.enabled,
-                environment: r.environment,
-                feature_name: r.feature_name,
-            };
-        });
-
-        if (newRows.length > 0) {
-            await this.db(T.featureEnvs)
-                .insert(newRows)
-                .onConflict(['environment', 'feature_name'])
-                .merge(['variants']);
-        }
-    }
-
     async connectFeatureToEnvironmentsForProject(
         featureName: string,
         projectId: string,
@@ -366,8 +358,11 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
         projects: string[],
     ): Promise<void> {
         await this.db.raw(
-            `INSERT INTO ${T.featureEnvs} (
-                SELECT distinct ? AS environment, feature_name, enabled FROM ${T.featureEnvs} INNER JOIN ${T.features} ON ${T.featureEnvs}.feature_name = ${T.features}.name WHERE environment = ? AND project = ANY(?))`,
+            `INSERT INTO ${T.featureEnvs} (environment, feature_name, enabled, variants)
+             SELECT DISTINCT ? AS environemnt, fe.feature_name, fe.enabled, fe.variants
+             FROM ${T.featureEnvs} AS fe
+                      INNER JOIN ${T.features} AS f ON fe.feature_name = f.name
+             WHERE fe.environment = ? AND f.project = ANY(?)`,
             [destinationEnvironment, sourceEnvironment, projects],
         );
     }
@@ -389,7 +384,7 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
         environments: string[],
         variants: IVariant[],
     ): Promise<void> {
-        let v = variants || [];
+        const v = variants || [];
         v.sort((a, b) => a.name.localeCompare(b.name));
         const variantsString = JSON.stringify(v);
         const records = environments.map((env) => ({
@@ -407,7 +402,7 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
     async addFeatureEnvironment(
         featureEnvironment: IFeatureEnvironment,
     ): Promise<void> {
-        let v = featureEnvironment.variants || [];
+        const v = featureEnvironment.variants || [];
         v.sort((a, b) => a.name.localeCompare(b.name));
         await this.db(T.featureEnvs)
             .insert({
@@ -424,11 +419,11 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
         sourceEnvironment: string,
         destinationEnvironment: string,
     ): Promise<void> {
-        let sourceFeatureStrategies = await this.db('feature_strategies').where(
-            {
-                environment: sourceEnvironment,
-            },
-        );
+        const sourceFeatureStrategies = await this.db(
+            'feature_strategies',
+        ).where({
+            environment: sourceEnvironment,
+        });
 
         const clonedStrategyRows = sourceFeatureStrategies.map(
             (featureStrategy) => {
@@ -441,6 +436,7 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
                     parameters: JSON.stringify(featureStrategy.parameters),
                     constraints: JSON.stringify(featureStrategy.constraints),
                     sort_order: featureStrategy.sort_order,
+                    variants: JSON.stringify(featureStrategy.variants),
                 };
             },
         );
@@ -485,5 +481,14 @@ export class FeatureEnvironmentStore implements IFeatureEnvironmentStore {
                 clonedSegmentIdRows,
             );
         }
+    }
+
+    async variantExists(featureName: string): Promise<boolean> {
+        const result = await this.db.raw(
+            `SELECT EXISTS (SELECT 1 FROM ${T.featureEnvs} WHERE feature_name = ? AND variants <> '[]'::jsonb) AS present`,
+            [featureName],
+        );
+        const { present } = result.rows[0];
+        return present;
     }
 }

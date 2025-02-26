@@ -9,7 +9,9 @@ import {
     TableRow,
     TablePlaceholder,
 } from 'component/common/Table';
-import { Delete, Edit, Label } from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
+import Edit from '@mui/icons-material/Edit';
+import Label from '@mui/icons-material/Label';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
 import { PageContent } from 'component/common/PageContent/PageContent';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
@@ -68,7 +70,7 @@ export const TagTypeList = () => {
                             alignItems: 'center',
                         }}
                     >
-                        <Label color="disabled" />
+                        <Label color='disabled' />
                     </Box>
                 ),
                 disableGlobalFilter: true,
@@ -134,7 +136,7 @@ export const TagTypeList = () => {
                 disableSortBy: true,
             },
         ],
-        [navigate]
+        [navigate],
     );
 
     const initialState = useMemo(
@@ -142,7 +144,7 @@ export const TagTypeList = () => {
             sortBy: [{ id: 'name', desc: false }],
             hiddenColumns: ['description'],
         }),
-        []
+        [],
     );
 
     const {
@@ -164,7 +166,7 @@ export const TagTypeList = () => {
             disableSortRemove: true,
         },
         useGlobalFilter,
-        useSortBy
+        useSortBy,
     );
 
     const deleteTag = async () => {
@@ -176,7 +178,7 @@ export const TagTypeList = () => {
                 setToastData({
                     type: 'success',
                     show: true,
-                    title: 'Successfully deleted tag type.',
+                    text: 'Tag type deleted',
                 });
             }
         } catch (error) {
@@ -206,15 +208,20 @@ export const TagTypeList = () => {
                 <Table {...getTableProps()}>
                     <SortableTableHeader headerGroups={headerGroups} />
                     <TableBody {...getTableBodyProps()}>
-                        {rows.map(row => {
+                        {rows.map((row) => {
                             prepareRow(row);
+                            const { key, ...rowProps } = row.getRowProps();
                             return (
-                                <TableRow hover {...row.getRowProps()}>
-                                    {row.cells.map(cell => (
-                                        <TableCell {...cell.getCellProps()}>
-                                            {cell.render('Cell')}
-                                        </TableCell>
-                                    ))}
+                                <TableRow hover key={key} {...rowProps}>
+                                    {row.cells.map((cell) => {
+                                        const { key, ...cellProps } =
+                                            cell.getCellProps();
+                                        return (
+                                            <TableCell key={key} {...cellProps}>
+                                                {cell.render('Cell')}
+                                            </TableCell>
+                                        );
+                                    })}
                                 </TableRow>
                             );
                         })}
@@ -242,7 +249,7 @@ export const TagTypeList = () => {
                 }
             />
             <Dialogue
-                title="Really delete Tag type?"
+                title='Really delete Tag type?'
                 open={deletion.open}
                 onClick={deleteTag}
                 onClose={() => {

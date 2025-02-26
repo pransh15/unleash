@@ -1,11 +1,11 @@
-import { IConstraint } from 'interfaces/strategy';
+import type { IConstraint } from 'interfaces/strategy';
 import { formatDateYMDHMS } from 'utils/formatDate';
-import { ILocationSettings } from 'hooks/useLocationSettings';
+import type { ILocationSettings } from 'hooks/useLocationSettings';
 import { CURRENT_TIME_CONTEXT_FIELD } from 'utils/operatorsForContext';
 
 export const formatConstraintValue = (
     constraint: IConstraint,
-    locationSettings: ILocationSettings
+    locationSettings: ILocationSettings,
 ): string | undefined => {
     if (
         constraint.value &&

@@ -1,10 +1,11 @@
-import { IFeatureEnvironment } from 'interfaces/featureToggle';
+import type { IFeatureEnvironment } from 'interfaces/featureToggle';
 import { IconButton, styled } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 
 const StyledVisibilityToggle = styled(IconButton, {
-    shouldForwardProp: prop => prop !== 'visibilityOff',
+    shouldForwardProp: (prop) => prop !== 'visibilityOff',
 })<{ visibilityOff: boolean }>(({ theme, visibilityOff }) => ({
     marginLeft: 'auto',
     marginRight: theme.spacing(-1),
@@ -31,13 +32,16 @@ export const FeatureOverviewSidePanelEnvironmentHider = ({
         setHiddenEnvironments(environment.name);
     };
 
+    const isHidden = hiddenEnvironments.has(environment.name);
+
     return (
         <StyledVisibilityToggle
             onClick={toggleHiddenEnvironments}
-            visibilityOff={hiddenEnvironments.has(environment.name)}
+            visibilityOff={isHidden}
+            aria-label={`${isHidden ? 'Show' : 'Hide'} environment "${environment.name}"`}
         >
             <ConditionallyRender
-                condition={hiddenEnvironments.has(environment.name)}
+                condition={isHidden}
                 show={<VisibilityOff />}
                 elseShow={<Visibility />}
             />

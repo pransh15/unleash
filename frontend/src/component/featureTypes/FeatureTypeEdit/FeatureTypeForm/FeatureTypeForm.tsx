@@ -1,6 +1,6 @@
 import { type FormEventHandler, type VFC, useState, useCallback } from 'react';
 import { Box, Button, Typography, Checkbox, styled } from '@mui/material';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import { useFeatureTypeApi } from 'hooks/api/actions/useFeatureTypeApi/useFeatureTypeApi';
 import FormTemplate from 'component/common/FormTemplate/FormTemplate';
@@ -9,7 +9,7 @@ import PermissionButton from 'component/common/PermissionButton/PermissionButton
 import { ADMIN } from 'component/providers/AccessProvider/permissions';
 import { GO_BACK } from 'constants/navigate';
 import Input from 'component/common/Input/Input';
-import { FeatureTypeSchema } from 'openapi';
+import type { FeatureTypeSchema } from 'openapi';
 import { trim } from 'component/common/util';
 import { HelpIcon } from 'component/common/HelpIcon/HelpIcon';
 import useToast from 'hooks/useToast';
@@ -46,16 +46,16 @@ export const FeatureTypeForm: VFC<FeatureTypeFormProps> = ({
     const { updateFeatureTypeLifetime, loading: actionLoading } =
         useFeatureTypeApi();
     const [lifetime, setLifetime] = useState<number>(
-        featureType?.lifetimeDays || 0
+        featureType?.lifetimeDays || 0,
     );
     const [doesntExpire, setDoesntExpire] = useState<boolean>(
-        !featureType?.lifetimeDays
+        !featureType?.lifetimeDays,
     );
     const { setToastData, setToastApiError } = useToast();
     const tracker = usePlausibleTracker();
 
     const onChangeLifetime = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = parseInt(trim(e.target.value), 10);
+        const value = Number.parseInt(trim(e.target.value), 10);
         setLifetime(value);
         if (value === 0) {
             setDoesntExpire(true);
@@ -72,17 +72,17 @@ export const FeatureTypeForm: VFC<FeatureTypeFormProps> = ({
     const isIncorrect =
         !doesntExpire && (Number.isNaN(lifetime) || lifetime < 0);
 
-    const onSubmit: FormEventHandler = async e => {
+    const onSubmit: FormEventHandler = async (e) => {
         e.preventDefault();
         try {
             if (!featureType?.id)
-                throw new Error('No feature toggle type loaded');
+                throw new Error('No feature flag type loaded');
 
             const value = doesntExpire ? 0 : lifetime;
             await updateFeatureTypeLifetime(featureType.id, value);
             refetch();
             setToastData({
-                title: 'Feature type updated',
+                text: 'Feature type updated',
                 type: 'success',
             });
             navigate('/feature-toggle-type');
@@ -105,13 +105,13 @@ export const FeatureTypeForm: VFC<FeatureTypeFormProps> = ({
                 "--header 'Content-Type: application/json'",
                 '--data-raw \'{\n  "lifetimeDays": 7\n}\'',
             ].join(' \\\n'),
-        [uiConfig, featureType?.id]
+        [uiConfig, featureType?.id],
     );
 
     if (!loading && !featureType) {
         return (
             <NotFound>
-                <div data-testid="404_NOT_FOUND" />
+                <div data-testid='404_NOT_FOUND' />
             </NotFound>
         );
     }
@@ -121,23 +121,23 @@ export const FeatureTypeForm: VFC<FeatureTypeFormProps> = ({
             modal
             title={
                 loading
-                    ? 'Edit toggle type'
-                    : `Edit toggle type: ${featureType?.name}`
+                    ? 'Edit flag type'
+                    : `Edit flag type: ${featureType?.name}`
             }
             description={featureType?.description || ''}
-            documentationLink="https://docs.getunleash.io/reference/feature-toggle-types"
-            documentationLinkLabel="Feature toggle types documentation"
+            documentationLink='https://docs.getunleash.io/reference/feature-toggles#feature-flag-types'
+            documentationLinkLabel='Feature flag types documentation'
             formatApiCode={formatApiCode}
         >
-            <StyledForm component="form" onSubmit={onSubmit}>
+            <StyledForm component='form' onSubmit={onSubmit}>
                 <Typography
-                    sx={theme => ({
+                    sx={(theme) => ({
                         margin: theme.spacing(3, 0, 1),
                         display: 'flex',
                         alignItems: 'center',
                     })}
                 >
-                    <Box component="label" htmlFor="feature-toggle-lifetime">
+                    <Box component='label' htmlFor='feature-flag-lifetime'>
                         Expected lifetime
                     </Box>
                     <HelpIcon
@@ -145,14 +145,15 @@ export const FeatureTypeForm: VFC<FeatureTypeFormProps> = ({
                         tooltip={
                             <>
                                 <p>
-                                    If your toggle exceeded lifetime of it's
-                                    type it will be marked as potencially stale.
+                                    If your flag exceeds the expected lifetime
+                                    of its flag type it will be marked as
+                                    potentially stale.
                                 </p>
                                 <br />
                                 <a
-                                    href="https://docs.getunleash.io/reference/feature-toggle-types#expected-lifetime"
-                                    target="_blank"
-                                    rel="noreferrer"
+                                    href='https://docs.getunleash.io/reference/feature-toggles#feature-flag-types'
+                                    target='_blank'
+                                    rel='noreferrer'
                                 >
                                     Read more in the documentation
                                 </a>
@@ -161,19 +162,19 @@ export const FeatureTypeForm: VFC<FeatureTypeFormProps> = ({
                     />
                 </Typography>
                 <Box
-                    component="label"
-                    sx={theme => ({
+                    component='label'
+                    sx={(theme) => ({
                         display: 'flex',
                         alignItems: 'center',
                         cursor: 'pointer',
                         marginBottom: theme.spacing(1),
                         marginRight: 'auto',
                     })}
-                    htmlFor="feature-toggle-expire"
+                    htmlFor='feature-flag-expire'
                 >
                     <Checkbox
                         checked={doesntExpire || lifetime === 0}
-                        id="feature-toggle-expire"
+                        id='feature-flag-expire'
                         onChange={onChangeDoesntExpire}
                         disabled={loading}
                     />
@@ -182,9 +183,9 @@ export const FeatureTypeForm: VFC<FeatureTypeFormProps> = ({
                 <Input
                     autoFocus
                     disabled={doesntExpire || loading}
-                    type="number"
-                    label="Lifetime in days"
-                    id="feature-toggle-lifetime"
+                    type='number'
+                    label='Lifetime in days'
+                    id='feature-flag-lifetime'
                     value={doesntExpire ? '0' : `${lifetime}`}
                     onChange={onChangeLifetime}
                     error={isIncorrect}
@@ -192,16 +193,16 @@ export const FeatureTypeForm: VFC<FeatureTypeFormProps> = ({
                 <StyledButtons>
                     <PermissionButton
                         permission={ADMIN}
-                        variant="contained"
-                        color="primary"
-                        type="submit"
+                        variant='contained'
+                        color='primary'
+                        type='submit'
                         disabled={loading || actionLoading}
                     >
-                        Save feature toggle type
+                        Save feature flag type
                     </PermissionButton>
                     <Button
-                        type="button"
-                        color="primary"
+                        type='button'
+                        color='primary'
                         onClick={() => navigate(GO_BACK)}
                     >
                         Cancel

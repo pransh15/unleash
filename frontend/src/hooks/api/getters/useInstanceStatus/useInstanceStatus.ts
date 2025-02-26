@@ -1,4 +1,4 @@
-import { IInstanceStatus, InstancePlan } from 'interfaces/instance';
+import { type IInstanceStatus, InstancePlan } from 'interfaces/instance';
 import { useApiGetter } from 'hooks/api/getters/useApiGetter/useApiGetter';
 import { formatApiPath } from 'utils/formatPath';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
@@ -20,7 +20,7 @@ export const useInstanceStatus = (): IUseInstanceStatusOutput => {
 
     const { data, refetch, loading, error } = useApiGetter(
         ['useInstanceStatus', UNLEASH_CLOUD],
-        () => fetchInstanceStatus(UNLEASH_CLOUD)
+        () => fetchInstanceStatus(UNLEASH_CLOUD),
     );
 
     const billingPlans = [
@@ -37,14 +37,16 @@ export const useInstanceStatus = (): IUseInstanceStatusOutput => {
         instanceStatus: data,
         refetchInstanceStatus: refetch,
         refresh,
-        isBilling: billingPlans.includes(data?.plan ?? InstancePlan.UNKNOWN),
+        isBilling:
+            uiConfig.billing === 'pay-as-you-go' ||
+            billingPlans.includes(data?.plan ?? InstancePlan.UNKNOWN),
         loading,
         error,
     };
 };
 
 const fetchInstanceStatus = async (
-    UNLEASH_CLOUD?: boolean
+    UNLEASH_CLOUD?: boolean,
 ): Promise<IInstanceStatus> => {
     if (!UNLEASH_CLOUD) {
         return UNKNOWN_INSTANCE_STATUS;

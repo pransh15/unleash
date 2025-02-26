@@ -1,4 +1,3 @@
-import React from 'react';
 import renderer from 'react-test-renderer';
 import { MemoryRouter } from 'react-router-dom';
 import Footer from './Footer';
@@ -13,7 +12,7 @@ test('should render DrawerMenu', () => {
                     <Footer />
                 </MemoryRouter>
             </AnnouncerProvider>
-        </ThemeProvider>
+        </ThemeProvider>,
     );
 
     expect(tree).toMatchSnapshot();
@@ -27,7 +26,7 @@ test('should render DrawerMenu with "features" selected', () => {
                     <Footer />
                 </MemoryRouter>
             </AnnouncerProvider>
-        </ThemeProvider>
+        </ThemeProvider>,
     );
 
     expect(tree).toMatchSnapshot();

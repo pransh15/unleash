@@ -1,8 +1,8 @@
-import { Autocomplete, Button, styled, TextField } from '@mui/material';
+import { Autocomplete, Box, Button, styled, TextField } from '@mui/material';
 import Input from 'component/common/Input/Input';
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SegmentFormStep } from './SegmentForm';
+import type { SegmentFormStep } from './SegmentForm';
 import {
     SEGMENT_NAME_ID,
     SEGMENT_DESC_ID,
@@ -12,8 +12,17 @@ import { ConditionallyRender } from 'component/common/ConditionallyRender/Condit
 import useProjects from 'hooks/api/getters/useProjects/useProjects';
 import { useOptionalPathParam } from 'hooks/useOptionalPathParam';
 import { GO_BACK } from 'constants/navigate';
-import { useStrategiesBySegment } from 'hooks/api/getters/useStrategiesBySegment/useStrategiesBySegment';
+import {
+    type ChangeRequestNewStrategy,
+    type ChangeRequestUpdatedStrategy,
+    useStrategiesBySegment,
+} from 'hooks/api/getters/useStrategiesBySegment/useStrategiesBySegment';
 import { SegmentProjectAlert } from './SegmentProjectAlert';
+import { sortStrategiesByFeature } from './SegmentDelete/SegmentDeleteUsedSegment/sort-strategies';
+import type { IFeatureStrategy } from 'interfaces/strategy';
+import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
+import { useSegments } from 'hooks/api/getters/useSegments/useSegments';
+import { Limit } from '../common/Limit/Limit';
 
 interface ISegmentFormPartOneProps {
     name: string;
@@ -27,15 +36,15 @@ interface ISegmentFormPartOneProps {
     setCurrentStep: React.Dispatch<React.SetStateAction<SegmentFormStep>>;
 }
 
-const StyledForm = styled('div')(({ theme }) => ({
+const StyledForm = styled('div')({
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
-}));
+});
 
-const StyledContainer = styled('div')(({ theme }) => ({
+const StyledContainer = styled('div')({
     maxWidth: '400px',
-}));
+});
 
 const StyledInputDescription = styled('p')(({ theme }) => ({
     marginBottom: theme.spacing(1),
@@ -46,15 +55,38 @@ const StyledInput = styled(Input)(({ theme }) => ({
     marginBottom: theme.spacing(2),
 }));
 
-const StyledButtonContainer = styled('div')(({ theme }) => ({
+const StyledButtonContainer = styled('div')({
     marginTop: 'auto',
     display: 'flex',
     justifyContent: 'flex-end',
-}));
+});
 
 const StyledCancelButton = styled(Button)(({ theme }) => ({
     marginLeft: theme.spacing(3),
 }));
+
+const LimitContainer = styled(Box)(({ theme }) => ({
+    flex: 1,
+    display: 'flex',
+    alignItems: 'flex-end',
+    marginTop: theme.spacing(3),
+    marginBottom: theme.spacing(3),
+}));
+
+const useSegmentLimit = () => {
+    const { segments, loading: loadingSegments } = useSegments();
+    const { uiConfig, loading: loadingConfig } = useUiConfig();
+    const segmentsLimit = uiConfig.resourceLimits.segments;
+    const segmentsCount = segments?.length || 0;
+    const limitReached = segmentsCount >= segmentsLimit;
+
+    return {
+        limit: segmentsLimit,
+        limitReached,
+        currentCount: segmentsCount,
+        loading: loadingSegments || loadingConfig,
+    };
+};
 
 export const SegmentFormStepOne: React.FC<ISegmentFormPartOneProps> = ({
     name,
@@ -70,29 +102,43 @@ export const SegmentFormStepOne: React.FC<ISegmentFormPartOneProps> = ({
     const projectId = useOptionalPathParam('projectId');
     const navigate = useNavigate();
     const { projects, loading: loadingProjects } = useProjects();
+    const {
+        limitReached,
+        limit,
+        currentCount,
+        loading: loadingSegmentLimit,
+    } = useSegmentLimit();
 
-    const { strategies, loading: loadingStrategies } =
-        useStrategiesBySegment(segmentId);
+    const {
+        strategies,
+        changeRequestStrategies,
+        loading: loadingStrategies,
+    } = useStrategiesBySegment(segmentId);
+
+    const collectedStrategies = sortStrategiesByFeature<
+        IFeatureStrategy,
+        ChangeRequestUpdatedStrategy,
+        ChangeRequestNewStrategy
+    >(strategies ?? [], changeRequestStrategies ?? []);
 
     const projectsUsed = new Set<string>(
-        strategies.map(({ projectId }) => projectId!).filter(Boolean)
+        collectedStrategies.map(({ projectId }) => projectId!).filter(Boolean),
     );
-
     const availableProjects = projects.filter(
         ({ id }) =>
             !projectsUsed.size ||
-            (projectsUsed.size === 1 && projectsUsed.has(id))
+            (projectsUsed.size === 1 && projectsUsed.has(id)),
     );
 
     const [selectedProject, setSelectedProject] = React.useState(
-        projects.find(({ id }) => id === project) ?? null
+        projects.find(({ id }) => id === project) ?? null,
     );
 
     useEffect(() => {
         setSelectedProject(projects.find(({ id }) => id === project) ?? null);
     }, [project, projects]);
 
-    const loading = loadingProjects && loadingStrategies;
+    const loading = loadingProjects || loadingStrategies || loadingSegmentLimit;
 
     return (
         <StyledForm>
@@ -101,9 +147,9 @@ export const SegmentFormStepOne: React.FC<ISegmentFormPartOneProps> = ({
                     What is the segment name?
                 </StyledInputDescription>
                 <StyledInput
-                    label="Segment name"
+                    label='Segment name'
                     value={name}
-                    onChange={e => setName(e.target.value)}
+                    onChange={(e) => setName(e.target.value)}
                     error={Boolean(errors.name)}
                     errorText={errors.name}
                     autoFocus
@@ -114,9 +160,9 @@ export const SegmentFormStepOne: React.FC<ISegmentFormPartOneProps> = ({
                     What is the segment description?
                 </StyledInputDescription>
                 <StyledInput
-                    label="Description (optional)"
+                    label='Description (optional)'
                     value={description}
-                    onChange={e => setDescription(e.target.value)}
+                    onChange={(e) => setDescription(e.target.value)}
                     error={Boolean(errors.description)}
                     errorText={errors.description}
                     data-testid={SEGMENT_DESC_ID}
@@ -129,21 +175,21 @@ export const SegmentFormStepOne: React.FC<ISegmentFormPartOneProps> = ({
                                 Is this segment tied to a specific project?
                             </StyledInputDescription>
                             <Autocomplete
-                                size="small"
+                                size='small'
                                 value={selectedProject}
                                 onChange={(_, newValue) => {
                                     setProject(newValue?.id);
                                 }}
                                 options={availableProjects}
-                                getOptionLabel={option => option.name}
-                                renderInput={params => (
-                                    <TextField {...params} label="Project" />
+                                getOptionLabel={(option) => option.name}
+                                renderInput={(params) => (
+                                    <TextField {...params} label='Project' />
                                 )}
                                 disabled={projectsUsed.size > 1}
                             />
                             <SegmentProjectAlert
                                 projects={projects}
-                                strategies={strategies}
+                                strategies={collectedStrategies}
                                 projectsUsed={Array.from(projectsUsed)}
                                 availableProjects={availableProjects}
                             />
@@ -151,19 +197,33 @@ export const SegmentFormStepOne: React.FC<ISegmentFormPartOneProps> = ({
                     }
                 />
             </StyledContainer>
+
+            <LimitContainer>
+                <Limit
+                    name='segments'
+                    limit={limit}
+                    currentValue={currentCount}
+                />
+            </LimitContainer>
+
             <StyledButtonContainer>
                 <Button
-                    type="button"
-                    variant="contained"
-                    color="primary"
+                    type='button'
+                    variant='contained'
+                    color='primary'
                     onClick={() => setCurrentStep(2)}
-                    disabled={name.length === 0 || Boolean(errors.name)}
+                    disabled={
+                        loading ||
+                        limitReached ||
+                        name.length === 0 ||
+                        Boolean(errors.name)
+                    }
                     data-testid={SEGMENT_NEXT_BTN_ID}
                 >
                     Next
                 </Button>
                 <StyledCancelButton
-                    type="button"
+                    type='button'
                     onClick={() => {
                         navigate(GO_BACK);
                     }}

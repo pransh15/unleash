@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 
 export const featureTagSchema = {
     $id: '#/components/schemas/featureTagSchema',
@@ -16,7 +16,7 @@ export const featureTagSchema = {
             type: 'string',
             example: 'simple',
             description:
-                'The [type](https://docs.getunleash.io/reference/tags#tag-types tag types) of the tag',
+                'The [type](https://docs.getunleash.io/reference/feature-toggles#tags tag types) of the tag',
         },
         tagValue: {
             type: 'string',
@@ -27,13 +27,19 @@ export const featureTagSchema = {
             deprecated: true,
             type: 'string',
             description:
-                'The [type](https://docs.getunleash.io/reference/tags#tag-types tag types) of the tag. This property is deprecated and will be removed in a future version of Unleash. Superseded by the `tagType` property.',
+                'The [type](https://docs.getunleash.io/reference/feature-toggles#tags tag types) of the tag. This property is deprecated and will be removed in a future version of Unleash. Superseded by the `tagType` property.',
         },
         value: {
             deprecated: true,
             type: 'string',
             description:
                 'The value of the tag. This property is deprecated and will be removed in a future version of Unleash. Superseded by the `tagValue` property.',
+        },
+        createdByUserId: {
+            type: 'number',
+            nullable: true,
+            example: 1,
+            description: 'The id of the user who created this tag',
         },
     },
     components: {},

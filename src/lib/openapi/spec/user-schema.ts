@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { AccountTypes } from '../../types';
 
 export const userSchema = {
@@ -11,12 +11,11 @@ export const userSchema = {
         id: {
             description: 'The user id',
             type: 'integer',
-            minimum: 0,
             example: 123,
         },
         isAPI: {
             description:
-                '(Deprecated): Used internally to know which operations the user should be allowed to perform',
+                'Deprecated in v5. Used internally to know which operations the user should be allowed to perform',
             type: 'boolean',
             example: true,
             deprecated: true,
@@ -36,9 +35,10 @@ export const userSchema = {
             description: 'A unique username for the user',
             type: 'string',
             example: 'hunter',
+            nullable: true,
         },
         imageUrl: {
-            description: `URL used for the userprofile image`,
+            description: `URL used for the user profile image`,
             type: 'string',
             example: 'https://example.com/242x200.png',
         },
@@ -61,7 +61,7 @@ export const userSchema = {
         },
         rootRole: {
             description:
-                'Which [root role](https://docs.getunleash.io/reference/rbac#standard-roles) this user is assigned',
+                'Which [root role](https://docs.getunleash.io/reference/rbac#predefined-roles) this user is assigned',
             type: 'integer',
             example: 1,
             minimum: 0,
@@ -91,6 +91,25 @@ export const userSchema = {
             items: {
                 type: 'string',
             },
+        },
+        scimId: {
+            description:
+                'The SCIM ID of the user, only present if managed by SCIM',
+            type: 'string',
+            nullable: true,
+            example: '01HTMEXAMPLESCIMID7SWWGHN6',
+        },
+        activeSessions: {
+            description: 'Count of active browser sessions for this user',
+            type: 'integer',
+            nullable: true,
+            example: 2,
+        },
+        deletedSessions: {
+            description:
+                'Experimental. The number of deleted browser sessions after last login',
+            type: 'number',
+            example: 1,
         },
     },
     components: {},

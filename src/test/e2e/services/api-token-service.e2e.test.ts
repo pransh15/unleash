@@ -1,43 +1,34 @@
-import dbInit from '../helpers/database-init';
+import dbInit, { type ITestDb } from '../helpers/database-init';
 import getLogger from '../../fixtures/no-logger';
-import { ApiTokenService } from '../../../lib/services/api-token-service';
+import type { ApiTokenService } from '../../../lib/services/api-token-service';
 import { createTestConfig } from '../../config/test-config';
-import { ApiTokenType, IApiToken } from '../../../lib/types/models/api-token';
+import {
+    ApiTokenType,
+    type IApiToken,
+} from '../../../lib/types/models/api-token';
 import { DEFAULT_ENV } from '../../../lib/util/constants';
-import { addDays, subDays } from 'date-fns';
-import ProjectService from '../../../lib/services/project-service';
-import FeatureToggleService from '../../../lib/services/feature-toggle-service';
-import { AccessService } from '../../../lib/services/access-service';
-import { SegmentService } from '../../../lib/services/segment-service';
-import { GroupService } from '../../../lib/services/group-service';
-import { FavoritesService } from '../../../lib/services';
-import { ChangeRequestAccessReadModel } from '../../../lib/features/change-request-access-service/sql-change-request-access-read-model';
+import { addDays } from 'date-fns';
+import type ProjectService from '../../../lib/features/project/project-service';
+import { createProjectService } from '../../../lib/features';
+import { type IUnleashStores, TEST_AUDIT_USER } from '../../../lib/types';
+import { createApiTokenService } from '../../../lib/features/api-tokens/createApiTokenService';
 
-let db;
-let stores;
+let db: ITestDb;
+let stores: IUnleashStores;
 let apiTokenService: ApiTokenService;
 let projectService: ProjectService;
-let favoritesService: FavoritesService;
 
 beforeAll(async () => {
     const config = createTestConfig({
         server: { baseUriPath: '/test' },
+        experimental: {
+            flags: {
+                useMemoizedActiveTokens: true,
+            },
+        },
     });
     db = await dbInit('api_token_service_serial', getLogger);
     stores = db.stores;
-    const groupService = new GroupService(stores, config);
-    const accessService = new AccessService(stores, config, groupService);
-    const changeRequestAccessReadModel = new ChangeRequestAccessReadModel(
-        db.rawDatabase,
-        accessService,
-    );
-    const featureToggleService = new FeatureToggleService(
-        stores,
-        config,
-        new SegmentService(stores, config),
-        accessService,
-        changeRequestAccessReadModel,
-    );
     const project = {
         id: 'test-project',
         name: 'Test Project',
@@ -49,19 +40,11 @@ beforeAll(async () => {
         name: 'Some Name',
         email: 'test@getunleash.io',
     });
-    favoritesService = new FavoritesService(stores, config);
-    projectService = new ProjectService(
-        stores,
-        config,
-        accessService,
-        featureToggleService,
-        groupService,
-        favoritesService,
-    );
+    projectService = createProjectService(db.rawDatabase, config);
 
-    await projectService.createProject(project, user);
+    await projectService.createProject(project, user, TEST_AUDIT_USER);
 
-    apiTokenService = new ApiTokenService(stores, config);
+    apiTokenService = createApiTokenService(db.rawDatabase, config);
 });
 
 afterAll(async () => {
@@ -139,41 +122,14 @@ test('should update expiry of token', async () => {
             project: '*',
             environment: DEFAULT_ENV,
         },
-        'tester',
+        TEST_AUDIT_USER,
     );
 
-    await apiTokenService.updateExpiry(token.secret, newTime, 'tester');
+    await apiTokenService.updateExpiry(token.secret, newTime, TEST_AUDIT_USER);
 
     const [updatedToken] = await apiTokenService.getAllTokens();
 
     expect(updatedToken.expiresAt).toEqual(newTime);
-});
-
-test('should only return valid tokens', async () => {
-    const now = Date.now();
-    const yesterday = subDays(now, 1);
-    const tomorrow = addDays(now, 1);
-
-    await apiTokenService.createApiToken({
-        tokenName: 'default-expired',
-        type: ApiTokenType.CLIENT,
-        expiresAt: yesterday,
-        project: '*',
-        environment: DEFAULT_ENV,
-    });
-
-    const activeToken = await apiTokenService.createApiToken({
-        tokenName: 'default-valid',
-        type: ApiTokenType.CLIENT,
-        expiresAt: tomorrow,
-        project: '*',
-        environment: DEFAULT_ENV,
-    });
-
-    const tokens = await apiTokenService.getAllActiveTokens();
-
-    expect(tokens.length).toBe(1);
-    expect(activeToken.secret).toBe(tokens[0].secret);
 });
 
 test('should create client token with project list', async () => {
@@ -203,7 +159,7 @@ test('should return user with multiple projects', async () => {
     const now = Date.now();
     const tomorrow = addDays(now, 1);
 
-    await apiTokenService.createApiToken({
+    const { secret: secret1 } = await apiTokenService.createApiToken({
         tokenName: 'default-valid',
         type: ApiTokenType.CLIENT,
         expiresAt: tomorrow,
@@ -211,7 +167,7 @@ test('should return user with multiple projects', async () => {
         environment: DEFAULT_ENV,
     });
 
-    await apiTokenService.createApiToken({
+    const { secret: secret2 } = await apiTokenService.createApiToken({
         tokenName: 'default-also-valid',
         type: ApiTokenType.CLIENT,
         expiresAt: tomorrow,
@@ -219,13 +175,8 @@ test('should return user with multiple projects', async () => {
         environment: DEFAULT_ENV,
     });
 
-    const tokens = await apiTokenService.getAllActiveTokens();
-    const multiProjectUser = await apiTokenService.getUserForToken(
-        tokens[0].secret,
-    );
-    const singleProjectUser = await apiTokenService.getUserForToken(
-        tokens[1].secret,
-    );
+    const multiProjectUser = await apiTokenService.getUserForToken(secret1);
+    const singleProjectUser = await apiTokenService.getUserForToken(secret2);
 
     expect(multiProjectUser!.projects).toStrictEqual([
         'test-project',

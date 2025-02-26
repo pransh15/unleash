@@ -3,8 +3,8 @@ import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import { useGroupApi } from 'hooks/api/actions/useGroupApi/useGroupApi';
 import { useGroup } from 'hooks/api/getters/useGroup/useGroup';
 import useToast from 'hooks/useToast';
-import { IGroup, IGroupUser } from 'interfaces/group';
-import { FC } from 'react';
+import type { IGroup, IGroupUser } from 'interfaces/group';
+import type { FC } from 'react';
 import { formatUnknownError } from 'utils/formatUnknownError';
 
 interface IRemoveGroupUserProps {
@@ -38,7 +38,7 @@ export const RemoveGroupUser: FC<IRemoveGroupUserProps> = ({
             refetchGroup();
             setOpen(false);
             setToastData({
-                title: 'User removed from group successfully',
+                text: 'User removed from group successfully',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -50,13 +50,13 @@ export const RemoveGroupUser: FC<IRemoveGroupUserProps> = ({
     return (
         <Dialogue
             open={open && Boolean(user)}
-            primaryButtonText="Remove user"
-            secondaryButtonText="Cancel"
+            primaryButtonText='Remove user'
+            secondaryButtonText='Cancel'
             onClick={onRemoveClick}
             onClose={() => {
                 setOpen(false);
             }}
-            title="Remove user from group?"
+            title='Remove user from group?'
         >
             <Typography>
                 Do you really want to remove <strong>{userName}</strong> from{' '}

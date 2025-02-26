@@ -1,5 +1,5 @@
-import React, { useContext, useMemo, useState, VFC } from 'react';
-import { HeaderGroup, useGlobalFilter, useTable } from 'react-table';
+import { useContext, useMemo, useState, type VFC } from 'react';
+import { type HeaderGroup, useGlobalFilter, useTable } from 'react-table';
 import { Alert, Box, styled, Typography } from '@mui/material';
 import {
     SortableTableHeader,
@@ -18,7 +18,7 @@ import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { useChangeRequestConfig } from 'hooks/api/getters/useChangeRequestConfig/useChangeRequestConfig';
 import {
-    IChangeRequestConfig,
+    type IChangeRequestConfig,
     useChangeRequestApi,
 } from 'hooks/api/actions/useChangeRequestApi/useChangeRequestApi';
 import { UPDATE_PROJECT } from '@server/types/permissions';
@@ -26,10 +26,11 @@ import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { ChangeRequestProcessHelp } from './ChangeRequestProcessHelp/ChangeRequestProcessHelp';
 import GeneralSelect from 'component/common/GeneralSelect/GeneralSelect';
-import { KeyboardArrowDownOutlined } from '@mui/icons-material';
+import KeyboardArrowDownOutlined from '@mui/icons-material/KeyboardArrowDownOutlined';
 import { useTheme } from '@mui/material/styles';
 import AccessContext from 'contexts/AccessContext';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
+import { PROJECT_CHANGE_REQUEST_WRITE } from '../../../../providers/AccessProvider/permissions';
 
 const StyledBox = styled(Box)(({ theme }) => ({
     padding: theme.spacing(1),
@@ -65,7 +66,7 @@ export const ChangeRequestTable: VFC = () => {
         (
             enableEnvironment: string,
             isEnabled: boolean,
-            requiredApprovals: number
+            requiredApprovals: number,
         ) =>
         () => {
             setDialogState({
@@ -80,7 +81,7 @@ export const ChangeRequestTable: VFC = () => {
         if (dialogState.enableEnvironment) {
             await updateConfiguration();
         }
-        setDialogState(state => ({ ...state, isOpen: false }));
+        setDialogState((state) => ({ ...state, isOpen: false }));
     };
 
     async function updateConfiguration(config?: IChangeRequestConfig) {
@@ -91,12 +92,11 @@ export const ChangeRequestTable: VFC = () => {
                     environment: dialogState.enableEnvironment,
                     enabled: !dialogState.isEnabled,
                     requiredApprovals: dialogState.requiredApprovals,
-                }
+                },
             );
             setToastData({
                 type: 'success',
-                title: 'Updated change request status',
-                text: 'Successfully updated change request status.',
+                text: 'Change request status updated',
             });
             await refetchChangeRequestConfig();
         } catch (error) {
@@ -105,8 +105,8 @@ export const ChangeRequestTable: VFC = () => {
     }
 
     const approvalOptions = Array.from(Array(10).keys())
-        .map(key => String(key + 1))
-        .map(key => {
+        .map((key) => String(key + 1))
+        .map((key) => {
             const labelText = key === '1' ? 'approval' : 'approvals';
             return {
                 key,
@@ -151,16 +151,19 @@ export const ChangeRequestTable: VFC = () => {
                                         sx={{ width: '140px', marginLeft: 1 }}
                                         options={approvalOptions}
                                         value={original.requiredApprovals || 1}
-                                        onChange={approvals => {
+                                        onChange={(approvals) => {
                                             onRequiredApprovalsChange(
                                                 original,
-                                                approvals
+                                                approvals,
                                             );
                                         }}
                                         disabled={
                                             !hasAccess(
-                                                UPDATE_PROJECT,
-                                                projectId
+                                                [
+                                                    UPDATE_PROJECT,
+                                                    PROJECT_CHANGE_REQUEST_WRITE,
+                                                ],
+                                                projectId,
                                             )
                                         }
                                         IconComponent={
@@ -188,12 +191,15 @@ export const ChangeRequestTable: VFC = () => {
                         <PermissionSwitch
                             checked={value}
                             projectId={projectId}
-                            permission={UPDATE_PROJECT}
+                            permission={[
+                                UPDATE_PROJECT,
+                                PROJECT_CHANGE_REQUEST_WRITE,
+                            ]}
                             inputProps={{ 'aria-label': original.environment }}
                             onClick={onRowChange(
                                 original.environment,
                                 original.changeRequestEnabled,
-                                original.requiredApprovals
+                                original.requiredApprovals,
                             )}
                         />
                     </StyledBox>
@@ -203,7 +209,7 @@ export const ChangeRequestTable: VFC = () => {
                 disableSortBy: true,
             },
         ],
-        []
+        [],
     );
 
     const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
@@ -219,19 +225,19 @@ export const ChangeRequestTable: VFC = () => {
                     Cell: TextCell,
                 },
             },
-            useGlobalFilter
+            useGlobalFilter,
         );
     return (
         <PageContent
             header={
                 <PageHeader
-                    titleElement="Change request configuration"
+                    titleElement='Change request configuration'
                     actions={<ChangeRequestProcessHelp />}
                 />
             }
             isLoading={loading}
         >
-            <Alert severity="info" sx={{ mb: 3 }}>
+            <Alert severity='info' sx={{ mb: 3 }}>
                 If change request is enabled for an environment, then any change
                 in that environment needs to be approved before it will be
                 applied
@@ -242,15 +248,20 @@ export const ChangeRequestTable: VFC = () => {
                     headerGroups={headerGroups as HeaderGroup<object>[]}
                 />
                 <TableBody {...getTableBodyProps()}>
-                    {rows.map(row => {
+                    {rows.map((row) => {
                         prepareRow(row);
+                        const { key, ...rowProps } = row.getRowProps();
                         return (
-                            <TableRow hover {...row.getRowProps()}>
-                                {row.cells.map(cell => (
-                                    <TableCell {...cell.getCellProps()}>
-                                        {cell.render('Cell')}
-                                    </TableCell>
-                                ))}
+                            <TableRow hover key={key} {...rowProps}>
+                                {row.cells.map((cell) => {
+                                    const { key, ...cellProps } =
+                                        cell.getCellProps();
+                                    return (
+                                        <TableCell key={key} {...cellProps}>
+                                            {cell.render('Cell')}
+                                        </TableCell>
+                                    );
+                                })}
                             </TableRow>
                         );
                     })}
@@ -271,10 +282,10 @@ export const ChangeRequestTable: VFC = () => {
                 }}
                 open={dialogState.isOpen}
                 onClose={() =>
-                    setDialogState(state => ({ ...state, isOpen: false }))
+                    setDialogState((state) => ({ ...state, isOpen: false }))
                 }
                 primaryButtonText={dialogState.isEnabled ? 'Disable' : 'Enable'}
-                secondaryButtonText="Cancel"
+                secondaryButtonText='Cancel'
                 title={`${
                     dialogState.isEnabled ? 'Disable' : 'Enable'
                 } change requests`}
@@ -298,12 +309,12 @@ export const ChangeRequestTable: VFC = () => {
                 <ConditionallyRender
                     condition={!dialogState.isEnabled}
                     show={
-                        <Typography variant="body2" color="text.secondary">
-                            When enabling change request for an environment, you
-                            need to be sure that your Unleash Admin already have
-                            created the custom project roles in your Unleash
-                            instance so you can assign your project members from
-                            the project access page.
+                        <Typography variant='body2' color='text.secondary'>
+                            To enable change requests for an environment, you
+                            need to ensure that your Unleash Admin has created
+                            the necessary custom project roles in your Unleash
+                            instance. This will allow you to assign project
+                            members from the project access page.
                         </Typography>
                     }
                 />

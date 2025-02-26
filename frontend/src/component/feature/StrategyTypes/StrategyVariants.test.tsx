@@ -3,8 +3,8 @@ import { render } from 'utils/testRenderer';
 import { StrategyVariants } from './StrategyVariants';
 import { Route, Routes } from 'react-router-dom';
 import { UPDATE_FEATURE_ENVIRONMENT_VARIANTS } from '../../providers/AccessProvider/permissions';
-import { IFeatureStrategy } from '../../../interfaces/strategy';
-import React, { useState } from 'react';
+import type { IFeatureStrategy } from '../../../interfaces/strategy';
+import { useState } from 'react';
 
 test('should render variants', async () => {
     let currentStrategy: Partial<IFeatureStrategy> = {};
@@ -43,12 +43,14 @@ test('should render variants', async () => {
     render(
         <Routes>
             <Route
-                path={'projects/:projectId/features/:featureId/strategies/edit'}
+                path={
+                    '/projects/:projectId/features/:featureId/strategies/edit'
+                }
                 element={<Parent />}
             />
         </Routes>,
         {
-            route: 'projects/default/features/colors/strategies/edit?environmentId=development&strategyId=2e4f0555-518b-45b3-b0cd-a32cca388a92',
+            route: '/projects/default/features/colors/strategies/edit?environmentId=development&strategyId=2e4f0555-518b-45b3-b0cd-a32cca388a92',
             permissions: [
                 {
                     permission: UPDATE_FEATURE_ENVIRONMENT_VARIANTS,
@@ -56,7 +58,7 @@ test('should render variants', async () => {
                     environment: 'development',
                 },
             ],
-        }
+        },
     );
 
     // static form info
@@ -74,7 +76,7 @@ test('should render variants', async () => {
     button.click();
 
     // UI allows to adjust percentages
-    const matchedElements = screen.getAllByText('Custom percentage');
+    const matchedElements = await screen.findAllByText('Custom percentage');
     expect(matchedElements.length).toBe(2);
 
     // correct variants set on the parent

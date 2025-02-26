@@ -1,15 +1,25 @@
-import { useEffect, useMemo, useState, VFC } from 'react';
-import { SortingRule, useFlexLayout, useSortBy, useTable } from 'react-table';
+import { useEffect, useMemo, useState, type VFC } from 'react';
+import {
+    type SortingRule,
+    useFlexLayout,
+    useSortBy,
+    useTable,
+} from 'react-table';
 import { VirtualizedTable, TablePlaceholder } from 'component/common/Table';
 import { styled, useMediaQuery, useTheme } from '@mui/material';
-import { Add, Delete, Edit } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import Delete from '@mui/icons-material/Delete';
+import Edit from '@mui/icons-material/Edit';
 import { sortTypes } from 'utils/sortTypes';
 import useProjectAccess, {
     ENTITY_TYPE,
-    IProjectAccess,
+    type IProjectAccess,
 } from 'hooks/api/getters/useProjectAccess/useProjectAccess';
 import PermissionIconButton from 'component/common/PermissionIconButton/PermissionIconButton';
-import { UPDATE_PROJECT } from 'component/providers/AccessProvider/permissions';
+import {
+    PROJECT_USER_ACCESS_WRITE,
+    UPDATE_PROJECT,
+} from 'component/providers/AccessProvider/permissions';
 import { TextCell } from 'component/common/Table/cells/TextCell/TextCell';
 import { ActionCell } from 'component/common/Table/cells/ActionCell/ActionCell';
 import { SearchHighlightProvider } from 'component/common/Table/SearchHighlightContext/SearchHighlightContext';
@@ -35,8 +45,8 @@ import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import { ProjectGroupView } from '../ProjectGroupView/ProjectGroupView';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
-import { IUser } from 'interfaces/user';
-import { IGroup } from 'interfaces/group';
+import type { IUser } from 'interfaces/user';
+import type { IGroup } from 'interfaces/group';
 import { LinkCell } from 'component/common/Table/cells/LinkCell/LinkCell';
 import { UserAvatar } from 'component/common/UserAvatar/UserAvatar';
 import ResponsiveButton from 'component/common/ResponsiveButton/ResponsiveButton';
@@ -54,11 +64,11 @@ export type PageQueryType = Partial<
     Record<'sort' | 'order' | 'search', string>
 >;
 
-const defaultSort: SortingRule<string> = { id: 'added' };
+const defaultSort: SortingRule<string> = { id: 'added', desc: true };
 
 const { value: storedParams, setValue: setStoredParams } = createLocalStorage(
     'ProjectAccess:v1',
-    defaultSort
+    defaultSort,
 );
 
 const StyledUserAvatars = styled('div')(({ theme }) => ({
@@ -93,10 +103,15 @@ export const ProjectAccessTable: VFC = () => {
     const { setToastData } = useToast();
 
     const { access, refetchProjectAccess } = useProjectAccess(projectId);
-    const { removeUserFromRole, removeGroupFromRole } = useProjectApi();
+    const { removeUserAccess, removeGroupAccess } = useProjectApi();
     const [removeOpen, setRemoveOpen] = useState(false);
     const [groupOpen, setGroupOpen] = useState(false);
     const [selectedRow, setSelectedRow] = useState<IProjectAccess>();
+
+    const roleText = (roles: number[]): string =>
+        roles.length > 1
+            ? `${roles.length} roles`
+            : access?.roles.find(({ id }) => id === roles[0])?.name || '';
 
     const columns = useMemo(
         () => [
@@ -150,13 +165,15 @@ export const ProjectAccessTable: VFC = () => {
             {
                 id: 'role',
                 Header: 'Role',
-                accessor: (row: IProjectAccess) =>
-                    access?.roles.find(({ id }) => id === row.entity.roleId)
-                        ?.name,
-                Cell: ({ value, row: { original: row } }: any) => (
-                    <RoleCell roleId={row.entity.roleId} value={value} />
-                ),
-                maxWidth: 125,
+                accessor: (row: IProjectAccess) => roleText(row.entity.roles),
+                Cell: ({
+                    value,
+                    row: { original: row },
+                }: {
+                    row: { original: IProjectAccess };
+                    value: string;
+                }) => <RoleCell value={value} roles={row.entity.roles} />,
+                maxWidth: 175,
                 filterName: 'role',
             },
             {
@@ -167,9 +184,8 @@ export const ProjectAccessTable: VFC = () => {
                     return userRow.addedAt || '';
                 },
                 Cell: ({ value }: { value: Date }) => (
-                    <TimeAgoCell value={value} emptyText="Never" />
+                    <TimeAgoCell value={value} emptyText='Never' />
                 ),
-                sortType: 'date',
                 maxWidth: 130,
             },
             {
@@ -187,9 +203,8 @@ export const ProjectAccessTable: VFC = () => {
                         .reverse()[0];
                 },
                 Cell: ({ value }: { value: Date }) => (
-                    <TimeAgoCell value={value} emptyText="Never" />
+                    <TimeAgoCell value={value} emptyText='Never' />
                 ),
-                sortType: 'date',
                 maxWidth: 130,
             },
             {
@@ -207,7 +222,10 @@ export const ProjectAccessTable: VFC = () => {
                         <PermissionIconButton
                             data-testid={PA_EDIT_BUTTON_ID}
                             component={Link}
-                            permission={UPDATE_PROJECT}
+                            permission={[
+                                UPDATE_PROJECT,
+                                PROJECT_USER_ACCESS_WRITE,
+                            ]}
                             projectId={projectId}
                             to={`edit/${
                                 row.type === ENTITY_TYPE.GROUP
@@ -226,7 +244,10 @@ export const ProjectAccessTable: VFC = () => {
                         </PermissionIconButton>
                         <PermissionIconButton
                             data-testid={PA_REMOVE_BUTTON_ID}
-                            permission={UPDATE_PROJECT}
+                            permission={[
+                                UPDATE_PROJECT,
+                                PROJECT_USER_ACCESS_WRITE,
+                            ]}
                             projectId={projectId}
                             onClick={() => {
                                 setSelectedRow(row);
@@ -264,7 +285,7 @@ export const ProjectAccessTable: VFC = () => {
                 searchable: true,
             },
         ],
-        [access, projectId]
+        [access, projectId],
     );
 
     const [searchParams, setSearchParams] = useSearchParams();
@@ -285,7 +306,7 @@ export const ProjectAccessTable: VFC = () => {
     const { data, getSearchText, getSearchContext } = useSearch(
         columns,
         searchValue,
-        access?.rows ?? []
+        access?.rows ?? [],
     );
 
     const {
@@ -309,7 +330,7 @@ export const ProjectAccessTable: VFC = () => {
             },
         },
         useSortBy,
-        useFlexLayout
+        useFlexLayout,
     );
 
     useConditionallyHiddenColumns(
@@ -324,7 +345,7 @@ export const ProjectAccessTable: VFC = () => {
             },
         ],
         setHiddenColumns,
-        columns
+        columns,
     );
 
     useEffect(() => {
@@ -345,7 +366,7 @@ export const ProjectAccessTable: VFC = () => {
 
     const removeAccess = async (userOrGroup?: IProjectAccess) => {
         if (!userOrGroup) return;
-        const { id, roleId } = userOrGroup.entity;
+        const { id } = userOrGroup.entity;
         let name = userOrGroup.entity.name;
         if (userOrGroup.type !== ENTITY_TYPE.GROUP) {
             const user = userOrGroup.entity as IUser;
@@ -354,21 +375,21 @@ export const ProjectAccessTable: VFC = () => {
 
         try {
             if (userOrGroup.type !== ENTITY_TYPE.GROUP) {
-                await removeUserFromRole(projectId, roleId, id);
+                await removeUserAccess(projectId, id);
             } else {
-                await removeGroupFromRole(projectId, roleId, id);
+                await removeGroupAccess(projectId, id);
             }
             refetchProjectAccess();
             setToastData({
                 type: 'success',
-                title: `${
+                text: `${
                     name || `The ${entityType}`
                 } has been removed from project`,
             });
         } catch (err: any) {
             setToastData({
                 type: 'error',
-                title:
+                text:
                     err.message ||
                     `Server problems when removing ${entityType}.`,
             });
@@ -381,7 +402,7 @@ export const ProjectAccessTable: VFC = () => {
             header={
                 <PageHeader
                     secondary
-                    title={`Access (${
+                    title={`User access (${
                         rows.length < data.length
                             ? `${rows.length} of ${data.length}`
                             : data.length
@@ -404,9 +425,12 @@ export const ProjectAccessTable: VFC = () => {
                             />
                             <ResponsiveButton
                                 onClick={() => navigate('create')}
-                                maxWidth="700px"
+                                maxWidth='700px'
                                 Icon={Add}
-                                permission={UPDATE_PROJECT}
+                                permission={[
+                                    UPDATE_PROJECT,
+                                    PROJECT_USER_ACCESS_WRITE,
+                                ]}
                                 projectId={projectId}
                                 data-testid={PA_ASSIGN_BUTTON_ID}
                             >
@@ -458,13 +482,13 @@ export const ProjectAccessTable: VFC = () => {
                 }
             />
             <Routes>
-                <Route path="create" element={<ProjectAccessCreate />} />
+                <Route path='create' element={<ProjectAccessCreate />} />
                 <Route
-                    path="edit/group/:groupId"
+                    path='edit/group/:groupId'
                     element={<ProjectAccessEditGroup />}
                 />
                 <Route
-                    path="edit/user/:userId"
+                    path='edit/user/:userId'
                     element={<ProjectAccessEditUser />}
                 />
             </Routes>
@@ -481,11 +505,17 @@ export const ProjectAccessTable: VFC = () => {
                 setOpen={setGroupOpen}
                 group={selectedRow?.entity as IGroup}
                 projectId={projectId}
-                subtitle={`Role: ${
-                    access?.roles.find(
-                        ({ id }) => id === selectedRow?.entity.roleId
-                    )?.name
-                }`}
+                subtitle={
+                    <>
+                        {selectedRow && selectedRow.entity.roles.length > 1
+                            ? 'Roles:'
+                            : 'Role:'}
+                        <RoleCell
+                            value={roleText(selectedRow?.entity.roles || [])}
+                            roles={selectedRow?.entity.roles || []}
+                        />
+                    </>
+                }
                 onEdit={() => {
                     navigate(`edit/group/${selectedRow?.entity.id}`);
                 }}

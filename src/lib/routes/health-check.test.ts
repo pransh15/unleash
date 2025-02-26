@@ -1,10 +1,11 @@
-import supertest from 'supertest';
+import supertest, { type Test } from 'supertest';
 import { createServices } from '../services';
 import { createTestConfig } from '../../test/config/test-config';
 
 import createStores from '../../test/fixtures/store';
 import getLogger from '../../test/fixtures/no-logger';
 import getApp from '../app';
+import type TestAgent from 'supertest/lib/agent';
 
 async function getSetup() {
     const stores = createStores();
@@ -15,22 +16,15 @@ async function getSetup() {
     return {
         request: supertest(app),
         stores,
-        destroy: () => {
-            services.versionService.destroy();
-            services.clientInstanceService.destroy();
-        },
     };
 }
-let request;
-let destroy;
+let request: TestAgent<Test>;
 beforeEach(async () => {
     const setup = await getSetup();
     request = setup.request;
-    destroy = setup.destroy;
 });
 
 afterEach(() => {
-    destroy();
     getLogger.setMuteError(false);
 });
 

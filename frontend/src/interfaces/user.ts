@@ -1,5 +1,5 @@
 export const AccountTypes = ['User', 'Service Account'] as const;
-type AccountType = typeof AccountTypes[number];
+type AccountType = (typeof AccountTypes)[number];
 
 export interface IUser {
     id: number;
@@ -17,6 +17,8 @@ export interface IUser {
     paid?: boolean;
     addedAt?: string;
     accountType?: AccountType;
+    scimId?: string;
+    activeSessions?: number;
 }
 
 export interface IPermission {

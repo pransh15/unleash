@@ -8,8 +8,14 @@
  * The user who created this change.
  */
 export type ChangeRequestChangeSchemaCreatedBy = {
-    /** The user's username. */
-    username?: string | null;
-    /** The URL where the user's image can be found. */
+    /**
+     * The URL where the user's image can be found.
+     * @nullable
+     */
     imageUrl?: string | null;
+    /**
+     * The user's username.
+     * @nullable
+     */
+    username?: string | null;
 };

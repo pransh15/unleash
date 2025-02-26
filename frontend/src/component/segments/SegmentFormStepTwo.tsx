@@ -1,6 +1,7 @@
-import React, { useRef, useState, useContext } from 'react';
+import type React from 'react';
+import { useRef, useState, useContext } from 'react';
 import { Button, styled } from '@mui/material';
-import { Add } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import PermissionButton from 'component/common/PermissionButton/PermissionButton';
 import { SidebarModal } from 'component/common/SidebarModal/SidebarModal';
@@ -8,19 +9,20 @@ import { CreateUnleashContext } from 'component/context/CreateUnleashContext/Cre
 import {
     CREATE_CONTEXT_FIELD,
     CREATE_SEGMENT,
+    UPDATE_PROJECT_SEGMENT,
     UPDATE_SEGMENT,
 } from 'component/providers/AccessProvider/permissions';
 import useUnleashContext from 'hooks/api/getters/useUnleashContext/useUnleashContext';
-import { IConstraint } from 'interfaces/strategy';
+import type { IConstraint } from 'interfaces/strategy';
 import { useNavigate } from 'react-router-dom';
 import {
     ConstraintAccordionList,
-    IConstraintAccordionListRef,
+    type IConstraintAccordionListRef,
 } from 'component/common/ConstraintAccordion/ConstraintAccordionList/ConstraintAccordionList';
-import { SegmentFormStep, SegmentFormMode } from './SegmentForm';
+import type { SegmentFormStep, SegmentFormMode } from './SegmentForm';
 import {
     AutocompleteBox,
-    IAutocompleteBoxOption,
+    type IAutocompleteBoxOption,
 } from 'component/common/AutocompleteBox/AutocompleteBox';
 import {
     SegmentDocsValuesInfo,
@@ -32,10 +34,12 @@ import { useSegmentLimits } from 'hooks/api/getters/useSegmentLimits/useSegmentL
 import { GO_BACK } from 'constants/navigate';
 
 interface ISegmentFormPartTwoProps {
+    project?: string;
     constraints: IConstraint[];
     setConstraints: React.Dispatch<React.SetStateAction<IConstraint[]>>;
     setCurrentStep: React.Dispatch<React.SetStateAction<SegmentFormStep>>;
     mode: SegmentFormMode;
+    children?: React.ReactNode;
 }
 
 const StyledForm = styled('div')(({ theme }) => ({
@@ -101,6 +105,7 @@ const StyledCancelButton = styled(Button)(({ theme }) => ({
 
 export const SegmentFormStepTwo: React.FC<ISegmentFormPartTwoProps> = ({
     children,
+    project,
     constraints,
     setConstraints,
     setCurrentStep,
@@ -112,14 +117,17 @@ export const SegmentFormStepTwo: React.FC<ISegmentFormPartTwoProps> = ({
     const { context = [] } = useUnleashContext();
     const [open, setOpen] = useState(false);
     const segmentValuesCount = useSegmentValuesCount(constraints);
-    const modePermission = mode === 'create' ? CREATE_SEGMENT : UPDATE_SEGMENT;
+    const modePermission =
+        mode === 'create'
+            ? [CREATE_SEGMENT, UPDATE_PROJECT_SEGMENT]
+            : [UPDATE_SEGMENT, UPDATE_PROJECT_SEGMENT];
     const { segmentValuesLimit } = useSegmentLimits();
 
     const overSegmentValuesLimit: boolean = Boolean(
-        segmentValuesLimit && segmentValuesCount > segmentValuesLimit
+        segmentValuesLimit && segmentValuesCount > segmentValuesLimit,
     );
 
-    const autocompleteOptions = context.map(c => ({
+    const autocompleteOptions = context.map((c) => ({
         value: c.name,
         label: c.name,
     }));
@@ -143,7 +151,7 @@ export const SegmentFormStepTwo: React.FC<ISegmentFormPartTwoProps> = ({
                         Use a predefined context field:
                     </StyledInputDescription>
                     <AutocompleteBox
-                        label="Select a context"
+                        label='Select a context'
                         options={autocompleteOptions}
                         onChange={onChange}
                     />
@@ -153,7 +161,7 @@ export const SegmentFormStepTwo: React.FC<ISegmentFormPartTwoProps> = ({
                         ...or add a new context field:
                     </StyledInputDescription>
                     <SidebarModal
-                        label="Create new context"
+                        label='Create new context'
                         onClose={() => setOpen(false)}
                         open={open}
                     >
@@ -165,8 +173,8 @@ export const SegmentFormStepTwo: React.FC<ISegmentFormPartTwoProps> = ({
                     </SidebarModal>
                     <PermissionButton
                         permission={CREATE_CONTEXT_FIELD}
-                        variant="outlined"
-                        color="primary"
+                        variant='outlined'
+                        color='primary'
                         startIcon={<Add />}
                         onClick={() => setOpen(true)}
                     >
@@ -197,7 +205,7 @@ export const SegmentFormStepTwo: React.FC<ISegmentFormPartTwoProps> = ({
                         ref={constraintsAccordionListRef}
                         constraints={constraints}
                         setConstraints={
-                            hasAccess(modePermission)
+                            hasAccess(modePermission, project)
                                 ? setConstraints
                                 : undefined
                         }
@@ -206,14 +214,14 @@ export const SegmentFormStepTwo: React.FC<ISegmentFormPartTwoProps> = ({
             </StyledForm>
             <StyledButtonContainer>
                 <StyledBackButton
-                    type="button"
+                    type='button'
                     onClick={() => setCurrentStep(1)}
                 >
                     Back
                 </StyledBackButton>
                 {children}
                 <StyledCancelButton
-                    type="button"
+                    type='button'
                     onClick={() => {
                         navigate(GO_BACK);
                     }}

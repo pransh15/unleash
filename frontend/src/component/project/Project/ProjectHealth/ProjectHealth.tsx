@@ -5,16 +5,16 @@ import { usePageTitle } from 'hooks/usePageTitle';
 import { ReportCard } from './ReportTable/ReportCard/ReportCard';
 import { ReportTable } from './ReportTable/ReportTable';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
-import { useProjectNameOrId } from 'hooks/api/getters/useProject/useProject';
+import { useProjectOverviewNameOrId } from 'hooks/api/getters/useProjectOverview/useProjectOverview';
 
 const ProjectHealth = () => {
     const projectId = useRequiredPathParam('projectId');
-    const projectName = useProjectNameOrId(projectId);
+    const projectName = useProjectOverviewNameOrId(projectId);
     usePageTitle(`Project health – ${projectName}`);
 
     const { healthReport, refetchHealthReport, error } = useHealthReport(
         projectId,
-        { refreshInterval: 15 * 1000 }
+        { refreshInterval: 15 * 1000 },
     );
 
     if (!healthReport) {

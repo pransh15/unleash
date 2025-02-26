@@ -1,19 +1,25 @@
-import fc, { Arbitrary } from 'fast-check';
+import fc, { type Arbitrary } from 'fast-check';
 
 import { ALL_OPERATORS } from '../lib/util/constants';
-import { ClientFeatureSchema } from '../lib/openapi/spec/client-feature-schema';
-import { IVariant, WeightType } from '../lib/types/model';
-import { FeatureStrategySchema } from '../lib/openapi/spec/feature-strategy-schema';
-import { ConstraintSchema } from 'lib/openapi/spec/constraint-schema';
-import { SegmentSchema } from 'lib/openapi/spec/segment-schema';
+import type { ClientFeatureSchema } from '../lib/openapi/spec/client-feature-schema';
+import { type IVariant, WeightType } from '../lib/types/model';
+import type { FeatureStrategySchema } from '../lib/openapi/spec/feature-strategy-schema';
+import type { ConstraintSchema } from '../lib/openapi/spec/constraint-schema';
+import type { SegmentSchema } from '../lib/openapi/spec/segment-schema';
 
 export const urlFriendlyString = (): Arbitrary<string> =>
     fc
         .array(
             fc.oneof(
-                fc.integer({ min: 0x30, max: 0x39 }).map(String.fromCharCode), // numbers
-                fc.integer({ min: 0x41, max: 0x5a }).map(String.fromCharCode), // UPPERCASE LETTERS
-                fc.integer({ min: 0x61, max: 0x7a }).map(String.fromCharCode), // lowercase letters
+                fc
+                    .integer({ min: 0x30, max: 0x39 })
+                    .map(String.fromCharCode), // numbers
+                fc
+                    .integer({ min: 0x41, max: 0x5a })
+                    .map(String.fromCharCode), // UPPERCASE LETTERS
+                fc
+                    .integer({ min: 0x61, max: 0x7a })
+                    .map(String.fromCharCode), // lowercase letters
                 fc.constantFrom('-', '_', '~', '.'), // rest
                 fc.lorem({ maxCount: 1 }), // random words for more 'realistic' names
             ),
@@ -137,17 +143,17 @@ export const variant = (): Arbitrary<IVariant> =>
             payload: fc.option(
                 fc.oneof(
                     fc.record({
-                        type: fc.constant('json' as 'json'),
+                        type: fc.constant('json' as const),
                         value: fc.json(),
                     }),
                     fc.record({
-                        type: fc.constant('csv' as 'csv'),
+                        type: fc.constant('csv' as const),
                         value: fc
                             .array(fc.lorem())
                             .map((words) => words.join(',')),
                     }),
                     fc.record({
-                        type: fc.constant('string' as 'string'),
+                        type: fc.constant('string' as const),
                         value: fc.string(),
                     }),
                 ),
@@ -187,7 +193,7 @@ export const clientFeature = (name?: string): Arbitrary<ClientFeatureSchema> =>
             createdAt: commonISOTimestamp(),
             lastSeenAt: commonISOTimestamp(),
             stale: fc.boolean(),
-            impressionData: fc.option(fc.boolean()),
+            impressionData: fc.option(fc.boolean(), { nil: undefined }),
             strategies: strategies(),
             variants: variants(),
         },

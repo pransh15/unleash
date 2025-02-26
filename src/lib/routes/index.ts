@@ -1,18 +1,18 @@
 import { BackstageController } from './backstage';
 import ResetPasswordController from './auth/reset-password-controller';
 import { SimplePasswordProvider } from './auth/simple-password-provider';
-import { IUnleashConfig, IUnleashServices } from '../types';
+import type { IUnleashConfig, IUnleashServices } from '../types';
 import LogoutController from './logout';
 import rateLimit from 'express-rate-limit';
+import Controller from './controller';
+import { AdminApi } from './admin-api';
+import ClientApi from './client-api';
 
-const AdminApi = require('./admin-api');
-const ClientApi = require('./client-api');
-const Controller = require('./controller');
 import { HealthCheckController } from './health-check';
-import ProxyController from './proxy-api';
+import FrontendAPIController from '../features/frontend-api/frontend-api-controller';
 import EdgeController from './edge-api';
 import { PublicInviteController } from './public-invite';
-import { Db } from '../db/db';
+import type { Db } from '../db/db';
 import { minutesToMilliseconds } from 'date-fns';
 
 class IndexRouter extends Controller {
@@ -31,7 +31,7 @@ class IndexRouter extends Controller {
             new SimplePasswordProvider(config, services).router,
             rateLimit({
                 windowMs: minutesToMilliseconds(1),
-                max: 10,
+                max: config.rateLimiting.simpleLoginMaxPerMinute,
                 validate: false,
                 standardHeaders: true,
                 legacyHeaders: false,
@@ -47,7 +47,7 @@ class IndexRouter extends Controller {
 
         this.use(
             '/api/frontend',
-            new ProxyController(config, services, config.flagResolver).router,
+            new FrontendAPIController(config, services).router,
         );
 
         this.use('/edge', new EdgeController(config, services).router);

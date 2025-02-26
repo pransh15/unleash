@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { parametersSchema } from './parameters-schema';
 import { variantSchema } from './variant-schema';
 import { overrideSchema } from './override-schema';
@@ -7,11 +7,12 @@ import { playgroundConstraintSchema } from './playground-constraint-schema';
 import { playgroundSegmentSchema } from './playground-segment-schema';
 import { sdkContextSchema } from './sdk-context-schema';
 import { advancedPlaygroundEnvironmentFeatureSchema } from './advanced-playground-environment-feature-schema';
+import { sdkFlatContextSchema } from './sdk-flat-context-schema';
 
 export const advancedPlaygroundFeatureSchema = {
     $id: '#/components/schemas/advancedPlaygroundFeatureSchema',
     description:
-        'A simplified feature toggle model intended for the Unleash playground.',
+        'A simplified feature flag model intended for the Unleash playground.',
     type: 'object',
     additionalProperties: false,
     required: ['name', 'projectId', 'environments'],
@@ -46,6 +47,7 @@ export const advancedPlaygroundFeatureSchema = {
             variantSchema,
             overrideSchema,
             sdkContextSchema,
+            sdkFlatContextSchema,
         },
     },
 } as const;

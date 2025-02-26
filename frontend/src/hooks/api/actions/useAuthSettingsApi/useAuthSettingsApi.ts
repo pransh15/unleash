@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import useAPI from '../useApi/useApi';
 
 export interface ISimpleAuthSettings {
@@ -7,13 +7,14 @@ export interface ISimpleAuthSettings {
 
 export const handleBadRequest = async (
     setErrors?: Dispatch<SetStateAction<{}>>,
-    res?: Response
+    res?: Response,
 ) => {
     if (!setErrors) return;
     if (res) {
         const data = await res.json();
-        setErrors({ message: data.message });
-        throw new Error(data.message);
+        const message = data.details?.[0]?.message ?? data.message;
+        setErrors({ message });
+        throw new Error(message);
     }
 
     throw new Error();
@@ -32,11 +33,7 @@ const useAuthSettingsApi = <T>(id: string) => {
             body: JSON.stringify(settings),
         });
 
-        try {
-            await makeRequest(req.caller, req.id);
-        } catch (e) {
-            throw e;
-        }
+        await makeRequest(req.caller, req.id);
     };
 
     return { updateSettings, errors, loading };

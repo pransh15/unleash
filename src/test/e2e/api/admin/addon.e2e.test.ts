@@ -1,11 +1,14 @@
-import dbInit from '../../helpers/database-init';
-import { setupAppWithCustomConfig } from '../../helpers/test-helper';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
+import {
+    type IUnleashTest,
+    setupAppWithCustomConfig,
+} from '../../helpers/test-helper';
 import getLogger from '../../../fixtures/no-logger';
 
 const MASKED_VALUE = '*****';
 
-let app;
-let db;
+let app: IUnleashTest;
+let db: ITestDb;
 
 beforeAll(async () => {
     db = await dbInit('addon_api_serial', getLogger);
@@ -13,7 +16,6 @@ beforeAll(async () => {
         experimental: {
             flags: {
                 strictSchemaValidation: true,
-                slackAppAddon: true,
             },
         },
     });
@@ -25,15 +27,13 @@ afterAll(async () => {
 });
 
 test('gets all addons', async () => {
-    expect.assertions(3);
-
-    return app.request
+    await app.request
         .get('/api/admin/addons')
         .expect('Content-Type', /json/)
         .expect(200)
         .expect((res) => {
             expect(res.body.addons.length).toBe(0);
-            expect(res.body.providers.length).toBe(5);
+            expect(res.body.providers.length).toBe(6);
             expect(res.body.providers[0].name).toBe('webhook');
         });
 });
@@ -105,11 +105,11 @@ test('should update addon configuration', async () => {
     const { id } = res.body;
 
     const updatedConfig = {
+        ...config,
         parameters: {
             url: 'http://example.com',
             bodyTemplate: "{'name': '{{event.data.name}}' }",
         },
-        ...config,
     };
 
     await app.request
@@ -250,7 +250,7 @@ describe('missing descriptions', () => {
         events: ['feature-created', 'feature-updated'],
     };
 
-    test('creating an addon without a description, sets the description to `null`', async () => {
+    it('creating an addon without a description, sets the description to `null`', async () => {
         const { body } = await app.request
             .post('/api/admin/addons')
             .send(addonWithoutDescription)
@@ -265,7 +265,7 @@ describe('missing descriptions', () => {
             });
     });
 
-    test('updating an addon without touching `description` keeps the original value', async () => {
+    it('updating an addon without touching `description` keeps the original value', async () => {
         const { body } = await app.request
             .post('/api/admin/addons')
             .send(addonWithoutDescription);

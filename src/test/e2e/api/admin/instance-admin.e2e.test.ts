@@ -1,17 +1,44 @@
-import dbInit from '../../helpers/database-init';
-import { setupApp } from '../../helpers/test-helper';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
+import {
+    type IUnleashTest,
+    setupAppWithCustomConfig,
+} from '../../helpers/test-helper';
 import getLogger from '../../../fixtures/no-logger';
-import { IUnleashStores } from '../../../../lib/types';
+import type { IUnleashStores } from '../../../../lib/types';
+import { ApiTokenType } from '../../../../lib/types/models/api-token';
+import { registerPrometheusMetrics } from '../../../../lib/metrics';
 
-let app;
-let db;
+let app: IUnleashTest;
+let db: ITestDb;
 let stores: IUnleashStores;
+let refreshDbMetrics: () => Promise<void>;
 
 beforeAll(async () => {
-    db = await dbInit('instance_admin_api_serial', getLogger);
+    db = await dbInit('instance_admin_api_serial', getLogger, {
+        dbInitMethod: 'legacy' as const,
+    });
     stores = db.stores;
     await stores.settingStore.insert('instanceInfo', { id: 'test-static' });
-    app = await setupApp(stores);
+    app = await setupAppWithCustomConfig(
+        stores,
+        {
+            experimental: {
+                flags: {
+                    strictSchemaValidation: true,
+                },
+            },
+        },
+        db.rawDatabase,
+    );
+
+    const { collectAggDbMetrics } = registerPrometheusMetrics(
+        app.config,
+        stores,
+        undefined as unknown as string,
+        app.config.eventBus,
+        app.services.instanceStatsService,
+    );
+    refreshDbMetrics = collectAggDbMetrics;
 });
 
 afterAll(async () => {
@@ -20,7 +47,12 @@ afterAll(async () => {
 });
 
 test('should return instance statistics', async () => {
-    stores.featureToggleStore.create('default', { name: 'TestStats1' });
+    await stores.featureToggleStore.create('default', {
+        name: 'TestStats1',
+        createdByUserId: 9999,
+    });
+
+    await refreshDbMetrics();
 
     return app.request
         .get('/api/admin/instance-admin/statistics')
@@ -29,6 +61,43 @@ test('should return instance statistics', async () => {
         .expect((res) => {
             expect(res.body.featureToggles).toBe(1);
         });
+});
+
+test('api tokens are serialized correctly', async () => {
+    await app.services.apiTokenService.createApiTokenWithProjects({
+        tokenName: 'admin',
+        type: ApiTokenType.ADMIN,
+        environment: '*',
+        projects: ['*'],
+    });
+    await app.services.apiTokenService.createApiTokenWithProjects({
+        tokenName: 'frontend',
+        type: ApiTokenType.FRONTEND,
+        environment: 'default',
+        projects: ['*'],
+    });
+    await app.services.apiTokenService.createApiTokenWithProjects({
+        tokenName: 'client',
+        type: ApiTokenType.CLIENT,
+        environment: 'default',
+        projects: ['*'],
+    });
+
+    const { body } = await app.request
+        .get('/api/admin/instance-admin/statistics')
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+    expect(body).toMatchObject({
+        apiTokens: { client: 1, admin: 1, frontend: 1 },
+    });
+
+    const { text: csv } = await app.request
+        .get('/api/admin/instance-admin/statistics/csv')
+        .expect('Content-Type', /text\/csv/)
+        .expect(200);
+
+    expect(csv).toMatch(/{""client"":1,""admin"":1,""frontend"":1}/);
 });
 
 test('should return instance statistics with correct number of projects', async () => {
@@ -61,9 +130,15 @@ test('should return signed instance statistics', async () => {
         });
 });
 
-test('should return instance statistics as CVS', async () => {
-    stores.featureToggleStore.create('default', { name: 'TestStats2' });
-    stores.featureToggleStore.create('default', { name: 'TestStats3' });
+test('should return instance statistics as CSV', async () => {
+    await stores.featureToggleStore.create('default', {
+        name: 'TestStats2',
+        createdByUserId: 9999,
+    });
+    await stores.featureToggleStore.create('default', {
+        name: 'TestStats3',
+        createdByUserId: 9999,
+    });
 
     const res = await app.request
         .get('/api/admin/instance-admin/statistics/csv')
@@ -72,4 +147,17 @@ test('should return instance statistics as CVS', async () => {
 
     expect(res.text).toMatch(/featureToggles/);
     expect(res.text).toMatch(/"sum"/);
+});
+
+test('contains new max* properties', async () => {
+    const { body } = await app.request
+        .get('/api/admin/instance-admin/statistics')
+        .expect('Content-Type', /json/)
+        .expect(200);
+
+    expect(body).toMatchObject({
+        maxEnvironmentStrategies: 0,
+        maxConstraints: 0,
+        maxConstraintValues: 0,
+    });
 });

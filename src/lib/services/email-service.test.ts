@@ -1,10 +1,11 @@
 import nodemailer from 'nodemailer';
 import { EmailService } from './email-service';
 import noLoggerProvider from '../../test/fixtures/no-logger';
+import type { IUnleashConfig } from '../types';
 
 test('Can send reset email', async () => {
-    const emailService = new EmailService(
-        {
+    const emailService = new EmailService({
+        email: {
             host: 'test',
             port: 587,
             secure: false,
@@ -12,8 +13,8 @@ test('Can send reset email', async () => {
             smtppass: '',
             sender: 'noreply@getunleash.ai',
         },
-        noLoggerProvider,
-    );
+        getLogger: noLoggerProvider,
+    } as unknown as IUnleashConfig);
     const resetLinkUrl =
         'https://unleash-hosted.com/reset-password?token=$2b$10$M06Ysso6KL4ueH/xR6rdSuY5GSymdIwmIkEUJMRkB.Qn26r5Gi5vW';
 
@@ -29,17 +30,17 @@ test('Can send reset email', async () => {
 });
 
 test('Can send welcome mail', async () => {
-    const emailService = new EmailService(
-        {
+    const emailService = new EmailService({
+        email: {
             host: 'test',
-            port: 9999,
+            port: 587,
             secure: false,
-            sender: 'noreply@getunleash.ai',
             smtpuser: '',
             smtppass: '',
+            sender: 'noreply@getunleash.ai',
         },
-        noLoggerProvider,
-    );
+        getLogger: noLoggerProvider,
+    } as unknown as IUnleashConfig);
     const content = await emailService.sendGettingStartedMail(
         'Some username',
         'test@test.com',
@@ -52,8 +53,8 @@ test('Can send welcome mail', async () => {
 test('Can supply additional SMTP transport options', async () => {
     const spy = jest.spyOn(nodemailer, 'createTransport');
 
-    new EmailService(
-        {
+    new EmailService({
+        email: {
             host: 'smtp.unleash.test',
             port: 9999,
             secure: false,
@@ -64,8 +65,8 @@ test('Can supply additional SMTP transport options', async () => {
                 },
             },
         },
-        noLoggerProvider,
-    );
+        getLogger: noLoggerProvider,
+    } as unknown as IUnleashConfig);
 
     expect(spy).toHaveBeenCalledWith({
         auth: {
@@ -82,17 +83,17 @@ test('Can supply additional SMTP transport options', async () => {
 });
 
 test('should strip special characters from email subject', async () => {
-    const emailService = new EmailService(
-        {
+    const emailService = new EmailService({
+        email: {
             host: 'test',
-            port: 9999,
+            port: 587,
             secure: false,
-            sender: 'noreply@getunleash.ai',
             smtpuser: '',
             smtppass: '',
+            sender: 'noreply@getunleash.ai',
         },
-        noLoggerProvider,
-    );
+        getLogger: noLoggerProvider,
+    } as unknown as IUnleashConfig);
     expect(emailService.stripSpecialCharacters('http://evil.com')).toBe(
         'httpevilcom',
     );
@@ -100,4 +101,89 @@ test('should strip special characters from email subject', async () => {
         'httpööbikcom',
     );
     expect(emailService.stripSpecialCharacters('tom-jones')).toBe('tom-jones');
+});
+
+test('Can send productivity report email', async () => {
+    const emailService = new EmailService({
+        server: {
+            unleashUrl: 'http://localhost',
+        },
+        email: {
+            host: 'test',
+            port: 587,
+            secure: false,
+            smtpuser: '',
+            smtppass: '',
+            sender: 'noreply@getunleash.ai',
+        },
+        getLogger: noLoggerProvider,
+    } as unknown as IUnleashConfig);
+
+    const content = await emailService.sendProductivityReportEmail(
+        'user@user.com',
+        'customerId',
+        {
+            flagsCreated: 1,
+            productionUpdates: 2,
+            health: 99,
+            previousMonth: {
+                health: 89,
+                flagsCreated: 1,
+                productionUpdates: 3,
+            },
+        },
+    );
+    expect(content.from).toBe('noreply@getunleash.ai');
+    expect(content.subject).toBe('Unleash - productivity report');
+    expect(content.html.includes('Productivity Report')).toBe(true);
+    expect(content.html.includes('localhost/insights')).toBe(true);
+    expect(content.html.includes('localhost/profile')).toBe(true);
+    expect(content.html.includes('#68a611')).toBe(true);
+    expect(content.html.includes('10% more than previous month')).toBe(true);
+    expect(content.text.includes('localhost/insights')).toBe(true);
+    expect(content.text.includes('localhost/profile')).toBe(true);
+    expect(content.text.includes('localhost/profile')).toBe(true);
+});
+
+test('Should add optional headers to productivity email', async () => {
+    const emailService = new EmailService({
+        server: {
+            unleashUrl: 'http://localhost',
+        },
+        email: {
+            host: 'test',
+            port: 587,
+            secure: false,
+            smtpuser: '',
+            smtppass: '',
+            sender: 'noreply@getunleash.ai',
+            optionalHeaders: {
+                'x-header-name': 'value',
+            },
+        },
+        getLogger: noLoggerProvider,
+    } as unknown as IUnleashConfig);
+
+    const passwordResetMail = await emailService.sendResetMail(
+        'name',
+        'user@example.com',
+        'http://exempla.com',
+    );
+
+    const productivityMail = await emailService.sendProductivityReportEmail(
+        'user@user.com',
+        'customerId',
+        {
+            flagsCreated: 1,
+            productionUpdates: 2,
+            health: 99,
+            previousMonth: null,
+        },
+    );
+
+    expect(passwordResetMail.headers).toBeFalsy();
+
+    expect(productivityMail.headers).toStrictEqual({
+        'x-header-name': 'value',
+    });
 });

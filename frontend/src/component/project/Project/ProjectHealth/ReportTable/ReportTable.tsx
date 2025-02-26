@@ -1,18 +1,20 @@
 import { useMemo } from 'react';
-import { IFeatureToggleListItem } from 'interfaces/featureToggle';
+import type {
+    IEnvironments,
+    IFeatureFlagListItem,
+} from 'interfaces/featureToggle';
 import { TablePlaceholder, VirtualizedTable } from 'component/common/Table';
 import { PageContent } from 'component/common/PageContent/PageContent';
 import { SearchHighlightProvider } from 'component/common/Table/SearchHighlightContext/SearchHighlightContext';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
 import { sortTypes } from 'utils/sortTypes';
 import {
-    useSortBy,
-    useGlobalFilter,
-    useTable,
     useFlexLayout,
+    useGlobalFilter,
+    useSortBy,
+    useTable,
 } from 'react-table';
 import { useMediaQuery, useTheme } from '@mui/material';
-import { FeatureSeenCell } from 'component/common/Table/cells/FeatureSeenCell/FeatureSeenCell';
 import { FeatureTypeCell } from 'component/common/Table/cells/FeatureTypeCell/FeatureTypeCell';
 import { FeatureNameCell } from 'component/common/Table/cells/FeatureNameCell/FeatureNameCell';
 import { DateCell } from 'component/common/Table/cells/DateCell/DateCell';
@@ -21,13 +23,19 @@ import { ConditionallyRender } from 'component/common/ConditionallyRender/Condit
 import { Search } from 'component/common/Search/Search';
 import { ReportExpiredCell } from './ReportExpiredCell/ReportExpiredCell';
 import { ReportStatusCell } from './ReportStatusCell/ReportStatusCell';
-import { formatStatus, ReportingStatus } from './ReportStatusCell/formatStatus';
+import {
+    formatStatus,
+    type ReportingStatus,
+} from './ReportStatusCell/formatStatus';
 import { formatExpiredAt } from './ReportExpiredCell/formatExpiredAt';
 import { useConditionallyHiddenColumns } from 'hooks/useConditionallyHiddenColumns';
+import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
+import { FeatureEnvironmentSeenCell } from 'component/common/Table/cells/FeatureSeenCell/FeatureEnvironmentSeenCell';
+import useFeatureTypes from 'hooks/api/getters/useFeatureTypes/useFeatureTypes';
 
 interface IReportTableProps {
     projectId: string;
-    features: IFeatureToggleListItem[];
+    features: IFeatureFlagListItem[];
 }
 
 export interface IReportTableRow {
@@ -37,6 +45,7 @@ export interface IReportTableRow {
     stale?: boolean;
     status: ReportingStatus;
     lastSeenAt?: string;
+    environments?: IEnvironments[];
     createdAt: string;
     expiredAt?: string;
 }
@@ -46,28 +55,92 @@ export const ReportTable = ({ projectId, features }: IReportTableProps) => {
     const isExtraSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
     const isMediumScreen = useMediaQuery(theme.breakpoints.down('lg'));
+    const { uiConfig } = useUiConfig();
+
+    const { featureTypes } = useFeatureTypes();
 
     const data: IReportTableRow[] = useMemo<IReportTableRow[]>(
         () =>
-            features.map(report => ({
+            features.map((report) => ({
                 project: projectId,
                 name: report.name,
                 type: report.type,
                 stale: report.stale,
-                status: formatStatus(report),
+                environments: report.environments,
+                status: formatStatus(report, featureTypes),
                 lastSeenAt: report.lastSeenAt,
                 createdAt: report.createdAt,
-                expiredAt: formatExpiredAt(report),
+                expiredAt: formatExpiredAt(report, featureTypes),
             })),
-        [projectId, features]
+        [projectId, features, featureTypes],
     );
 
     const initialState = useMemo(
         () => ({
             hiddenColumns: [],
-            sortBy: [{ id: 'createdAt' }],
+            sortBy: [{ id: 'createdAt', desc: true }],
         }),
-        []
+        [],
+    );
+
+    const COLUMNS = useMemo(
+        () => [
+            {
+                Header: 'Seen',
+                accessor: 'lastSeenAt',
+                Cell: ({ value, row: { original: feature } }: any) => {
+                    return <FeatureEnvironmentSeenCell feature={feature} />;
+                },
+                align: 'center',
+                maxWidth: 80,
+            },
+            {
+                Header: 'Type',
+                accessor: 'type',
+                align: 'center',
+                Cell: FeatureTypeCell,
+                disableGlobalFilter: true,
+                maxWidth: 85,
+            },
+            {
+                Header: 'Name',
+                accessor: 'name',
+                sortType: 'alphanumeric',
+                Cell: FeatureNameCell,
+                minWidth: 120,
+            },
+            {
+                Header: 'Created',
+                accessor: 'createdAt',
+                Cell: DateCell,
+                disableGlobalFilter: true,
+                maxWidth: 150,
+            },
+            {
+                Header: 'Expired',
+                accessor: 'expiredAt',
+                Cell: ReportExpiredCell,
+                disableGlobalFilter: true,
+                maxWidth: 150,
+            },
+            {
+                Header: 'Status',
+                id: 'status',
+                accessor: 'status',
+                Cell: ReportStatusCell,
+                disableGlobalFilter: true,
+                width: 180,
+            },
+            {
+                Header: 'State',
+                accessor: 'stale',
+                sortType: 'boolean',
+                Cell: FeatureStaleCell,
+                disableGlobalFilter: true,
+                maxWidth: 120,
+            },
+        ],
+        [],
     );
 
     const {
@@ -90,7 +163,7 @@ export const ReportTable = ({ projectId, features }: IReportTableProps) => {
         },
         useGlobalFilter,
         useFlexLayout,
-        useSortBy
+        useSortBy,
     );
 
     useConditionallyHiddenColumns(
@@ -109,13 +182,13 @@ export const ReportTable = ({ projectId, features }: IReportTableProps) => {
             },
         ],
         setHiddenColumns,
-        COLUMNS
+        COLUMNS,
     );
 
     const title =
         rows.length < data.length
-            ? `Feature toggles (${rows.length} of ${data.length})`
-            : `Feature toggles (${data.length})`;
+            ? `Feature flags (${rows.length} of ${data.length})`
+            : `Feature flags (${data.length})`;
 
     return (
         <PageContent
@@ -145,15 +218,15 @@ export const ReportTable = ({ projectId, features }: IReportTableProps) => {
                         condition={globalFilter?.length > 0}
                         show={
                             <TablePlaceholder>
-                                No feature toggles found matching &ldquo;
+                                No feature flags found matching &ldquo;
                                 {globalFilter}
                                 &rdquo;
                             </TablePlaceholder>
                         }
                         elseShow={
                             <TablePlaceholder>
-                                No feature toggles available. Get started by
-                                adding a new feature toggle.
+                                No feature flags available. Get started by
+                                adding a new feature flag.
                             </TablePlaceholder>
                         }
                     />
@@ -162,61 +235,3 @@ export const ReportTable = ({ projectId, features }: IReportTableProps) => {
         </PageContent>
     );
 };
-
-const COLUMNS = [
-    {
-        Header: 'Seen',
-        accessor: 'lastSeenAt',
-        sortType: 'date',
-        align: 'center',
-        Cell: FeatureSeenCell,
-        disableGlobalFilter: true,
-        maxWidth: 85,
-    },
-    {
-        Header: 'Type',
-        accessor: 'type',
-        align: 'center',
-        Cell: FeatureTypeCell,
-        disableGlobalFilter: true,
-        maxWidth: 85,
-    },
-    {
-        Header: 'Name',
-        accessor: 'name',
-        sortType: 'alphanumeric',
-        Cell: FeatureNameCell,
-        minWidth: 120,
-    },
-    {
-        Header: 'Created',
-        accessor: 'createdAt',
-        sortType: 'date',
-        Cell: DateCell,
-        disableGlobalFilter: true,
-        maxWidth: 150,
-    },
-    {
-        Header: 'Expired',
-        accessor: 'expiredAt',
-        Cell: ReportExpiredCell,
-        disableGlobalFilter: true,
-        maxWidth: 150,
-    },
-    {
-        Header: 'Status',
-        id: 'status',
-        accessor: 'status',
-        Cell: ReportStatusCell,
-        disableGlobalFilter: true,
-        width: 180,
-    },
-    {
-        Header: 'State',
-        accessor: 'stale',
-        sortType: 'boolean',
-        Cell: FeatureStaleCell,
-        disableGlobalFilter: true,
-        maxWidth: 120,
-    },
-];

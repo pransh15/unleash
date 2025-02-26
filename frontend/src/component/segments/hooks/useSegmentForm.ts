@@ -1,4 +1,4 @@
-import { IConstraint } from 'interfaces/strategy';
+import type { IConstraint } from 'interfaces/strategy';
 import { useEffect, useState } from 'react';
 import { useSegmentValidation } from 'hooks/api/getters/useSegmentValidation/useSegmentValidation';
 
@@ -6,7 +6,7 @@ export const useSegmentForm = (
     initialName = '',
     initialDescription = '',
     initialProject?: string,
-    initialConstraints: IConstraint[] = []
+    initialConstraints: IConstraint[] = [],
 ) => {
     const [name, setName] = useState(initialName);
     const [description, setDescription] = useState(initialDescription);
@@ -34,7 +34,7 @@ export const useSegmentForm = (
     }, [JSON.stringify(initialConstraints)]);
 
     useEffect(() => {
-        setErrors(errors => ({
+        setErrors((errors) => ({
             ...errors,
             name: nameError,
         }));

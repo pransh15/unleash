@@ -1,11 +1,11 @@
 import {
-    Dispatch,
-    FormEvent,
-    SetStateAction,
+    type Dispatch,
+    type FormEvent,
+    type SetStateAction,
     useEffect,
     useMemo,
     useState,
-    VFC,
+    type VFC,
 } from 'react';
 import {
     Box,
@@ -18,16 +18,23 @@ import {
     Typography,
     useTheme,
     Autocomplete,
-    SelectChangeEvent,
+    type SelectChangeEvent,
+    Checkbox,
 } from '@mui/material';
 
-import { debounce } from 'debounce';
+import debounce from 'debounce';
 import useUnleashContext from 'hooks/api/getters/useUnleashContext/useUnleashContext';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import useToast from 'hooks/useToast';
 import { PlaygroundEditor } from './PlaygroundEditor/PlaygroundEditor';
 import { parseDateValue, parseValidDate } from 'component/common/util';
-import { isStringOrStringArray } from '../../playground.utils';
+import {
+    isStringOrStringArray,
+    normalizeCustomContextProperties,
+} from '../../playground.utils';
+import CheckBoxOutlineBlank from '@mui/icons-material/CheckBoxOutlineBlank';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
+
 interface IPlaygroundCodeFieldsetProps {
     context: string | undefined;
     setContext: Dispatch<SetStateAction<string | undefined>>;
@@ -58,14 +65,18 @@ export const PlaygroundCodeFieldset: VFC<IPlaygroundCodeFieldsetProps> = ({
                 try {
                     const contextValue = JSON.parse(input);
 
-                    setFieldExist(contextValue[contextField] !== undefined);
+                    setFieldExist(
+                        contextValue[contextField] !== undefined ||
+                            contextValue?.properties?.[contextField] !==
+                                undefined,
+                    );
                 } catch (error: unknown) {
                     return setError(formatUnknownError(error));
                 }
 
                 return setError(undefined);
             }, 250),
-        [setError, contextField, setFieldExist]
+        [setError, contextField, setFieldExist],
     );
 
     useEffect(() => {
@@ -75,19 +86,20 @@ export const PlaygroundCodeFieldset: VFC<IPlaygroundCodeFieldsetProps> = ({
     const onAddField = () => {
         try {
             const currentValue = JSON.parse(context || '{}');
+
             setContext(
                 JSON.stringify(
-                    {
+                    normalizeCustomContextProperties({
                         ...currentValue,
                         [contextField]: contextValue,
-                    },
+                    }),
                     null,
-                    2
-                )
+                    2,
+                ),
             );
 
             const foundContext = contextData.find(
-                context => context.name === contextField
+                (context) => context.name === contextField,
             );
 
             if (
@@ -100,14 +112,14 @@ export const PlaygroundCodeFieldset: VFC<IPlaygroundCodeFieldsetProps> = ({
         } catch (error) {
             setToastData({
                 type: 'error',
-                title: `Error parsing context: ${formatUnknownError(error)}`,
+                text: `Error parsing context: ${formatUnknownError(error)}`,
             });
         }
     };
 
     const changeContextValue = (
         e: FormEvent,
-        newValue: string | (string | string[])[] | null
+        newValue: string | (string | string[])[] | null,
     ) => {
         if (!isStringOrStringArray(newValue)) return;
 
@@ -129,7 +141,7 @@ export const PlaygroundCodeFieldset: VFC<IPlaygroundCodeFieldsetProps> = ({
 
         // Split comma separated strings to array for fields with legal values
         const foundField = contextData.find(
-            contextData => contextData.name === contextField
+            (contextData) => contextData.name === contextField,
         );
         const hasLegalValues = (foundField?.legalValues || []).length > 1;
         if (contextValue.includes(',') && hasLegalValues) {
@@ -147,16 +159,15 @@ export const PlaygroundCodeFieldset: VFC<IPlaygroundCodeFieldsetProps> = ({
             const value = validDate
                 ? parseDateValue(validDate.toISOString())
                 : parseDateValue(now.toISOString());
-
             return (
                 <TextField
-                    id="date"
-                    label="Date"
-                    size="small"
-                    type="datetime-local"
+                    id='date'
+                    label='Date'
+                    size='small'
+                    type='datetime-local'
                     value={value}
                     sx={{ width: 200, maxWidth: '100%' }}
-                    onChange={e => {
+                    onChange={(e) => {
                         const parsedDate = parseValidDate(e.target.value);
                         const dateString = parsedDate?.toISOString();
                         dateString && setContextValue(dateString);
@@ -169,44 +180,59 @@ export const PlaygroundCodeFieldset: VFC<IPlaygroundCodeFieldsetProps> = ({
             );
         }
         const foundField = contextData.find(
-            contextData => contextData.name === contextField
+            (contextData) => contextData.name === contextField,
         );
-        if (
-            foundField &&
-            foundField.legalValues &&
-            foundField.legalValues.length > 0
-        ) {
+        if (foundField?.legalValues && foundField.legalValues.length > 0) {
             const options = foundField.legalValues.map(({ value }) => value);
+
             return (
                 <Autocomplete
                     disablePortal
                     limitTags={3}
-                    id="context-legal-values"
-                    freeSolo
-                    filterSelectedOptions
-                    size="small"
+                    id='context-legal-values'
+                    multiple={true}
+                    options={options}
+                    disableCloseOnSelect
+                    size='small'
                     value={resolveAutocompleteValue()}
                     onChange={changeContextValue}
-                    options={options}
-                    multiple={true}
+                    getOptionLabel={(option) => option}
+                    renderOption={(props, option, { selected }) => {
+                        return (
+                            <li {...props}>
+                                <Checkbox
+                                    icon={
+                                        <CheckBoxOutlineBlank fontSize='small' />
+                                    }
+                                    checkedIcon={
+                                        <CheckBoxIcon fontSize='small' />
+                                    }
+                                    sx={(theme) => ({
+                                        marginRight: theme.spacing(0.5),
+                                    })}
+                                    checked={selected}
+                                />
+                                {option}
+                            </li>
+                        );
+                    }}
                     sx={{ width: 370, maxWidth: '100%' }}
-                    renderInput={(params: any) => (
-                        <TextField {...params} label="Value" />
+                    renderInput={(params) => (
+                        <TextField {...params} label='Value' />
                     )}
-                    disableCloseOnSelect={false}
                 />
             );
         }
 
         return (
             <TextField
-                label="Value"
-                id="context-value"
+                label='Value'
+                id='context-value'
                 sx={{ width: 370, maxWidth: '100%' }}
                 placeholder={'value1,value2,value3'}
-                size="small"
+                size='small'
                 value={contextValue}
-                onChange={event => setContextValue(event.target.value || '')}
+                onChange={(event) => setContextValue(event.target.value || '')}
             />
         );
     };
@@ -225,7 +251,7 @@ export const PlaygroundCodeFieldset: VFC<IPlaygroundCodeFieldsetProps> = ({
         <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <Typography
-                    variant="body2"
+                    variant='body2'
                     color={theme.palette.text.primary}
                     sx={{ ml: 1 }}
                 >
@@ -235,20 +261,20 @@ export const PlaygroundCodeFieldset: VFC<IPlaygroundCodeFieldsetProps> = ({
 
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
                 <FormControl>
-                    <InputLabel id="context-field-label" size="small">
+                    <InputLabel id='context-field-label' size='small'>
                         Context field
                     </InputLabel>
                     <Select
-                        label="Context field"
-                        labelId="context-field-label"
-                        id="context-field"
+                        label='Context field'
+                        labelId='context-field-label'
+                        id='context-field'
                         value={contextField}
                         onChange={changeContextField}
-                        variant="outlined"
-                        size="small"
+                        variant='outlined'
+                        size='small'
                         sx={{ width: 200, maxWidth: '100%' }}
                     >
-                        {contextOptions.map(option => (
+                        {contextOptions.map((option) => (
                             <MenuItem key={option} value={option}>
                                 {option}
                             </MenuItem>
@@ -257,7 +283,7 @@ export const PlaygroundCodeFieldset: VFC<IPlaygroundCodeFieldsetProps> = ({
                 </FormControl>
                 {resolveInput()}
                 <Button
-                    variant="outlined"
+                    variant='outlined'
                     disabled={!contextField || Boolean(error)}
                     onClick={onAddField}
                     sx={{ width: '95px', maxHeight: '40px' }}

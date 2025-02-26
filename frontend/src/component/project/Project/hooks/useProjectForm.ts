@@ -1,28 +1,77 @@
 import { useEffect, useState } from 'react';
 import useProjectApi from 'hooks/api/actions/useProjectApi/useProjectApi';
 import { formatUnknownError } from 'utils/formatUnknownError';
+import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
+import type { ProjectMode } from './useProjectEnterpriseSettingsForm';
 
-export type ProjectMode = 'open' | 'protected';
 export const DEFAULT_PROJECT_STICKINESS = 'default';
 const useProjectForm = (
     initialProjectId = '',
     initialProjectName = '',
     initialProjectDesc = '',
     initialProjectStickiness = DEFAULT_PROJECT_STICKINESS,
+    initialFeatureLimit = '',
     initialProjectMode: ProjectMode = 'open',
-    initialFeatureLimit = ''
+    initialProjectEnvironments: Set<string> = new Set(),
+    initialProjectChangeRequestConfiguration: Record<
+        string,
+        { requiredApprovals: number }
+    > = {},
 ) => {
+    const { isEnterprise } = useUiConfig();
     const [projectId, setProjectId] = useState(initialProjectId);
-
+    const [projectMode, setProjectMode] =
+        useState<ProjectMode>(initialProjectMode);
     const [projectName, setProjectName] = useState(initialProjectName);
     const [projectDesc, setProjectDesc] = useState(initialProjectDesc);
     const [projectStickiness, setProjectStickiness] = useState<string>(
-        initialProjectStickiness
+        initialProjectStickiness,
     );
-    const [projectMode, setProjectMode] =
-        useState<ProjectMode>(initialProjectMode);
     const [featureLimit, setFeatureLimit] =
         useState<string>(initialFeatureLimit);
+    const [projectEnvironments, setProjectEnvironments] = useState<Set<string>>(
+        initialProjectEnvironments,
+    );
+    const [
+        projectChangeRequestConfiguration,
+        setProjectChangeRequestConfiguration,
+    ] = useState(initialProjectChangeRequestConfiguration);
+
+    const updateProjectEnvironments = (newState: Set<string>) => {
+        if (newState.size !== 0) {
+            const filteredChangeRequestEnvs = Object.fromEntries(
+                Object.entries(projectChangeRequestConfiguration).filter(
+                    ([env]) => newState.has(env),
+                ),
+            );
+
+            setProjectChangeRequestConfiguration(filteredChangeRequestEnvs);
+        }
+
+        setProjectEnvironments(newState);
+    };
+
+    const crConfig = {
+        disableChangeRequests: (env: string) => {
+            setProjectChangeRequestConfiguration((previousState) => {
+                const { [env]: _, ...rest } = previousState;
+                return rest;
+            });
+        },
+
+        enableChangeRequests: (env: string, approvals: number) => {
+            if (
+                projectEnvironments.has(env) ||
+                projectEnvironments.size === 0
+            ) {
+                setProjectChangeRequestConfiguration((previousState) => ({
+                    ...previousState,
+                    [env]: { requiredApprovals: approvals },
+                }));
+            }
+        },
+    };
+
     const [errors, setErrors] = useState({});
 
     const { validateId } = useProjectApi();
@@ -40,10 +89,6 @@ const useProjectForm = (
     }, [initialProjectDesc]);
 
     useEffect(() => {
-        setProjectMode(initialProjectMode);
-    }, [initialProjectMode]);
-
-    useEffect(() => {
         setFeatureLimit(initialFeatureLimit);
     }, [initialFeatureLimit]);
 
@@ -51,41 +96,79 @@ const useProjectForm = (
         setProjectStickiness(initialProjectStickiness);
     }, [initialProjectStickiness]);
 
-    const getProjectPayload = () => {
+    useEffect(() => {
+        setProjectMode(initialProjectMode);
+    }, [initialProjectMode]);
+
+    const getCreateProjectPayload = (options?: {
+        omitId?: boolean;
+        includeChangeRequestConfig?: boolean;
+    }) => {
+        const environmentsPayload =
+            projectEnvironments.size > 0
+                ? { environments: [...projectEnvironments] }
+                : {};
+
+        const changeRequestEnvironments = Object.entries(
+            projectChangeRequestConfiguration,
+        ).map(([env, { requiredApprovals }]) => ({
+            name: env,
+            requiredApprovals,
+        }));
+
+        const ossPayload = {
+            ...(options?.omitId ? {} : { id: projectId }),
+            name: projectName,
+            description: projectDesc,
+            defaultStickiness: projectStickiness,
+            ...environmentsPayload,
+        };
+
+        return isEnterprise()
+            ? {
+                  ...ossPayload,
+                  mode: projectMode,
+                  ...(options?.includeChangeRequestConfig
+                      ? { changeRequestEnvironments }
+                      : {}),
+              }
+            : ossPayload;
+    };
+
+    const getEditProjectPayload = () => {
         return {
             id: projectId,
             name: projectName,
             description: projectDesc,
             defaultStickiness: projectStickiness,
             featureLimit: getFeatureLimitAsNumber(),
-            mode: projectMode,
         };
     };
 
     const getFeatureLimitAsNumber = () => {
         if (featureLimit === '') {
-            return undefined;
+            return null;
         }
         return Number(featureLimit);
     };
 
     const validateProjectId = async () => {
         if (projectId.length === 0) {
-            setErrors(prev => ({ ...prev, id: 'Id can not be empty.' }));
+            setErrors((prev) => ({ ...prev, id: 'Id can not be empty.' }));
             return false;
         }
         try {
-            await validateId(getProjectPayload().id);
+            await validateId(getCreateProjectPayload().id);
             return true;
         } catch (error: unknown) {
-            setErrors(prev => ({ ...prev, id: formatUnknownError(error) }));
+            setErrors((prev) => ({ ...prev, id: formatUnknownError(error) }));
             return false;
         }
     };
 
     const validateName = () => {
-        if (projectName.length === 0) {
-            setErrors(prev => ({ ...prev, name: 'Name can not be empty.' }));
+        if (projectName.trim().length === 0) {
+            setErrors((prev) => ({ ...prev, name: 'Name can not be empty.' }));
             return false;
         }
 
@@ -100,16 +183,21 @@ const useProjectForm = (
         projectId,
         projectName,
         projectDesc,
-        projectStickiness,
         projectMode,
+        projectStickiness,
         featureLimit,
+        projectEnvironments,
+        projectChangeRequestConfiguration,
         setProjectId,
         setProjectName,
         setProjectDesc,
         setProjectStickiness,
-        setProjectMode,
         setFeatureLimit,
-        getProjectPayload,
+        setProjectMode,
+        setProjectEnvironments: updateProjectEnvironments,
+        updateProjectChangeRequestConfig: crConfig,
+        getCreateProjectPayload,
+        getEditProjectPayload,
         validateName,
         validateProjectId,
         clearErrors,

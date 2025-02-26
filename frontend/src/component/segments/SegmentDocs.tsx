@@ -9,14 +9,15 @@ export const SegmentDocsValuesInfo = () => {
     }
 
     return (
-        <Alert severity="info">
+        <Alert severity='info'>
             A segment can have{' '}
             <a
-                href="https://docs.getunleash.io/reference/segments#segment-limits"
-                target="_blank"
-                rel="noreferrer"
+                href='https://docs.getunleash.io/reference/segments#segment-limits'
+                target='_blank'
+                rel='noreferrer'
             >
-                at most {segmentValuesLimit} across all of its contraints
+                at most {segmentValuesLimit} values across all of its
+                constraints
             </a>
             . <SegmentLimitsLink />
         </Alert>
@@ -31,12 +32,12 @@ export const SegmentDocsValuesError = (props: { values: number }) => {
     }
 
     return (
-        <Alert severity="error">
+        <Alert severity='error'>
             A segment can have{' '}
             <a
-                href="https://docs.getunleash.io/reference/segments#segment-limits"
-                target="_blank"
-                rel="noreferrer"
+                href='https://docs.getunleash.io/reference/segments#segment-limits'
+                target='_blank'
+                rel='noreferrer'
             >
                 at most {segmentValuesLimit} across all of its contraints
             </a>
@@ -54,7 +55,7 @@ export const SegmentDocsStrategyWarning = () => {
     }
 
     return (
-        <Alert severity="warning">
+        <Alert severity='warning'>
             You can't apply more than {strategySegmentsLimit} segments to a
             strategy. <SegmentLimitsLink />
         </Alert>
@@ -65,9 +66,9 @@ const SegmentLimitsLink = () => {
     return (
         <>
             <a
-                href="https://slack.unleash.run"
-                target="_blank"
-                rel="noreferrer"
+                href='https://slack.unleash.run'
+                target='_blank'
+                rel='noreferrer'
             >
                 Get in touch
             </a>{' '}

@@ -1,16 +1,20 @@
-import { AutocompleteValue, styled, Typography } from '@mui/material';
-import React, { useEffect, useMemo, useState } from 'react';
+import {
+    type AutocompleteChangeReason,
+    type AutocompleteValue,
+    styled,
+    Typography,
+} from '@mui/material';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import useFeatureApi from 'hooks/api/actions/useFeatureApi/useFeatureApi';
 import useFeatureTags from 'hooks/api/getters/useFeatureTags/useFeatureTags';
 import useToast from 'hooks/useToast';
-import { formatUnknownError } from 'utils/formatUnknownError';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
-import { ITag, ITagType } from 'interfaces/tags';
-import { TagOption, TagsInput } from './TagsInput';
+import type { ITag, ITagType } from 'interfaces/tags';
+import { type TagOption, TagsInput } from './TagsInput';
 import { TagTypeSelect } from './TagTypeSelect';
 import useTagApi from 'hooks/api/actions/useTagApi/useTagApi';
-import { AutocompleteChangeReason } from '@mui/base/AutocompleteUnstyled/useAutocomplete';
 import useTags from 'hooks/api/getters/useTags/useTags';
 import cloneDeep from 'lodash.clonedeep';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
@@ -22,13 +26,13 @@ interface IManageTagsProps {
 }
 
 const StyledDialogFormContent = styled('section')(({ theme }) => ({
-    ['& > *']: {
+    '& > *': {
         margin: theme.spacing(1, 0),
     },
 }));
 
 const tagsToOptions = (tags: ITag[]): TagOption[] => {
-    return tags.map(tag => {
+    return tags.map((tag) => {
         return {
             title: tag.value,
         };
@@ -36,7 +40,7 @@ const tagsToOptions = (tags: ITag[]): TagOption[] => {
 };
 
 const optionsToTags = (options: TagOption[], type: string): ITag[] => {
-    return options.map(option => {
+    return options.map((option) => {
         return {
             value: option.title,
             type: type,
@@ -68,7 +72,7 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
     const { trackEvent } = usePlausibleTracker();
 
     const [selectedTagOptions, setSelectedTagOptions] = useState<TagOption[]>(
-        tagsToOptions(tags.filter(tag => tag.type === tagType.name))
+        tagsToOptions(tags.filter((tag) => tag.type === tagType.name)),
     );
 
     const { tags: allTags, refetch: refetchAllTags } = useTags(tagType.name);
@@ -80,10 +84,10 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
     useEffect(() => {
         if (tags && tagType) {
             setSelectedTagOptions(
-                tagsToOptions(tags.filter(tag => tag.type === tagType.name))
+                tagsToOptions(tags.filter((tag) => tag.type === tagType.name)),
             );
         }
-    }, [JSON.stringify(tags), tagType]);
+    }, [JSON.stringify(tags), tagType, open]);
 
     const onCancel = () => {
         setOpen(false);
@@ -92,24 +96,24 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
 
     function difference(array1: ITag[], array2: ITag[]) {
         const added = array1
-            .filter(tag => tag.type === tagType.name)
+            .filter((tag) => tag.type === tagType.name)
             .filter(
-                element =>
+                (element) =>
                     !array2.find(
-                        e2 =>
+                        (e2) =>
                             element.value === e2.value &&
-                            element.type === e2.type
-                    )
+                            element.type === e2.type,
+                    ),
             );
         const removed = array2
-            .filter(tag => tag.type === tagType.name)
+            .filter((tag) => tag.type === tagType.name)
             .filter(
-                element =>
+                (element) =>
                     !array1.find(
-                        e2 =>
+                        (e2) =>
                             element.value === e2.value &&
-                            element.type === e2.type
-                    )
+                            element.type === e2.type,
+                    ),
             );
         setDifferenceCount(added.length + removed.length);
         return { added, removed };
@@ -117,7 +121,7 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
 
     const realOptions = (allOptions: TagOption[]) => {
         return allOptions.filter(
-            tagOption => !tagOption.title.startsWith('Create')
+            (tagOption) => !tagOption.title.startsWith('Create'),
         );
     };
 
@@ -129,12 +133,9 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
             });
             await refetch();
         } catch (error: unknown) {
-            const message = formatUnknownError(error);
             setToastData({
                 type: 'error',
-                title: `Failed to add tag`,
-                text: message,
-                confetti: false,
+                text: 'Failed to add tag',
             });
         }
     };
@@ -143,7 +144,7 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
         let result = 'We successfully';
         if (addedCount > 0)
             result = result.concat(
-                ` added ${addedCount} new tag${addedCount > 1 ? 's' : ''}`
+                ` added ${addedCount} new tag${addedCount > 1 ? 's' : ''}`,
             );
 
         if (addedCount > 0 && removedCount > 0) {
@@ -152,7 +153,7 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
 
         if (removedCount > 0) {
             result = result.concat(
-                ` removed ${removedCount} tag${removedCount > 1 ? 's' : ''}`
+                ` removed ${removedCount} tag${removedCount > 1 ? 's' : ''}`,
             );
         }
         return result;
@@ -162,7 +163,7 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
         evt.preventDefault();
         const selectedTags: ITag[] = optionsToTags(
             realOptions(selectedTagOptions),
-            tagType.name
+            tagType.name,
         );
         const { added, removed } = difference(selectedTags, tags);
         if (differenceCount > 0) {
@@ -174,11 +175,7 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
             differenceCount > 0 &&
                 setToastData({
                     type: 'success',
-                    title: `Updated tag${
-                        added.length > 1 ? 's' : ''
-                    } to toggle`,
-                    text: getToastText(added.length, removed.length),
-                    confetti: true,
+                    text: `Updated tag${added.length > 1 ? 's' : ''} to flag`,
                 });
         }
         setDifferenceCount(0);
@@ -188,7 +185,7 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
 
     const handleTagTypeChange = (
         event: React.SyntheticEvent,
-        value: AutocompleteValue<ITagType, false, any, any>
+        value: AutocompleteValue<ITagType, false, any, any>,
     ) => {
         if (value != null && typeof value !== 'string') {
             event.preventDefault();
@@ -206,7 +203,7 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
             undefined,
             undefined
         >,
-        reason: AutocompleteChangeReason
+        reason: AutocompleteChangeReason,
     ) => {
         const clone = cloneDeep(newValue) as TagOption[];
         if (reason === 'selectOption') {
@@ -234,7 +231,7 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
         }
         const selectedTags: ITag[] = optionsToTags(
             realOptions(clone),
-            tagType.name
+            tagType.name,
         );
 
         difference(selectedTags, tags);
@@ -246,9 +243,9 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
     return (
         <Dialogue
             open={open}
-            secondaryButtonText="Cancel"
-            primaryButtonText="Save tags"
-            title="Update tags to feature toggle"
+            secondaryButtonText='Cancel'
+            primaryButtonText='Save tags'
+            title='Update feature flag tags'
             onClick={onSubmit}
             disabledPrimaryButton={loading || differenceCount === 0}
             onClose={onCancel}
@@ -257,7 +254,7 @@ export const ManageTagsDialog = ({ open, setOpen }: IManageTagsProps) => {
             <>
                 <Typography
                     paragraph
-                    sx={{ marginBottom: theme => theme.spacing(2.5) }}
+                    sx={{ marginBottom: (theme) => theme.spacing(2.5) }}
                 >
                     Tags allow you to group features together
                 </Typography>

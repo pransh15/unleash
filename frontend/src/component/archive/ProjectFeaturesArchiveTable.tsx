@@ -1,6 +1,6 @@
 import { useFeaturesArchive } from 'hooks/api/getters/useFeaturesArchive/useFeaturesArchive';
-import { VFC } from 'react';
-import { SortingRule } from 'react-table';
+import type { FC } from 'react';
+import type { SortingRule } from 'react-table';
 import { createLocalStorage } from 'utils/createLocalStorage';
 import { ArchiveTable } from './ArchiveTable/ArchiveTable';
 
@@ -10,7 +10,7 @@ interface IProjectFeaturesTable {
     projectId: string;
 }
 
-export const ProjectFeaturesArchiveTable: VFC<IProjectFeaturesTable> = ({
+export const ProjectFeaturesArchiveTable: FC<IProjectFeaturesTable> = ({
     projectId,
 }) => {
     const { archivedFeatures, loading, refetchArchived } =
@@ -18,12 +18,12 @@ export const ProjectFeaturesArchiveTable: VFC<IProjectFeaturesTable> = ({
 
     const { value, setValue } = createLocalStorage(
         `${projectId}:ProjectFeaturesArchiveTable`,
-        defaultSort
+        defaultSort,
     );
 
     return (
         <ArchiveTable
-            title="Project archive"
+            title='Archived flags'
             archivedFeatures={archivedFeatures || []}
             loading={loading}
             storedParams={value}

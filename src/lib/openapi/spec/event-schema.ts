@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { tagSchema } from './tag-schema';
 import { IEventTypes } from '../../types';
 import { variantSchema } from './variant-schema';
@@ -7,12 +7,11 @@ const eventDataSchema = {
     type: 'object',
     nullable: true,
     'x-enforcer-exception-skip-codes': 'WSCH006', // allow additional properties in example (openapi enforcer)
-    additionalProperties: true,
     description:
-        'Extra associated data related to the event, such as feature toggle state, segment configuration, etc., if applicable.',
+        'Extra associated data related to the event, such as feature flag state, segment configuration, etc., if applicable.',
     example: {
         name: 'new-feature',
-        description: 'Toggle description',
+        description: 'Flag description',
         type: 'release',
         project: 'my-project',
         stale: false,
@@ -53,10 +52,16 @@ export const eventSchema = {
             description: 'Which user created this event',
             example: 'johndoe',
         },
+        createdByUserId: {
+            type: 'number',
+            description: 'The is of the user that created this event',
+            example: 1337,
+            nullable: true,
+        },
         environment: {
             type: 'string',
             description:
-                'The feature toggle environment the event relates to, if applicable.',
+                'The feature flag environment the event relates to, if applicable.',
             nullable: true,
             example: 'development',
         },
@@ -70,7 +75,7 @@ export const eventSchema = {
             type: 'string',
             nullable: true,
             description:
-                'The name of the feature toggle the event relates to, if applicable.',
+                'The name of the feature flag the event relates to, if applicable.',
             example: 'my.first.feature',
         },
         data: eventDataSchema,
@@ -86,6 +91,16 @@ export const eventSchema = {
             },
             nullable: true,
             description: 'Any tags related to the event, if applicable.',
+        },
+        label: {
+            type: 'string',
+            nullable: true,
+            description: 'The concise, human-readable name of the event.',
+        },
+        summary: {
+            type: 'string',
+            nullable: true,
+            description: 'A markdown-formatted summary of the event.',
         },
     },
     components: {

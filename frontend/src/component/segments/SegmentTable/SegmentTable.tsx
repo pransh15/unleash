@@ -2,13 +2,13 @@ import { PageContent } from 'component/common/PageContent/PageContent';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
 import {
     SortableTableHeader,
-    TableCell,
-    TablePlaceholder,
     Table,
     TableBody,
+    TableCell,
+    TablePlaceholder,
     TableRow,
 } from 'component/common/Table';
-import { useTable, useGlobalFilter, useSortBy } from 'react-table';
+import { useGlobalFilter, useSortBy, useTable } from 'react-table';
 import { CreateSegmentButton } from 'component/segments/CreateSegmentButton/CreateSegmentButton';
 import { SearchHighlightProvider } from 'component/common/Table/SearchHighlightContext/SearchHighlightContext';
 import { useMediaQuery } from '@mui/material';
@@ -18,7 +18,7 @@ import { useMemo, useState } from 'react';
 import { SegmentEmpty } from 'component/segments/SegmentEmpty';
 import { IconCell } from 'component/common/Table/cells/IconCell/IconCell';
 import { LinkCell } from 'component/common/Table/cells/LinkCell/LinkCell';
-import { DonutLarge } from '@mui/icons-material';
+import DonutLarge from '@mui/icons-material/DonutLarge';
 import { SegmentActionCell } from 'component/segments/SegmentActionCell/SegmentActionCell';
 import { HighlightCell } from 'component/common/Table/cells/HighlightCell/HighlightCell';
 import { DateCell } from 'component/common/Table/cells/DateCell/DateCell';
@@ -32,7 +32,7 @@ import { UsedInCell } from 'component/context/ContextList/UsedInCell';
 
 export const SegmentTable = () => {
     const projectId = useOptionalPathParam('projectId');
-    const { segments, loading } = useSegments();
+    const { segments, loading: loadingSegments } = useSegments();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
     const [initialState] = useState({
         sortBy: [{ id: 'createdAt' }],
@@ -57,7 +57,7 @@ export const SegmentTable = () => {
         return segments;
     }, [segments, projectId]);
 
-    const columns = useMemo(() => getColumns(), []);
+    const columns = useMemo(() => getColumns(projectId), [projectId]);
     const {
         getTableProps,
         getTableBodyProps,
@@ -82,7 +82,7 @@ export const SegmentTable = () => {
             },
         },
         useGlobalFilter,
-        useSortBy
+        useSortBy,
     );
 
     useConditionallyHiddenColumns(
@@ -97,7 +97,7 @@ export const SegmentTable = () => {
             },
         ],
         setHiddenColumns,
-        columns
+        columns,
     );
 
     return (
@@ -117,10 +117,10 @@ export const SegmentTable = () => {
                     }
                 />
             }
-            isLoading={loading}
+            isLoading={loadingSegments}
         >
             <ConditionallyRender
-                condition={!loading && data.length === 0}
+                condition={!loadingSegments && data.length === 0}
                 show={
                     <TablePlaceholder>
                         <SegmentEmpty />
@@ -129,25 +129,37 @@ export const SegmentTable = () => {
                 elseShow={() => (
                     <>
                         <SearchHighlightProvider value={globalFilter}>
-                            <Table {...getTableProps()} rowHeight="standard">
+                            <Table {...getTableProps()} rowHeight='standard'>
                                 <SortableTableHeader
                                     headerGroups={headerGroups as any}
                                 />
                                 <TableBody {...getTableBodyProps()}>
-                                    {rows.map(row => {
+                                    {rows.map((row) => {
                                         prepareRow(row);
+                                        const { key, ...rowProps } =
+                                            row.getRowProps();
                                         return (
                                             <TableRow
                                                 hover
-                                                {...row.getRowProps()}
+                                                key={key}
+                                                {...rowProps}
                                             >
-                                                {row.cells.map(cell => (
-                                                    <TableCell
-                                                        {...cell.getCellProps()}
-                                                    >
-                                                        {cell.render('Cell')}
-                                                    </TableCell>
-                                                ))}
+                                                {row.cells.map((cell) => {
+                                                    const {
+                                                        key,
+                                                        ...cellProps
+                                                    } = cell.getCellProps();
+                                                    return (
+                                                        <TableCell
+                                                            key={key}
+                                                            {...cellProps}
+                                                        >
+                                                            {cell.render(
+                                                                'Cell',
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                })}
                                             </TableRow>
                                         );
                                     })}
@@ -172,13 +184,13 @@ export const SegmentTable = () => {
     );
 };
 
-const getColumns = () => [
+const getColumns = (projectId?: string) => [
     {
         id: 'Icon',
         width: '1%',
         disableGlobalFilter: true,
         disableSortBy: true,
-        Cell: () => <IconCell icon={<DonutLarge color="disabled" />} />,
+        Cell: () => <IconCell icon={<DonutLarge color='disabled' />} />,
     },
     {
         Header: 'Name',
@@ -191,7 +203,11 @@ const getColumns = () => [
         }: any) => (
             <LinkCell
                 title={name}
-                to={`/segments/edit/${id}`}
+                to={
+                    projectId
+                        ? `/projects/${projectId}/settings/segments/edit/${id}`
+                        : `/segments/edit/${id}`
+                }
                 subtitle={description}
             />
         ),

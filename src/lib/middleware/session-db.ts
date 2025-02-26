@@ -1,23 +1,22 @@
-import { Knex } from 'knex';
+import type { Knex } from 'knex';
 import session from 'express-session';
-import knexSessionStore from 'connect-session-knex';
-import { RequestHandler } from 'express';
-import { IUnleashConfig } from '../types/option';
+import { ConnectSessionKnexStore } from 'connect-session-knex';
+import type { RequestHandler } from 'express';
+import type { IUnleashConfig } from '../types/option';
 import { hoursToMilliseconds } from 'date-fns';
 
 function sessionDb(
     config: Pick<IUnleashConfig, 'session' | 'server' | 'secureHeaders'>,
     knex: Knex,
 ): RequestHandler {
-    let store;
+    let store: session.Store;
     const { db, cookieName } = config.session;
     const age =
         hoursToMilliseconds(config.session.ttlHours) || hoursToMilliseconds(48);
-    const KnexSessionStore = knexSessionStore(session);
     if (db) {
-        store = new KnexSessionStore({
-            tablename: 'unleash_session',
-            createtable: false,
+        store = new ConnectSessionKnexStore({
+            tableName: 'unleash_session',
+            createTable: false,
             knex,
         });
     } else {

@@ -1,5 +1,7 @@
+import type React from 'react';
 import type { FC, ReactNode } from 'react';
-import { CallMade, SouthEast } from '@mui/icons-material';
+import CallMade from '@mui/icons-material/CallMade';
+import SouthEast from '@mui/icons-material/SouthEast';
 import { Box, Typography, styled } from '@mui/material';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { flexRow } from 'themes/themeStyles';
@@ -36,6 +38,7 @@ interface IStatusBoxProps {
     change?: number;
     percentage?: boolean;
     customChangeElement?: ReactNode;
+    children?: React.ReactNode;
 }
 
 const resolveIcon = (change: number) => {
@@ -65,7 +68,11 @@ export const StatusBox: FC<IStatusBoxProps> = ({
     <>
         <ConditionallyRender
             condition={Boolean(title)}
-            show={<StyledTypographyHeader>{title}</StyledTypographyHeader>}
+            show={
+                <StyledTypographyHeader data-loading>
+                    {title}
+                </StyledTypographyHeader>
+            }
         />
         {children}
         <Box
@@ -75,11 +82,13 @@ export const StatusBox: FC<IStatusBoxProps> = ({
                 width: 'auto',
             }}
         >
-            <StyledTypographyCount>{boxText}</StyledTypographyCount>
+            <StyledTypographyCount data-loading>
+                {boxText}
+            </StyledTypographyCount>
             <ConditionallyRender
                 condition={Boolean(customChangeElement)}
                 show={
-                    <StyledBoxChangeContainer>
+                    <StyledBoxChangeContainer data-loading>
                         {customChangeElement}
                     </StyledBoxChangeContainer>
                 }
@@ -87,7 +96,7 @@ export const StatusBox: FC<IStatusBoxProps> = ({
                     <ConditionallyRender
                         condition={change !== undefined && change !== 0}
                         show={
-                            <StyledBoxChangeContainer>
+                            <StyledBoxChangeContainer data-loading>
                                 <Box
                                     sx={{
                                         ...flexRow,
@@ -109,7 +118,7 @@ export const StatusBox: FC<IStatusBoxProps> = ({
                         }
                         elseShow={
                             <StyledBoxChangeContainer>
-                                <StyledTypographySubtext>
+                                <StyledTypographySubtext data-loading>
                                     No change
                                 </StyledTypographySubtext>
                             </StyledBoxChangeContainer>

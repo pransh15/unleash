@@ -1,8 +1,8 @@
-import fc, { Arbitrary } from 'fast-check';
+import fc, { type Arbitrary } from 'fast-check';
 import { urlFriendlyString } from '../../../test/arbitraries.test';
 import {
     playgroundRequestSchema,
-    PlaygroundRequestSchema,
+    type PlaygroundRequestSchema,
 } from '../../../lib/openapi/spec/playground-request-schema';
 import { validateSchema } from '../validate';
 import { generate as generateContext } from './sdk-context-schema.test';
@@ -17,7 +17,7 @@ export const generate = (): Arbitrary<PlaygroundRequestSchema> =>
             fc.uniqueArray(
                 fc.oneof(fc.lorem({ maxCount: 1 }), urlFriendlyString()),
             ),
-            fc.constant('*' as '*'),
+            fc.constant('*' as const),
         ),
         context: generateContext(),
     });

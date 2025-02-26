@@ -1,9 +1,8 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 
 export const createStrategyVariantSchema = {
     $id: '#/components/schemas/createStrategyVariantSchema',
     type: 'object',
-    additionalProperties: true,
     description:
         "This is an experimental property. It may change or be removed as we work on it. Please don't depend on it yet. A strategy variant allows you to attach any data to strategies instead of only returning `true`/`false`. Strategy variants take precedence over feature variants.",
     required: ['name', 'weight', 'weightType', 'stickiness'],
@@ -11,7 +10,7 @@ export const createStrategyVariantSchema = {
         name: {
             type: 'string',
             description:
-                'The variant name. Must be unique for this feature toggle',
+                'The variant name. Must be unique for this feature flag',
             example: 'blue_group',
         },
         weight: {
@@ -41,9 +40,9 @@ export const createStrategyVariantSchema = {
             properties: {
                 type: {
                     description:
-                        'The type of the value. Commonly used types are string, json and csv.',
+                        'The type of the value. Commonly used types are string, number, json and csv.',
                     type: 'string',
-                    enum: ['json', 'csv', 'string'],
+                    enum: ['json', 'csv', 'string', 'number'],
                 },
                 value: {
                     description: 'The actual value of payload',

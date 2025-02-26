@@ -2,7 +2,7 @@ import { fromJoiError } from './bad-data-error';
 import { ValidationError as JoiValidationError } from 'joi';
 import {
     GenericUnleashError,
-    UnleashApiErrorName,
+    type UnleashApiErrorName,
     UnleashApiErrorTypes,
     UnleashError,
 } from './unleash-error';
@@ -23,8 +23,6 @@ const getStatusCode = (errorName: string): number => {
             return 400;
         case 'InvalidTokenError':
             return 401;
-        case 'NoAccessError':
-            return 403;
         case 'UsedTokenError':
             return 403;
         case 'InvalidOperationError':

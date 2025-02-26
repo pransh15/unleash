@@ -1,7 +1,7 @@
-import { useState, VFC } from 'react';
+import { useState, type VFC } from 'react';
 import { Link } from 'react-router-dom';
-import { DonutLarge } from '@mui/icons-material';
-import { ISegment } from 'interfaces/segment';
+import DonutLarge from '@mui/icons-material/DonutLarge';
+import type { ISegment } from 'interfaces/segment';
 import {
     Accordion,
     AccordionDetails,
@@ -16,14 +16,18 @@ import { ConditionallyRender } from 'component/common/ConditionallyRender/Condit
 interface ISegmentItemProps {
     segment: Partial<ISegment>;
     isExpanded?: boolean;
+    disabled?: boolean | null;
     constraintList?: JSX.Element;
     headerContent?: JSX.Element;
 }
 
-const StyledAccordion = styled(Accordion)(({ theme }) => ({
+const StyledAccordion = styled(Accordion, {
+    shouldForwardProp: (prop) => prop !== 'isDisabled',
+})<{ isDisabled: boolean | null }>(({ theme, isDisabled }) => ({
     border: `1px solid ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadiusMedium,
-    backgroundColor: theme.palette.background.paper,
+    '&.segment-accordion': {
+        borderRadius: theme.shape.borderRadiusMedium,
+    },
     boxShadow: 'none',
     margin: 0,
     transition: 'all 0.1s ease',
@@ -31,6 +35,9 @@ const StyledAccordion = styled(Accordion)(({ theme }) => ({
         opacity: '0 !important',
     },
     '&.Mui-expanded': { backgroundColor: theme.palette.neutral.light },
+    backgroundColor: isDisabled
+        ? theme.palette.envAccordion.disabled
+        : theme.palette.background.paper,
 }));
 
 const StyledAccordionSummary = styled(AccordionSummary)(({ theme }) => ({
@@ -49,20 +56,37 @@ const StyledLink = styled(Link)(({ theme }) => ({
         textDecoration: 'underline',
     },
 }));
+const StyledText = styled('span', {
+    shouldForwardProp: (prop) => prop !== 'disabled',
+})<{ disabled: boolean | null }>(({ theme, disabled }) => ({
+    color: disabled ? theme.palette.text.secondary : 'inherit',
+}));
 
 export const SegmentItem: VFC<ISegmentItemProps> = ({
     segment,
     isExpanded,
     headerContent,
     constraintList,
+    disabled = false,
 }) => {
     const [isOpen, setIsOpen] = useState(isExpanded || false);
 
     return (
-        <StyledAccordion expanded={isOpen}>
+        <StyledAccordion
+            className='segment-accordion'
+            isDisabled={disabled}
+            expanded={isOpen}
+        >
             <StyledAccordionSummary id={`segment-accordion-${segment.id}`}>
-                <DonutLarge color="secondary" sx={{ mr: 1 }} />
-                <span>Segment:</span>
+                <DonutLarge
+                    sx={(theme) => ({
+                        mr: 1,
+                        color: disabled
+                            ? theme.palette.neutral.border
+                            : theme.palette.secondary.main,
+                    })}
+                />
+                <StyledText disabled={disabled}>Segment:</StyledText>
                 <StyledLink to={`/segments/edit/${segment.id}`}>
                     {segment.name}
                 </StyledLink>
@@ -74,13 +98,13 @@ export const SegmentItem: VFC<ISegmentItemProps> = ({
                     condition={!isExpanded}
                     show={
                         <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => setIsOpen(value => !value)}
+                            size='small'
+                            variant='outlined'
+                            onClick={() => setIsOpen((value) => !value)}
                             sx={{
                                 my: 0,
                                 ml: 'auto',
-                                fontSize: theme =>
+                                fontSize: (theme) =>
                                     theme.typography.body2.fontSize,
                             }}
                         >

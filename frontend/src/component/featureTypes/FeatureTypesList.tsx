@@ -5,7 +5,7 @@ import { sortTypes } from 'utils/sortTypes';
 import { PageContent } from 'component/common/PageContent/PageContent';
 import useFeatureTypes from 'hooks/api/getters/useFeatureTypes/useFeatureTypes';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import {
     Table,
     TableBody,
@@ -19,7 +19,7 @@ import { IconCell } from 'component/common/Table/cells/IconCell/IconCell';
 import { ActionCell } from 'component/common/Table/cells/ActionCell/ActionCell';
 import PermissionIconButton from 'component/common/PermissionIconButton/PermissionIconButton';
 import { ADMIN } from 'component/providers/AccessProvider/permissions';
-import { Edit } from '@mui/icons-material';
+import Edit from '@mui/icons-material/Edit';
 import { SidebarModal } from 'component/common/SidebarModal/SidebarModal';
 import { FeatureTypeEdit } from './FeatureTypeEdit/FeatureTypeEdit';
 import { LinkCell } from 'component/common/Table/cells/LinkCell/LinkCell';
@@ -40,8 +40,8 @@ export const FeatureTypesList = () => {
                         <IconCell
                             icon={
                                 <IconComponent
-                                    data-loading="true"
-                                    color="action"
+                                    data-loading='true'
+                                    color='action'
                                 />
                             }
                         />
@@ -89,19 +89,19 @@ export const FeatureTypesList = () => {
             {
                 Header: 'Actions',
                 Cell: ({ row: { original: featureType } }: any) => (
-                    <Box sx={theme => ({ padding: theme.spacing(0.5, 0) })}>
+                    <Box sx={(theme) => ({ padding: theme.spacing(0.5, 0) })}>
                         <ActionCell>
                             <PermissionIconButton
                                 disabled={!featureType.id}
-                                data-loading="true"
+                                data-loading='true'
                                 onClick={() =>
                                     navigate(
-                                        `/feature-toggle-type/edit/${featureType.id}`
+                                        `/feature-toggle-type/edit/${featureType.id}`,
                                     )
                                 }
                                 permission={ADMIN}
                                 tooltipProps={{
-                                    title: `Edit ${featureType.name} feature toggle type`,
+                                    title: `Edit ${featureType.name} feature flag type`,
                                 }}
                             >
                                 <Edit />
@@ -112,7 +112,7 @@ export const FeatureTypesList = () => {
                 disableSortBy: true,
             },
         ],
-        [navigate]
+        [navigate],
     );
 
     const data = useMemo(
@@ -125,7 +125,7 @@ export const FeatureTypesList = () => {
                       lifetimeDays: 1,
                   })
                 : featureTypes,
-        [loading, featureTypes]
+        [loading, featureTypes],
     );
 
     const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
@@ -144,37 +144,32 @@ export const FeatureTypesList = () => {
                     ],
                 },
             },
-            useSortBy
+            useSortBy,
         );
 
     return (
         <PageContent
             isLoading={loading}
-            header={
-                <PageHeader>
-                    <Typography
-                        component="h2"
-                        sx={theme => ({
-                            fontSize: theme.fontSizes.mainHeader,
-                        })}
-                    >
-                        Feature toggle types
-                    </Typography>
-                </PageHeader>
-            }
+            header={<PageHeader title='Feature flag types' />}
         >
             <Table {...getTableProps()}>
                 <SortableTableHeader headerGroups={headerGroups} />
                 <TableBody {...getTableBodyProps()}>
-                    {rows.map(row => {
+                    {rows.map((row) => {
                         prepareRow(row);
+                        const { key, ...rowProps } = row.getRowProps();
                         return (
-                            <TableRow hover {...row.getRowProps()}>
-                                {row.cells.map(cell => (
-                                    <TableCell {...cell.getCellProps()}>
-                                        {cell.render('Cell')}
-                                    </TableCell>
-                                ))}
+                            <TableRow hover key={key} {...rowProps}>
+                                {row.cells.map((cell) => {
+                                    const { key, ...cellProps } =
+                                        cell.getCellProps();
+
+                                    return (
+                                        <TableCell key={key} {...cellProps}>
+                                            {cell.render('Cell')}
+                                        </TableCell>
+                                    );
+                                })}
                             </TableRow>
                         );
                     })}
@@ -182,10 +177,10 @@ export const FeatureTypesList = () => {
             </Table>
             <Routes>
                 <Route
-                    path="edit/:featureTypeId"
+                    path='edit/:featureTypeId'
                     element={
                         <SidebarModal
-                            label="Edit feature toggle type"
+                            label='Edit feature flag type'
                             onClose={() => navigate(basePath)}
                             open
                         >

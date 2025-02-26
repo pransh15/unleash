@@ -1,8 +1,9 @@
 import { Box, Button, styled, TextField } from '@mui/material';
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import produce from 'immer';
 import useToast from 'hooks/useToast';
-import { IFeedbackCESState } from 'component/feedback/FeedbackCESContext/FeedbackCESContext';
+import type { IFeedbackCESState } from 'component/feedback/FeedbackCESContext/FeedbackCESContext';
 import { FeedbackCESScore } from 'component/feedback/FeedbackCES/FeedbackCESScore';
 import { sendFeedbackInput } from 'component/feedback/FeedbackCES/sendFeedbackInput';
 
@@ -58,9 +59,9 @@ export const FeedbackCESForm = ({ state, onClose }: IFeedbackCESFormProps) => {
 
     const onCommentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setForm(
-            produce(draft => {
+            produce((draft) => {
                 draft.comment = event.target.value;
-            })
+            }),
         );
     };
 
@@ -76,8 +77,7 @@ export const FeedbackCESForm = ({ state, onClose }: IFeedbackCESFormProps) => {
             await sendFeedbackInput(form);
             setToastData({
                 type: 'success',
-                title: 'Feedback sent. Thank you!',
-                confetti: true,
+                text: 'Feedback sent. Thank you!',
             });
             onClose();
         } finally {
@@ -88,11 +88,11 @@ export const FeedbackCESForm = ({ state, onClose }: IFeedbackCESFormProps) => {
     return (
         <StyledContainer>
             <StyledTitle>Please help us improve</StyledTitle>
-            <StyledForm onSubmit={onSubmit} aria-live="polite">
+            <StyledForm onSubmit={onSubmit} aria-live='polite'>
                 <StyledSubtitle>{state.title}</StyledSubtitle>
                 <FeedbackCESScore form={form} setForm={setForm} />
                 <div hidden={!form.score}>
-                    <StyledTextLabel htmlFor="comment">
+                    <StyledTextLabel htmlFor='comment'>
                         {state.text}
                     </StyledTextLabel>
                     <TextField
@@ -100,15 +100,15 @@ export const FeedbackCESForm = ({ state, onClose }: IFeedbackCESFormProps) => {
                         onChange={onCommentChange}
                         multiline
                         rows={3}
-                        variant="outlined"
+                        variant='outlined'
                         fullWidth
                     />
                 </div>
                 <Box hidden={!form.score} sx={{ textAlign: 'center' }}>
                     <Button
-                        type="submit"
-                        color="primary"
-                        variant="contained"
+                        type='submit'
+                        color='primary'
+                        variant='contained'
                         sx={{ minWidth: '15rem' }}
                         disabled={!form.score || loading}
                     >

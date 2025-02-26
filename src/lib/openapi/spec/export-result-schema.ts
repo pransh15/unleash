@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { featureSchema } from './feature-schema';
 import { featureStrategySchema } from './feature-strategy-schema';
 import { featureEnvironmentSchema } from './feature-environment-schema';
@@ -12,13 +12,16 @@ import { variantsSchema } from './variants-schema';
 import { constraintSchema } from './constraint-schema';
 import { tagTypeSchema } from './tag-type-schema';
 import { strategyVariantSchema } from './strategy-variant-schema';
+import { featureDependenciesSchema } from './feature-dependencies-schema';
+import { dependentFeatureSchema } from './dependent-feature-schema';
+import { tagSchema } from './tag-schema';
 
 export const exportResultSchema = {
     $id: '#/components/schemas/exportResultSchema',
     type: 'object',
     additionalProperties: false,
     description:
-        'The result of the export operation, providing you with the feature toggle definitions, strategy definitions and the rest of the elements relevant to the features (tags, environments etc.)',
+        'The result of the export operation, providing you with the feature flag definitions, strategy definitions and the rest of the elements relevant to the features (tags, environments etc.)',
     required: ['features', 'featureStrategies', 'tagTypes'],
     properties: {
         features: {
@@ -140,7 +143,7 @@ export const exportResultSchema = {
             items: {
                 type: 'object',
                 additionalProperties: false,
-                required: ['id'],
+                required: ['id', 'name'],
                 properties: {
                     id: {
                         type: 'number',
@@ -166,6 +169,14 @@ export const exportResultSchema = {
                 $ref: '#/components/schemas/tagTypeSchema',
             },
         },
+        dependencies: {
+            type: 'array',
+            description:
+                'A list of all the dependencies for features in `features` list.',
+            items: {
+                $ref: '#/components/schemas/featureDependenciesSchema',
+            },
+        },
     },
     components: {
         schemas: {
@@ -182,6 +193,9 @@ export const exportResultSchema = {
             parametersSchema,
             legalValueSchema,
             tagTypeSchema,
+            featureDependenciesSchema,
+            dependentFeatureSchema,
+            tagSchema,
         },
     },
 } as const;

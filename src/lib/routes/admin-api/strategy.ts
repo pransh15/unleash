@@ -1,18 +1,18 @@
-import { IUnleashConfig } from '../../types/option';
-import { IUnleashServices } from '../../types/services';
-import StrategyService from '../../services/strategy-service';
-import { Logger } from '../../logger';
+import type { IUnleashConfig } from '../../types/option';
+import type { IUnleashServices } from '../../types/services';
+import type StrategyService from '../../services/strategy-service';
+import type { Logger } from '../../logger';
 import Controller from '../controller';
 import { extractUsername } from '../../util/extract-user';
 import {
-    DELETE_STRATEGY,
     CREATE_STRATEGY,
-    UPDATE_STRATEGY,
+    DELETE_STRATEGY,
     NONE,
+    UPDATE_STRATEGY,
 } from '../../types/permissions';
-import { Request, Response } from 'express';
-import { IAuthRequest } from '../unleash-types';
-import { OpenApiService } from '../../services/openapi-service';
+import type { Request, Response } from 'express';
+import type { IAuthRequest } from '../unleash-types';
+import type { OpenApiService } from '../../services/openapi-service';
 import {
     emptyResponse,
     getStandardResponses,
@@ -24,14 +24,14 @@ import {
 } from '../../openapi/util/create-response-schema';
 import {
     strategySchema,
-    StrategySchema,
+    type StrategySchema,
 } from '../../openapi/spec/strategy-schema';
 import {
     strategiesSchema,
-    StrategiesSchema,
+    type StrategiesSchema,
 } from '../../openapi/spec/strategies-schema';
-import { CreateStrategySchema } from '../../openapi/spec/create-strategy-schema';
-import { UpdateStrategySchema } from '../../openapi/spec/update-strategy-schema';
+import type { CreateStrategySchema } from '../../openapi/spec/create-strategy-schema';
+import type { UpdateStrategySchema } from '../../openapi/spec/update-strategy-schema';
 
 const version = 1;
 
@@ -122,11 +122,12 @@ class StrategyController extends Controller {
             permission: CREATE_STRATEGY,
             middleware: [
                 openApiService.validPath({
+                    deprecated: true,
                     tags: ['Strategies'],
                     operationId: 'createStrategy',
                     summary: 'Create a strategy',
                     description:
-                        'Creates a strategy type based on the supplied data.',
+                        'Creates a custom strategy type based on the supplied data. Custom strategies are deprecated and should not be used. Prefer using built in strategies with constraints instead.',
                     requestBody: createRequestSchema('createStrategySchema'),
                     responses: {
                         201: resourceCreatedResponseSchema('strategySchema'),
@@ -138,7 +139,7 @@ class StrategyController extends Controller {
 
         this.route({
             method: 'put',
-            path: '/:strategyName',
+            path: '/:name',
             handler: this.updateStrategy,
             permission: UPDATE_STRATEGY,
             middleware: [
@@ -233,19 +234,19 @@ class StrategyController extends Controller {
         const strategyName = req.params.name;
         const userName = extractUsername(req);
 
-        await this.strategyService.removeStrategy(strategyName, userName);
+        await this.strategyService.removeStrategy(strategyName, req.audit);
         res.status(200).end();
     }
 
     async createStrategy(
-        req: IAuthRequest<unknown, CreateStrategySchema>,
+        req: IAuthRequest<unknown, unknown, CreateStrategySchema>,
         res: Response<StrategySchema>,
     ): Promise<void> {
         const userName = extractUsername(req);
 
         const strategy = await this.strategyService.createStrategy(
             req.body,
-            userName,
+            req.audit,
         );
         this.openApiService.respondWithValidation(
             201,
@@ -257,14 +258,14 @@ class StrategyController extends Controller {
     }
 
     async updateStrategy(
-        req: IAuthRequest<{ strategyName: string }, UpdateStrategySchema>,
+        req: IAuthRequest<{ name: string }, UpdateStrategySchema>,
         res: Response<void>,
     ): Promise<void> {
         const userName = extractUsername(req);
 
         await this.strategyService.updateStrategy(
-            { ...req.body, name: req.params.strategyName },
-            userName,
+            { ...req.body, name: req.params.name },
+            req.audit,
         );
         res.status(200).end();
     }
@@ -276,7 +277,7 @@ class StrategyController extends Controller {
         const userName = extractUsername(req);
         const { strategyName } = req.params;
 
-        await this.strategyService.deprecateStrategy(strategyName, userName);
+        await this.strategyService.deprecateStrategy(strategyName, req.audit);
         res.status(200).end();
     }
 
@@ -287,7 +288,7 @@ class StrategyController extends Controller {
         const userName = extractUsername(req);
         const { strategyName } = req.params;
 
-        await this.strategyService.reactivateStrategy(strategyName, userName);
+        await this.strategyService.reactivateStrategy(strategyName, req.audit);
         res.status(200).end();
     }
 }

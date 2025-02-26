@@ -1,17 +1,18 @@
-import React, { FC, useState } from 'react';
-import {
+import type React from 'react';
+import { type FC, useState } from 'react';
+import type {
+    ChangeRequestType,
     IChange,
-    IChangeRequest,
     IChangeRequestAddStrategy,
     IChangeRequestUpdateStrategy,
-} from '../../../changeRequest.types';
+} from 'component/changeRequest/changeRequest.types';
 import { useChangeRequestApi } from 'hooks/api/actions/useChangeRequestApi/useChangeRequestApi';
 import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
 import { useAuthUser } from 'hooks/api/getters/useAuth/useAuthUser';
-import { changesCount } from '../../../changesCount';
+import { changesCount } from 'component/changeRequest/changesCount';
 import {
     IconButton,
     ListItemIcon,
@@ -23,17 +24,22 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import { Delete, Edit, MoreVert } from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
+import Edit from '@mui/icons-material/Edit';
+import MoreVert from '@mui/icons-material/MoreVert';
 import { EditChange } from './EditChange';
 
-const useShowActions = (changeRequest: IChangeRequest, change: IChange) => {
+const useShowActions = (changeRequest: ChangeRequestType, change: IChange) => {
     const { isChangeRequestConfigured } = useChangeRequestsEnabled(
-        changeRequest.project
+        changeRequest.project,
     );
     const allowChangeRequestActions = isChangeRequestConfigured(
-        changeRequest.environment
+        changeRequest.environment,
     );
-    const isPending = !['Cancelled', 'Applied'].includes(changeRequest.state);
+
+    const isPending = !['Cancelled', 'Applied', 'Scheduled'].includes(
+        changeRequest.state,
+    );
 
     const { user } = useAuthUser();
     const isAuthor = user?.id === changeRequest.createdBy.id;
@@ -55,7 +61,7 @@ const StyledPopover = styled(Popover)(({ theme }) => ({
 }));
 
 export const ChangeActions: FC<{
-    changeRequest: IChangeRequest;
+    changeRequest: ChangeRequestType;
     feature: string;
     change: IChange;
     onRefetch?: () => void;
@@ -89,10 +95,10 @@ export const ChangeActions: FC<{
             await discardChange(
                 changeRequest.project,
                 changeRequest.id,
-                change.id
+                change.id,
             );
             setToastData({
-                title: 'Change discarded from change request draft.',
+                text: 'Change discarded from change request draft.',
                 type: 'success',
             });
             onRefetch?.();
@@ -106,14 +112,14 @@ export const ChangeActions: FC<{
             condition={showEdit || showDiscard}
             show={
                 <>
-                    <Tooltip title="Change request actions" arrow describeChild>
+                    <Tooltip title='Change request actions' arrow describeChild>
                         <IconButton
                             id={id}
                             aria-controls={open ? menuId : undefined}
-                            aria-haspopup="true"
+                            aria-haspopup='true'
                             aria-expanded={open ? 'true' : undefined}
                             onClick={handleClick}
-                            type="button"
+                            type='button'
                         >
                             <MoreVert />
                         </IconButton>
@@ -142,7 +148,7 @@ export const ChangeActions: FC<{
                                             <Edit />
                                         </ListItemIcon>
                                         <ListItemText>
-                                            <Typography variant="body2">
+                                            <Typography variant='body2'>
                                                 Edit change
                                             </Typography>
                                         </ListItemText>
@@ -182,7 +188,7 @@ export const ChangeActions: FC<{
                                             <Delete />
                                         </ListItemIcon>
                                         <ListItemText>
-                                            <Typography variant="body2">
+                                            <Typography variant='body2'>
                                                 Discard change
                                             </Typography>
                                         </ListItemText>

@@ -1,8 +1,8 @@
-import { IUser } from 'interfaces/user';
+import type { IUser } from 'interfaces/user';
 import { useMemo } from 'react';
 import { useInstanceStatus } from './api/getters/useInstanceStatus/useInstanceStatus';
 import { InstancePlan } from 'interfaces/instance';
-import useUiConfig from './api/getters/useUiConfig/useUiConfig';
+import { BILLING_PRO_DEFAULT_INCLUDED_SEATS } from 'component/admin/billing/BillingDashboard/BillingPlan/BillingPlan';
 
 export interface IUsersPlanOutput {
     planUsers: IUser[];
@@ -13,20 +13,16 @@ export interface IUsersPlanOutput {
 
 export const useUsersPlan = (users: IUser[]): IUsersPlanOutput => {
     const { instanceStatus } = useInstanceStatus();
-    const { uiConfig } = useUiConfig();
 
-    const isBillingUsers = Boolean(
-        uiConfig?.flags?.proPlanAutoCharge &&
-            instanceStatus?.plan === InstancePlan.PRO
-    );
-    const seats = instanceStatus?.seats ?? 5;
+    const isBillingUsers = Boolean(instanceStatus?.plan === InstancePlan.PRO);
+    const seats = BILLING_PRO_DEFAULT_INCLUDED_SEATS;
 
     const planUsers = useMemo(
         () => calculatePaidUsers(users, isBillingUsers, seats),
-        [users, isBillingUsers, seats]
+        [users, isBillingUsers, seats],
     );
 
-    const extraSeats = planUsers.filter(user => user.paid).length;
+    const extraSeats = planUsers.filter((user) => user.paid).length;
 
     return {
         seats,
@@ -39,7 +35,7 @@ export const useUsersPlan = (users: IUser[]): IUsersPlanOutput => {
 const calculatePaidUsers = (
     users: IUser[],
     isBillingUsers: boolean,
-    seats: number = 0
+    seats: number = 0,
 ) => {
     if (!isBillingUsers || !seats) return users;
 

@@ -1,25 +1,25 @@
-import FeatureToggleService from '../../../services/feature-toggle-service';
-import { Logger } from '../../../logger';
+import type FeatureToggleService from '../../../features/feature-toggle/feature-toggle-service';
+import type { Logger } from '../../../logger';
 import Controller from '../../controller';
-import { IUnleashConfig } from '../../../types/option';
-import { IUnleashServices } from '../../../types';
-import { Request, Response } from 'express';
-import { Operation } from 'fast-json-patch';
+import type { IUnleashConfig } from '../../../types/option';
+import type { IUnleashServices } from '../../../types';
+import type { Request, Response } from 'express';
+import type { Operation } from 'fast-json-patch';
 import {
     NONE,
     UPDATE_FEATURE_ENVIRONMENT_VARIANTS,
     UPDATE_FEATURE_VARIANTS,
 } from '../../../types/permissions';
-import { IVariant, WeightType } from '../../../types/model';
+import { type IVariant, WeightType } from '../../../types/model';
 import { extractUsername } from '../../../util/extract-user';
-import { IAuthRequest } from '../../unleash-types';
-import { FeatureVariantsSchema } from '../../../openapi/spec/feature-variants-schema';
+import type { IAuthRequest } from '../../unleash-types';
+import type { FeatureVariantsSchema } from '../../../openapi/spec/feature-variants-schema';
 import { createRequestSchema } from '../../../openapi/util/create-request-schema';
 import { createResponseSchema } from '../../../openapi/util/create-response-schema';
-import { AccessService } from '../../../services';
+import type { AccessService } from '../../../services';
 import { BadDataError, PermissionError } from '../../../../lib/error';
-import { User } from 'lib/server-impl';
-import { PushVariantsSchema } from 'lib/openapi/spec/push-variants-schema';
+import type { IUser } from '../../../server-impl';
+import type { PushVariantsSchema } from '../../../openapi/spec/push-variants-schema';
 import { getStandardResponses } from '../../../openapi';
 
 const PREFIX = '/:projectId/features/:featureName/variants';
@@ -109,7 +109,7 @@ export default class VariantsController extends Controller {
             middleware: [
                 openApiService.validPath({
                     summary:
-                        'Create (overwrite) variants for a feature toggle in all environments',
+                        'Create (overwrite) variants for a feature flag in all environments',
                     description: `This overwrites the current variants for the feature specified in the :featureName parameter in all environments.
 
 The backend will validate the input for the following invariants
@@ -174,7 +174,7 @@ The backend will also distribute remaining weight up to 1000 after adding the va
                 openApiService.validPath({
                     summary:
                         'Create (overwrite) variants for a feature in an environment',
-                    description: `This overwrites the current variants for the feature toggle in the :featureName parameter for the :environment parameter.
+                    description: `This overwrites the current variants for the feature flag in the :featureName parameter for the :environment parameter.
 
 The backend will validate the input for the following invariants:
 
@@ -202,9 +202,9 @@ The backend will also distribute remaining weight up to 1000 after adding the va
                     tags: ['Features'],
                     operationId: 'overwriteFeatureVariantsOnEnvironments',
                     summary:
-                        'Create (overwrite) variants for a feature toggle in multiple environments',
+                        'Create (overwrite) variants for a feature flag in multiple environments',
                     description:
-                        'This overwrites the current variants for the feature toggle in the :featureName parameter for the :environment parameter.',
+                        'This overwrites the current variants for the feature flag in the :featureName parameter for the :environment parameter.',
                     requestBody: createRequestSchema('pushVariantsSchema'),
                     responses: {
                         200: createResponseSchema('featureVariantsSchema'),
@@ -239,6 +239,7 @@ The backend will also distribute remaining weight up to 1000 after adding the va
             projectId,
             req.body,
             req.user,
+            req.audit,
         );
         res.status(200).json({
             version: 1,
@@ -256,7 +257,7 @@ The backend will also distribute remaining weight up to 1000 after adding the va
             featureName,
             projectId,
             req.body,
-            userName,
+            req.audit,
         );
         res.status(200).json({
             version: 1,
@@ -299,6 +300,7 @@ The backend will also distribute remaining weight up to 1000 after adding the va
             environments,
             variantsWithDefaults,
             req.user,
+            req.audit,
         );
         res.status(200).json({
             version: 1,
@@ -307,7 +309,7 @@ The backend will also distribute remaining weight up to 1000 after adding the va
     }
 
     async checkAccess(
-        user: User,
+        user: IUser,
         projectId: string,
         environments: string[],
         permission: string,
@@ -353,6 +355,7 @@ The backend will also distribute remaining weight up to 1000 after adding the va
             environment,
             req.body,
             req.user,
+            req.audit,
         );
         res.status(200).json({
             version: 1,
@@ -371,6 +374,7 @@ The backend will also distribute remaining weight up to 1000 after adding the va
             environment,
             req.body,
             req.user,
+            req.audit,
         );
         res.status(200).json({
             version: 1,

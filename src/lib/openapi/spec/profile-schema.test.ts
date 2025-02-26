@@ -1,5 +1,5 @@
 import { validateSchema } from '../validate';
-import { ProfileSchema } from './profile-schema';
+import type { ProfileSchema } from './profile-schema';
 
 test('profileSchema', () => {
     const data: ProfileSchema = {
@@ -9,6 +9,7 @@ test('profileSchema', () => {
             name: 'Admin',
         },
         projects: ['default', 'secretproject'],
+        subscriptions: ['productivity-report'],
         features: [
             { name: 'firstFeature', project: 'default' },
             { name: 'secondFeature', project: 'secretproject' },

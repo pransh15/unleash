@@ -1,35 +1,33 @@
-import { FC, Fragment, useMemo, useState, VFC } from 'react';
+import { type FC, Fragment, useMemo, useState, type VFC } from 'react';
 import { Box, Button, styled, Typography } from '@mui/material';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { ChangeRequestSidebar } from 'component/changeRequest/ChangeRequestSidebar/ChangeRequestSidebar';
 import { usePendingChangeRequests } from 'hooks/api/getters/usePendingChangeRequests/usePendingChangeRequests';
-import { IChangeRequest } from 'component/changeRequest/changeRequest.types';
+import type { ChangeRequestType } from 'component/changeRequest/changeRequest.types';
 import { changesCount } from 'component/changeRequest/changesCount';
+import { Sticky } from 'component/common/Sticky/Sticky';
 
 interface IDraftBannerProps {
     project: string;
 }
 
-const DraftBannerContentWrapper = styled(Box)(({ theme }) => ({
+const StyledDraftBannerContentWrapper = styled(Box)(({ theme }) => ({
     display: 'flex',
     alignItems: 'center',
     padding: theme.spacing(1, 0),
-    [theme.breakpoints.down('lg')]: {
-        padding: theme.spacing(1, 2),
-    },
 }));
 
-const StyledBox = styled(Box)(({ theme }) => ({
-    width: '1250px',
+const StyledDraftBanner = styled(Box)(({ theme }) => ({
+    width: '100%',
+    paddingLeft: theme.spacing(3),
+    paddingRight: theme.spacing(9),
     marginLeft: 'auto',
     marginRight: 'auto',
     [theme.breakpoints.down('lg')]: {
-        width: '1024px',
-    },
-    [theme.breakpoints.down(1024)]: {
-        width: '100%',
         marginLeft: 0,
         marginRight: 0,
+        paddingLeft: theme.spacing(2),
+        paddingRight: theme.spacing(2),
     },
     [theme.breakpoints.down('sm')]: {
         minWidth: '100%',
@@ -37,13 +35,13 @@ const StyledBox = styled(Box)(({ theme }) => ({
 }));
 
 const DraftBannerContent: FC<{
-    changeRequests: IChangeRequest[];
+    changeRequests: ChangeRequestType[];
     onClick: () => void;
 }> = ({ changeRequests, onClick }) => {
     const environments = changeRequests.map(({ environment }) => environment);
     const allChangesCount = changeRequests.reduce(
         (acc, curr) => acc + changesCount(curr),
-        0
+        0,
     );
     const showOneLongExplanation =
         changeRequests.length === 1 &&
@@ -58,9 +56,9 @@ const DraftBannerContent: FC<{
         : '';
 
     return (
-        <StyledBox>
-            <DraftBannerContentWrapper>
-                <Typography variant="body2" sx={{ mr: 4 }}>
+        <StyledDraftBanner>
+            <StyledDraftBannerContentWrapper>
+                <Typography variant='body2' sx={{ mr: 4 }}>
                     <strong>Change request mode</strong> – You have changes{' '}
                     <ConditionallyRender
                         condition={Boolean(environments)}
@@ -79,7 +77,7 @@ const DraftBannerContent: FC<{
                                                 : ', '}
                                             <strong>{env}</strong>
                                         </Fragment>
-                                    )
+                                    ),
                                 )}
                             </>
                         }
@@ -87,25 +85,23 @@ const DraftBannerContent: FC<{
                     {explanation}.
                 </Typography>
                 <Button
-                    variant="contained"
+                    variant='contained'
                     onClick={onClick}
                     sx={{ ml: 'auto' }}
                 >
                     View changes ({allChangesCount})
                 </Button>
-            </DraftBannerContentWrapper>
-        </StyledBox>
+            </StyledDraftBannerContentWrapper>
+        </StyledDraftBanner>
     );
 };
 
-const StickyBanner = styled(Box)(({ theme }) => ({
-    position: 'sticky',
-    top: -1,
-    zIndex: 250 /* has to lower than header.zIndex and higher than body.zIndex */,
+const StickyBanner = styled(Sticky)(({ theme }) => ({
     borderTop: `1px solid ${theme.palette.warning.border}`,
     borderBottom: `1px solid ${theme.palette.warning.border}`,
     color: theme.palette.warning.contrastText,
     backgroundColor: theme.palette.warning.light,
+    zIndex: 250,
 }));
 
 export const DraftBanner: VFC<IDraftBannerProps> = ({ project }) => {
@@ -114,10 +110,12 @@ export const DraftBanner: VFC<IDraftBannerProps> = ({ project }) => {
 
     const unfinishedChangeRequests = useMemo(
         () =>
-            data?.filter(changeRequest =>
-                ['Draft', 'In review', 'Approved'].includes(changeRequest.state)
+            data?.filter((changeRequest) =>
+                ['Draft', 'In review', 'Approved'].includes(
+                    changeRequest.state,
+                ),
             ),
-        [data]
+        [data],
     );
 
     if ((!loading && !data) || data?.length === 0) {
@@ -131,7 +129,7 @@ export const DraftBanner: VFC<IDraftBannerProps> = ({ project }) => {
                 show={
                     <DraftBannerContent
                         changeRequests={
-                            unfinishedChangeRequests as IChangeRequest[]
+                            unfinishedChangeRequests as ChangeRequestType[]
                         }
                         onClick={() => {
                             setIsSidebarOpen(true);

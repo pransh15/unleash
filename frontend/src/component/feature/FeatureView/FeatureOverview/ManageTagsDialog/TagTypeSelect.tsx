@@ -1,12 +1,13 @@
 import {
     Autocomplete,
-    AutocompleteProps,
+    type AutocompleteProps,
     styled,
     TextField,
     Typography,
     useTheme,
 } from '@mui/material';
-import { ITagType } from 'interfaces/tags';
+import type { ITagType } from 'interfaces/tags';
+import type { HTMLAttributes } from 'react';
 
 interface ITagSelect {
     options: ITagType[];
@@ -31,28 +32,35 @@ export const TagTypeSelect = ({
         <Autocomplete
             disablePortal
             disabled={disabled}
-            id="tag-type-select"
-            sx={{ marginTop: theme => theme.spacing(2), width: 500 }}
+            id='tag-type-select'
+            sx={{ marginTop: (theme) => theme.spacing(2), width: 500 }}
             options={options}
             disableClearable
             value={value}
-            getOptionLabel={option => option.name}
-            renderOption={(props, option) => (
+            getOptionLabel={(option) => option.name}
+            renderOption={(
+                {
+                    key,
+                    ...props
+                }: JSX.IntrinsicAttributes & HTMLAttributes<HTMLLIElement>,
+                option,
+            ) => (
                 <ListItem
+                    key={key}
                     {...props}
                     style={{
                         alignItems: 'flex-start',
                         gap: theme.spacing(0.5),
                     }}
                 >
-                    <Typography variant="body1">{option.name}</Typography>
-                    <Typography variant="caption">
+                    <Typography variant='body1'>{option.name}</Typography>
+                    <Typography variant='caption'>
                         {option.description}
                     </Typography>
                 </ListItem>
             )}
-            renderInput={params => (
-                <TextField {...params} label="Tag type" value={value} />
+            renderInput={(params) => (
+                <TextField {...params} label='Tag type' value={value} />
             )}
             onChange={onChange}
             ListboxProps={{ style: { maxHeight: 200, overflow: 'auto' } }}

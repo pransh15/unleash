@@ -1,7 +1,7 @@
-import { IApiToken } from 'hooks/api/getters/useApiTokens/useApiTokens';
+import type { IApiToken } from 'hooks/api/getters/useApiTokens/useApiTokens';
 import useToast from 'hooks/useToast';
 import copy from 'copy-to-clipboard';
-import { FileCopy } from '@mui/icons-material';
+import FileCopy from '@mui/icons-material/FileCopy';
 import PermissionIconButton from 'component/common/PermissionIconButton/PermissionIconButton';
 
 interface ICopyApiTokenButtonProps {
@@ -23,7 +23,7 @@ export const CopyApiTokenButton = ({
         if (copy(value)) {
             setToastData({
                 type: 'success',
-                title: `Token copied to clipboard`,
+                text: 'Token copied to clipboard',
             });
 
             if (track && typeof track === 'function') {
@@ -38,7 +38,7 @@ export const CopyApiTokenButton = ({
             projectId={project}
             tooltipProps={{ title: 'Copy token', arrow: true }}
             onClick={() => copyToken(token.secret)}
-            size="large"
+            size='large'
         >
             <FileCopy />
         </PermissionIconButton>

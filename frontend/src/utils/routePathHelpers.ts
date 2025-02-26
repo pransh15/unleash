@@ -4,30 +4,20 @@ export const getTogglePath = (projectId: string, featureToggleName: string) => {
 
 export const getCreateTogglePath = (
     projectId: string,
-    query?: Record<string, string>
+    query?: Record<string, string>,
 ) => {
-    const path = `/projects/${projectId}/create-toggle`;
+    const path = `/projects/${projectId}?create=true`;
 
-    let queryString;
+    let queryString: string | undefined;
     if (query) {
         queryString = Object.keys(query).reduce((acc, curr) => {
-            acc += `${curr}=${query[curr]}`;
-            return acc;
+            return `${acc}${curr}=${query[curr]}`;
         }, '');
     }
 
     if (queryString) {
-        return `${path}?${queryString}`;
+        return `${path}&${queryString}`;
     }
 
     return path;
-};
-
-export const getProjectEditPath = (
-    projectId: string,
-    newProjectPath: boolean
-) => {
-    return newProjectPath
-        ? `/projects/${projectId}/settings`
-        : `/projects/${projectId}/edit`;
 };

@@ -1,15 +1,17 @@
 import { useTheme } from '@mui/material';
-import { CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 
-interface IPercentageCircleProps {
+type PercentageCircleProps = {
     percentage: number;
     size?: `${number}rem`;
-}
+    disabled?: boolean | null;
+};
 
 const PercentageCircle = ({
     percentage,
     size = '4rem',
-}: IPercentageCircleProps) => {
+    disabled = false,
+}: PercentageCircleProps) => {
     const theme = useTheme();
 
     const style: CSSProperties = {
@@ -27,14 +29,19 @@ const PercentageCircle = ({
     const r = 100 / (2 * Math.PI);
     const d = 2 * r;
 
+    const color = disabled
+        ? theme.palette.neutral.border
+        : theme.palette.primary.light;
+
     return (
         <svg viewBox={`0 0 ${d} ${d}`} style={style} aria-hidden>
+            <title>A circle progress bar with {percentage}% completion.</title>
             <circle
                 r={r}
                 cx={r}
                 cy={r}
-                fill="none"
-                stroke={theme.palette.primary.light}
+                fill='none'
+                stroke={color}
                 strokeWidth={d}
                 strokeDasharray={`${percentage} 100`}
             />

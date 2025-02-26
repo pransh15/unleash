@@ -1,4 +1,5 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
+import { applicationUsageSchema } from './application-usage-schema';
 
 export const applicationSchema = {
     $id: '#/components/schemas/applicationSchema',
@@ -38,7 +39,7 @@ export const applicationSchema = {
             description:
                 'A link to reference the application reporting the metrics. Could for instance be a GitHub link to the repository of the application',
             type: 'string',
-            example: 'https://github.com/Unleash/unleash-client-proxy-js',
+            example: 'https://github.com/Unleash/unleash-proxy-client-js',
         },
         color: {
             description: `The CSS color that is used to color the application's entry in the application list`,
@@ -50,8 +51,17 @@ export const applicationSchema = {
             type: 'string',
             example: 'https://github.com/favicon.ico',
         },
+        usage: {
+            description: 'The list of projects the application has been using.',
+            type: 'array',
+            items: {
+                $ref: '#/components/schemas/applicationUsageSchema',
+            },
+        },
     },
-    components: {},
+    components: {
+        applicationUsageSchema,
+    },
 } as const;
 
 export type ApplicationSchema = FromSchema<typeof applicationSchema>;

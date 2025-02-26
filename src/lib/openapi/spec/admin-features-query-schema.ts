@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 
 export const adminFeaturesQuerySchema = {
     $id: '#/components/schemas/adminFeaturesQuerySchema',
@@ -20,7 +20,7 @@ export const adminFeaturesQuerySchema = {
         namePrefix: {
             type: 'string',
             description:
-                'A case-insensitive prefix filter for the names of feature toggles',
+                'A case-insensitive prefix filter for the names of feature flags',
             example: 'demo.part1',
         },
     },

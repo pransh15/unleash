@@ -1,22 +1,22 @@
-import { IRouter, Router, Request, Response, RequestHandler } from 'express';
-import { Logger } from 'lib/logger';
-import { IUnleashConfig } from '../types/option';
-import { NONE } from '../types/permissions';
+import {
+    type IRouter,
+    Router,
+    type Request,
+    type Response,
+    type RequestHandler,
+} from 'express';
+import type { Logger } from '../logger';
+import { type IUnleashConfig, NONE } from '../types';
 import { handleErrors } from './util';
 import requireContentType from '../middleware/content_type_checker';
 import { PermissionError } from '../error';
+import { fromOpenApiValidationErrors } from '../error/bad-data-error';
+import { storeRequestedRoute } from '../middleware/response-time-metrics';
 
-interface IRequestHandler<
-    P = any,
-    ResBody = any,
-    ReqBody = any,
-    ReqQuery = any,
-> {
-    (
-        req: Request<P, ResBody, ReqBody, ReqQuery>,
-        res: Response<ResBody>,
-    ): Promise<void> | void;
-}
+type IRequestHandler<P = any, ResBody = any, ReqBody = any, ReqQuery = any> = (
+    req: Request<P, ResBody, ReqBody, ReqQuery>,
+    res: Response<ResBody>,
+) => Promise<void> | void;
 
 type Permission = string | string[];
 
@@ -54,6 +54,26 @@ const checkPermission =
         }
         return res.status(403).json(new PermissionError(permissions)).end();
     };
+
+const checkPrivateProjectPermissions = () => async (req, res, next) => {
+    if (
+        !req.checkPrivateProjectPermissions ||
+        (await req.checkPrivateProjectPermissions())
+    ) {
+        return next();
+    }
+    return res.status(404).end();
+};
+
+const openAPIValidationMiddleware = async (err, req, res, next) => {
+    if (err?.status && err.validationErrors) {
+        const apiError = fromOpenApiValidationErrors(req, err.validationErrors);
+
+        res.status(apiError.statusCode).json(apiError);
+    } else {
+        next(err);
+    }
+};
 
 /**
  * Base class for Controllers to standardize binding to express Router.
@@ -99,10 +119,14 @@ export default class Controller {
     route(options: IRouteOptions): void {
         this.app[options.method](
             options.path,
+            storeRequestedRoute,
             checkPermission(options.permission),
+            checkPrivateProjectPermissions(),
             this.useContentTypeMiddleware(options),
             this.useRouteErrorHandler(options.handler.bind(this)),
         );
+
+        this.app.use(options.path, openAPIValidationMiddleware);
     }
 
     get(
@@ -185,7 +209,9 @@ export default class Controller {
     ): void {
         this.app.post(
             path,
+            storeRequestedRoute,
             checkPermission(permission),
+            checkPrivateProjectPermissions(),
             filehandler.bind(this),
             this.useRouteErrorHandler(handler.bind(this)),
         );
@@ -195,12 +221,11 @@ export default class Controller {
         this.app.use(path, router);
     }
 
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     useWithMiddleware(path: string, router: IRouter, middleware: any): void {
         this.app.use(path, middleware, router);
     }
 
-    get router(): any {
+    get router(): IRouter {
         return this.app;
     }
 }

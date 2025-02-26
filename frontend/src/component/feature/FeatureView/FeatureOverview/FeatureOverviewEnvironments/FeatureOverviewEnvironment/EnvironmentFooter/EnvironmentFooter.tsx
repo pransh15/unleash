@@ -1,11 +1,20 @@
-import { IFeatureEnvironmentMetrics } from 'interfaces/featureToggle';
+import type { IFeatureEnvironmentMetrics } from 'interfaces/featureToggle';
 import { FeatureMetricsStats } from 'component/feature/FeatureView/FeatureMetrics/FeatureMetricsStats/FeatureMetricsStats';
 import { SectionSeparator } from '../SectionSeparator/SectionSeparator';
+import { styled } from '@mui/material';
+
+const StyledLabel = styled('span')(({ theme }) => ({
+    background: theme.palette.envAccordion.expanded,
+    padding: theme.spacing(0, 2),
+}));
 
 interface IEnvironmentFooterProps {
     environmentMetric?: IFeatureEnvironmentMetrics;
 }
 
+/**
+ * @deprecated remove with `featureOverviewRedesign` flag
+ */
 export const EnvironmentFooter = ({
     environmentMetric,
 }: IEnvironmentFooterProps) => {
@@ -15,7 +24,9 @@ export const EnvironmentFooter = ({
 
     return (
         <>
-            <SectionSeparator>Feature toggle exposure</SectionSeparator>
+            <SectionSeparator>
+                <StyledLabel>Feature flag exposure</StyledLabel>
+            </SectionSeparator>
 
             <div>
                 <FeatureMetricsStats

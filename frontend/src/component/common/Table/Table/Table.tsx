@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { Table as MUITable, TableProps } from '@mui/material';
+import type { FC } from 'react';
+import { Table as MUITable, type TableProps } from '@mui/material';
 
 export const Table: FC<
     TableProps & {
@@ -10,13 +10,13 @@ export const Table: FC<
         sx={{
             position: 'relative',
             '& tbody tr': {
-                height: theme =>
+                height: (theme) =>
                     ({
                         auto: 'auto',
                         standard: theme.shape.tableRowHeight,
                         compact: theme.shape.tableRowHeightCompact,
                         dense: theme.shape.tableRowHeightDense,
-                    }[rowHeight] ?? rowHeight),
+                    })[rowHeight] ?? rowHeight,
             },
         }}
         {...props}

@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { overrideSchema } from './override-schema';
 
 export const variantSchema = {
@@ -11,7 +11,7 @@ export const variantSchema = {
     properties: {
         name: {
             type: 'string',
-            description: 'The variants name. Is unique for this feature toggle',
+            description: 'The variants name. Is unique for this feature flag',
             example: 'blue_group',
         },
         weight: {
@@ -42,9 +42,9 @@ export const variantSchema = {
             properties: {
                 type: {
                     description:
-                        'The type of the value. Commonly used types are string, json and csv.',
+                        'The type of the value. Commonly used types are string, number, json and csv.',
                     type: 'string',
-                    enum: ['json', 'csv', 'string'],
+                    enum: ['json', 'csv', 'string', 'number'],
                 },
                 value: {
                     description: 'The actual value of payload',

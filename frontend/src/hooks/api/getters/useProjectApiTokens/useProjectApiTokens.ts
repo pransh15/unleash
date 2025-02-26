@@ -1,12 +1,12 @@
-import useSWR, { SWRConfiguration } from 'swr';
+import useSWR, { type SWRConfiguration } from 'swr';
 import { useCallback, useMemo } from 'react';
 import { formatApiPath } from 'utils/formatPath';
 import handleErrorResponses from '../httpErrorResponseHandler';
-import { IApiToken } from '../useApiTokens/useApiTokens';
+import type { IApiToken } from '../useApiTokens/useApiTokens';
 
 export const useProjectApiTokens = (
     project: string,
-    options: SWRConfiguration = {}
+    options: SWRConfiguration = {},
 ) => {
     const path = formatApiPath(`api/admin/projects/${project}/api-tokens`);
     const { data, error, mutate } = useSWR<IApiToken[]>(path, fetcher, options);
@@ -29,7 +29,7 @@ export const useProjectApiTokens = (
 
 const fetcher = async (path: string): Promise<IApiToken[]> => {
     const res = await fetch(path).then(
-        handleErrorResponses('Project Api tokens')
+        handleErrorResponses('Project Api tokens'),
     );
     const data = await res.json();
     return data.tokens;

@@ -1,23 +1,24 @@
 import {
-    IUnleashTest,
+    type IUnleashTest,
     setupAppWithAuth,
 } from '../../../test/e2e/helpers/test-helper';
-import dbInit, { ITestDb } from '../../../test/e2e/helpers/database-init';
+import dbInit, { type ITestDb } from '../../../test/e2e/helpers/database-init';
 import getLogger from '../../../test/fixtures/no-logger';
 import {
     DEFAULT_PROJECT,
-    IContextFieldStore,
-    IEnvironmentStore,
-    IEventStore,
-    IFeatureToggleStore,
-    IProjectStore,
-    IUnleashStores,
+    type IContextFieldStore,
+    type IEnvironmentStore,
+    type IEventStore,
+    type IFeatureToggleStore,
+    type IProjectStore,
+    type IUnleashStores,
     RoleName,
 } from '../../types';
-import { ImportTogglesSchema, VariantsSchema } from '../../openapi';
-import { IContextFieldDto } from '../../types/stores/context-field-store';
-import { AccessService } from '../../services';
+import type { ImportTogglesSchema, VariantsSchema } from '../../openapi';
+import type { IContextFieldDto } from '../context/context-field-store-type';
+import type { AccessService } from '../../services';
 import { DEFAULT_ENV } from '../../util';
+import type { IRole } from '../../types/stores/access-store';
 
 let app: IUnleashTest;
 let db: ITestDb;
@@ -27,7 +28,7 @@ let contextFieldStore: IContextFieldStore;
 let projectStore: IProjectStore;
 let toggleStore: IFeatureToggleStore;
 let accessService: AccessService;
-let adminRole;
+let adminRole: IRole;
 let stores: IUnleashStores;
 
 const regularUserName = 'import-user';
@@ -54,7 +55,7 @@ const createFeature = async (featureName: string) => {
         .expect(201);
 };
 
-const createFeatureToggleWithStrategy = async (featureName: string) => {
+const createFeatureFlagWithStrategy = async (featureName: string) => {
     await createFeature(featureName);
     return app.request
         .post(
@@ -170,9 +171,18 @@ const tags = [
 ];
 
 const tagTypes = [
-    { name: 'bestt', description: 'test' },
-    { name: 'special_tag', description: 'this is my special tag' },
-    { name: 'special_tag', description: 'this is my special tag' }, // deliberate duplicate
+    {
+        name: 'bestt',
+        description: 'test',
+    },
+    {
+        name: 'special_tag',
+        description: 'this is my special tag',
+    },
+    {
+        name: 'special_tag',
+        description: 'this is my special tag',
+    }, // deliberate duplicate
 ];
 
 const importPayload: ImportTogglesSchema = {
@@ -199,13 +209,19 @@ const importPayload: ImportTogglesSchema = {
 
 const createUserEditorAccess = async (name, email) => {
     const { userStore } = stores;
-    const user = await userStore.insert({ name, email });
+    const user = await userStore.insert({
+        name,
+        email,
+    });
     return user;
 };
 
 const createUserAdminAccess = async (name, email) => {
     const { userStore } = stores;
-    const user = await userStore.insert({ name, email });
+    const user = await userStore.insert({
+        name,
+        email,
+    });
     await accessService.addUserToRole(user.id, adminRole.id, 'default');
     return user;
 };
@@ -233,9 +249,7 @@ beforeAll(async () => {
         db.stores,
         {
             experimental: {
-                flags: {
-                    featuresExportImport: true,
-                },
+                flags: {},
             },
         },
         db.rawDatabase,
@@ -293,7 +307,7 @@ test('validate import data', async () => {
     await createFeature(archivedFeature);
     await archiveFeature(archivedFeature);
 
-    await createFeatureToggleWithStrategy(existingFeature);
+    await createFeatureFlagWithStrategy(existingFeature);
 
     await createContextField(contextField);
     const importPayloadWithContextFields: ImportTogglesSchema = {
@@ -301,7 +315,12 @@ test('validate import data', async () => {
         data: {
             ...importPayload.data,
             featureStrategies: [{ name: 'customStrategy' }],
-            segments: [{ id: 1, name: 'customSegment' }],
+            segments: [
+                {
+                    id: 1,
+                    name: 'customSegment',
+                },
+            ],
             contextFields: [
                 {
                     ...contextField,
@@ -320,13 +339,18 @@ test('validate import data', async () => {
         errors: [
             {
                 message:
-                    'We detected the following custom strategy in the import file that needs to be created first:',
+                    'We detected the following custom strategy that needs to be created first:',
                 affectedItems: ['customStrategy'],
             },
             {
                 message:
                     'We detected the following context fields that do not have matching legal values with the imported ones:',
                 affectedItems: [contextField.name],
+            },
+            {
+                affectedItems: ['customSegment'],
+                message:
+                    'We detected the following segments that need to be created first:',
             },
         ],
         warnings: [
@@ -335,19 +359,24 @@ test('validate import data', async () => {
                     'The following features will not be imported as they are currently archived. To import them, please unarchive them first:',
                 affectedItems: [archivedFeature],
             },
+            {
+                message:
+                    'The following features already exist in this project and will be overwritten:',
+                affectedItems: ['existing_feature'],
+            },
         ],
         permissions: [
             {
                 message:
                     'We detected you are missing the following permissions:',
                 affectedItems: [
-                    'Create feature toggles',
-                    'Update feature toggles',
-                    'Update tag types',
                     'Create context fields',
                     'Create activation strategies',
                     'Delete activation strategies',
                     'Update variants',
+                    'Create feature flags',
+                    'Update feature flags',
+                    'Create tag types',
                 ],
             },
         ],

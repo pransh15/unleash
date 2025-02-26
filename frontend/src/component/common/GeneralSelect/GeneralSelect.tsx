@@ -1,16 +1,17 @@
-import React from 'react';
 import {
     FormControl,
     InputLabel,
     MenuItem,
     Select,
-    SelectProps,
-    SelectChangeEvent,
+    type SelectProps,
+    type SelectChangeEvent,
+    styled,
 } from '@mui/material';
 import { SELECT_ITEM_ID } from 'utils/testIds';
-import { KeyboardArrowDownOutlined } from '@mui/icons-material';
-import { SxProps } from '@mui/system';
-import { Theme } from '@mui/material/styles';
+import KeyboardArrowDownOutlined from '@mui/icons-material/KeyboardArrowDownOutlined';
+import type { SxProps } from '@mui/system';
+import type { Theme } from '@mui/material/styles';
+import { visuallyHidden } from '@mui/utils';
 
 export interface ISelectOption {
     key: string;
@@ -20,21 +21,27 @@ export interface ISelectOption {
     sx?: SxProps<Theme>;
 }
 
-export interface IGeneralSelectProps extends Omit<SelectProps, 'onChange'> {
+export interface IGeneralSelectProps<T extends string = string>
+    extends Omit<SelectProps, 'onChange'> {
     name?: string;
-    value?: string;
+    value?: T;
     label?: string;
     options: ISelectOption[];
-    onChange: (key: string) => void;
+    onChange: (key: T) => void;
     disabled?: boolean;
     fullWidth?: boolean;
     classes?: any;
     defaultValue?: string;
+    visuallyHideLabel?: boolean;
 }
 
-const GeneralSelect: React.FC<IGeneralSelectProps> = ({
+const StyledFormControl = styled(FormControl)({
+    maxWidth: '100%',
+});
+
+function GeneralSelect<T extends string = string>({
     name,
-    value = '',
+    value,
     label = '',
     options,
     onChange,
@@ -43,33 +50,51 @@ const GeneralSelect: React.FC<IGeneralSelectProps> = ({
     className,
     classes,
     fullWidth,
+    visuallyHideLabel,
+    labelId,
     ...rest
-}) => {
+}: IGeneralSelectProps<T>) {
     const onSelectChange = (event: SelectChangeEvent) => {
         event.preventDefault();
-        onChange(String(event.target.value));
+        onChange(String(event.target.value) as T);
     };
 
     return (
-        <FormControl
-            variant="outlined"
-            size="small"
+        <StyledFormControl
+            variant='outlined'
+            size='small'
             classes={classes}
             fullWidth={fullWidth}
         >
-            <InputLabel htmlFor={id}>{label}</InputLabel>
+            {label ? (
+                <InputLabel
+                    sx={visuallyHideLabel ? visuallyHidden : null}
+                    htmlFor={id}
+                    id={labelId}
+                >
+                    {label}
+                </InputLabel>
+            ) : null}
             <Select
                 name={name}
                 disabled={disabled}
                 onChange={onSelectChange}
                 className={className}
-                label={label}
+                label={visuallyHideLabel ? '' : label}
                 id={id}
-                value={value}
+                value={value ?? ''}
+                MenuProps={{
+                    sx: {
+                        '.MuiPopover-paper.MuiMenu-paper': {
+                            width: 'min-content',
+                        },
+                    },
+                }}
                 IconComponent={KeyboardArrowDownOutlined}
+                labelId={labelId}
                 {...rest}
             >
-                {options.map(option => (
+                {options.map((option) => (
                     <MenuItem
                         sx={option.sx}
                         key={option.key}
@@ -82,8 +107,8 @@ const GeneralSelect: React.FC<IGeneralSelectProps> = ({
                     </MenuItem>
                 ))}
             </Select>
-        </FormControl>
+        </StyledFormControl>
     );
-};
+}
 
 export default GeneralSelect;

@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { groupUserModelSchema } from './group-user-model-schema';
 import { userSchema } from './user-schema';
 
@@ -74,6 +74,13 @@ export const groupSchema = {
             example: 1,
             type: 'integer',
             minimum: 0,
+        },
+        scimId: {
+            description:
+                'The SCIM ID of the group, only present if managed by SCIM',
+            type: 'string',
+            nullable: true,
+            example: '01HTMEXAMPLESCIMID7SWWGHN7',
         },
     },
     components: {

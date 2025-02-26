@@ -1,12 +1,13 @@
 import { Button, Popover, styled, Typography, useTheme } from '@mui/material';
 import { flexRow } from '../../../../../themes/themeStyles';
-import React, { useState } from 'react';
-import { AdvancedPlaygroundFeatureSchemaEnvironments } from 'openapi';
+import type React from 'react';
+import { useState } from 'react';
+import type { AdvancedPlaygroundFeatureSchemaEnvironments } from 'openapi';
 import { PlaygroundEnvironmentDiffTable } from '../../PlaygroundEnvironmentTable/PlaygroundEnvironmentDiffTable';
 
 const StyledContainer = styled(
     'div',
-    {}
+    {},
 )(({ theme }) => ({
     flexGrow: 0,
     ...flexRow,
@@ -64,7 +65,7 @@ export const AdvancedPlaygroundEnvironmentDiffCell = ({
                         horizontal: -320,
                     }}
                 >
-                    <Typography variant="subtitle2" sx={{ mb: 3 }}>
+                    <Typography variant='subtitle2' sx={{ mb: 3 }}>
                         Environments diff
                     </Typography>
                     <PlaygroundEnvironmentDiffTable features={value} />

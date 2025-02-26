@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router';
-import useProject from 'hooks/api/getters/useProject/useProject';
 import useLoading from 'hooks/useLoading';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
+import { ReactComponent as ProjectStatusSvg } from 'assets/icons/projectStatus.svg';
 import {
     StyledDiv,
     StyledFavoriteIconButton,
@@ -14,21 +14,22 @@ import {
     StyledTabContainer,
     StyledTopRow,
 } from './Project.styles';
-import { Paper, Tabs, Typography } from '@mui/material';
-import { Delete, Edit, FileUpload } from '@mui/icons-material';
+import {
+    Badge as CounterBadge,
+    Box,
+    Paper,
+    Tabs,
+    Typography,
+    styled,
+    Button,
+} from '@mui/material';
 import useToast from 'hooks/useToast';
 import useQueryParams from 'hooks/useQueryParams';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import ProjectEnvironment from '../ProjectEnvironment/ProjectEnvironment';
 import { ProjectFeaturesArchive } from './ProjectFeaturesArchive/ProjectFeaturesArchive';
-import ProjectOverview from './ProjectOverview';
+import ProjectFlags from './ProjectFlags';
 import ProjectHealth from './ProjectHealth/ProjectHealth';
-import PermissionIconButton from 'component/common/PermissionIconButton/PermissionIconButton';
-import {
-    UPDATE_FEATURE,
-    DELETE_PROJECT,
-    UPDATE_PROJECT,
-} from 'component/providers/AccessProvider/permissions';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
@@ -39,62 +40,165 @@ import { ProjectChangeRequests } from '../../changeRequest/ProjectChangeRequests
 import { ProjectSettings } from './ProjectSettings/ProjectSettings';
 import { useFavoriteProjectsApi } from 'hooks/api/actions/useFavoriteProjectsApi/useFavoriteProjectsApi';
 import { ImportModal } from './Import/ImportModal';
-import { IMPORT_BUTTON } from 'utils/testIds';
+import { EnterpriseBadge } from 'component/common/EnterpriseBadge/EnterpriseBadge';
+import { Badge } from 'component/common/Badge/Badge';
+import type { UiFlags } from 'interfaces/uiConfig';
+import { HiddenProjectIconWithTooltip } from './HiddenProjectIconWithTooltip/HiddenProjectIconWithTooltip';
+import { ChangeRequestPlausibleProvider } from 'component/changeRequest/ChangeRequestContext';
+import { ProjectApplications } from '../ProjectApplications/ProjectApplications';
+import { ProjectInsights } from './ProjectInsights/ProjectInsights';
+import useProjectOverview from 'hooks/api/getters/useProjectOverview/useProjectOverview';
+import { ProjectArchived } from './ArchiveProject/ProjectArchived';
+import { usePlausibleTracker } from '../../../hooks/usePlausibleTracker';
+import { useActionableChangeRequests } from 'hooks/api/getters/useActionableChangeRequests/useActionableChangeRequests';
+import { ProjectStatusModal } from './ProjectStatus/ProjectStatusModal';
 
-const NAVIGATE_TO_EDIT_PROJECT = 'NAVIGATE_TO_EDIT_PROJECT';
+const StyledBadge = styled(Badge)(({ theme }) => ({
+    position: 'absolute',
+    top: 5,
+    right: 20,
+    [theme.breakpoints.down('md')]: {
+        top: 2,
+    },
+}));
+
+interface ITab {
+    title: string;
+    path: string;
+    ossPath?: string;
+    name: string;
+    flag?: keyof UiFlags;
+    new?: boolean;
+    isEnterprise?: boolean;
+    labelOverride?: () => ReactNode;
+}
+
+const StyledCounterBadge = styled(CounterBadge)(({ theme }) => ({
+    '.MuiBadge-badge': {
+        backgroundColor: theme.palette.background.alternative,
+        right: '-4px',
+    },
+    [theme.breakpoints.down('md')]: {
+        right: '6px',
+    },
+    flex: 'auto',
+    justifyContent: 'center',
+    minHeight: '1.5em',
+    alignItems: 'center',
+}));
+
+const TabText = styled('span')(({ theme }) => ({
+    color: theme.palette.text.primary,
+}));
+
+const ChangeRequestsLabel = () => {
+    const projectId = useRequiredPathParam('projectId');
+    const { total } = useActionableChangeRequests(projectId);
+
+    return (
+        <StyledCounterBadge badgeContent={total ?? 0} color='primary'>
+            <TabText>Change requests</TabText>
+        </StyledCounterBadge>
+    );
+};
+
+const ProjectStatusButton = styled(Button)(({ theme }) => ({
+    color: theme.palette.text.primary,
+    fontSize: theme.typography.body1.fontSize,
+    fontWeight: 'bold',
+    'svg *': {
+        fill: theme.palette.primary.main,
+    },
+}));
+
+const ProjectStatusSvgWithMargin = styled(ProjectStatusSvg)(({ theme }) => ({
+    marginLeft: theme.spacing(0.5),
+}));
+
+const ProjectStatus = () => {
+    const [projectStatusOpen, setProjectStatusOpen] = useState(false);
+    return (
+        <>
+            <ProjectStatusButton
+                onClick={() => setProjectStatusOpen(true)}
+                startIcon={<ProjectStatusSvgWithMargin />}
+                data-loading-project
+            >
+                Project status
+            </ProjectStatusButton>
+            <ProjectStatusModal
+                open={projectStatusOpen}
+                close={() => setProjectStatusOpen(false)}
+            />
+        </>
+    );
+};
 
 export const Project = () => {
     const projectId = useRequiredPathParam('projectId');
+    const { trackEvent } = usePlausibleTracker();
     const params = useQueryParams();
-    const { project, loading, error, refetch } = useProject(projectId);
-    const ref = useLoading(loading);
-    const { setToastData } = useToast();
+    const { project, loading, error, refetch } = useProjectOverview(projectId);
+    const ref = useLoading(loading, '[data-loading-project=true]');
+    const { setToastData, setToastApiError } = useToast();
     const [modalOpen, setModalOpen] = useState(false);
     const navigate = useNavigate();
     const { pathname } = useLocation();
-    const { isOss, uiConfig } = useUiConfig();
+    const { isOss, uiConfig, isPro } = useUiConfig();
     const basePath = `/projects/${projectId}`;
     const projectName = project?.name || projectId;
     const { favorite, unfavorite } = useFavoriteProjectsApi();
 
     const [showDelDialog, setShowDelDialog] = useState(false);
 
-    const tabs = [
+    const [
+        changeRequestChangesWillOverwrite,
+        setChangeRequestChangesWillOverwrite,
+    ] = useState(false);
+
+    const tabs: ITab[] = [
         {
             title: 'Overview',
             path: basePath,
-            name: 'overview',
-        },
-        {
-            title: 'Health',
-            path: `${basePath}/health`,
-            name: 'health',
-        },
-        {
-            title: 'Archive',
-            path: `${basePath}/archive`,
-            name: 'archive',
+            name: 'flags',
         },
         {
             title: 'Change requests',
             path: `${basePath}/change-requests`,
             name: 'change-request',
+            isEnterprise: true,
+            labelOverride: ChangeRequestsLabel,
         },
         {
-            title: 'Project settings',
-            path: `${basePath}/settings`,
-            name: 'settings',
+            title: 'Applications',
+            path: `${basePath}/applications`,
+            name: 'applications',
         },
         {
             title: 'Event log',
             path: `${basePath}/logs`,
             name: 'logs',
         },
+        {
+            title: 'Settings',
+            path: `${basePath}/settings`,
+            ossPath: `${basePath}/settings/api-access`,
+            name: 'settings',
+        },
     ];
 
-    const activeTab = [...tabs]
+    const filteredTabs = tabs
+        .filter((tab) => {
+            if (tab.flag) {
+                return uiConfig.flags[tab.flag];
+            }
+            return true;
+        })
+        .filter((tab) => !(isOss() && tab.isEnterprise));
+
+    const activeTab = [...filteredTabs]
         .reverse()
-        .find(tab => pathname.startsWith(tab.path));
+        .find((tab) => pathname.startsWith(tab.path));
 
     useEffect(() => {
         const created = params.get('created');
@@ -104,7 +208,7 @@ export const Project = () => {
             const text = created ? 'Project created' : 'Project updated';
             setToastData({
                 type: 'success',
-                title: text,
+                text,
             });
         }
         /* eslint-disable-next-line */
@@ -112,8 +216,8 @@ export const Project = () => {
 
     if (error?.status === 404) {
         return (
-            <Paper sx={theme => ({ padding: theme.spacing(2, 4, 4) })}>
-                <Typography variant="h1">404 Not Found</Typography>
+            <Paper sx={(theme) => ({ padding: theme.spacing(2, 4, 4) })}>
+                <Typography variant='h1'>404 Not Found</Typography>
                 <Typography>
                     Project <strong>{projectId}</strong> does not exist.
                 </Typography>
@@ -122,13 +226,32 @@ export const Project = () => {
     }
 
     const onFavorite = async () => {
-        if (project?.favorite) {
-            await unfavorite(projectId);
-        } else {
-            await favorite(projectId);
+        try {
+            if (project?.favorite) {
+                await unfavorite(projectId);
+            } else {
+                await favorite(projectId);
+            }
+            refetch();
+        } catch (error) {
+            setToastApiError('Something went wrong, could not update favorite');
         }
-        refetch();
     };
+
+    const enterpriseIcon = (
+        <Box
+            sx={(theme) => ({
+                marginLeft: theme.spacing(1),
+                display: 'flex',
+            })}
+        >
+            <EnterpriseBadge />
+        </Box>
+    );
+
+    if (project.archivedAt) {
+        return <ProjectArchived name={project.name} />;
+    }
 
     return (
         <div ref={ref}>
@@ -141,72 +264,17 @@ export const Project = () => {
                                 isFavorite={project?.favorite}
                             />
                             <StyledProjectTitle>
-                                <StyledName data-loading>
+                                <ConditionallyRender
+                                    condition={project?.mode === 'private'}
+                                    show={<HiddenProjectIconWithTooltip />}
+                                />
+                                <StyledName data-loading-project>
                                     {projectName}
                                 </StyledName>
                             </StyledProjectTitle>
                         </StyledDiv>
                         <StyledDiv>
-                            <ConditionallyRender
-                                condition={Boolean(
-                                    uiConfig?.flags?.featuresExportImport
-                                )}
-                                show={
-                                    <PermissionIconButton
-                                        permission={UPDATE_FEATURE}
-                                        projectId={projectId}
-                                        onClick={() => setModalOpen(true)}
-                                        tooltipProps={{ title: 'Import' }}
-                                        data-testid={IMPORT_BUTTON}
-                                        data-loading
-                                    >
-                                        <FileUpload />
-                                    </PermissionIconButton>
-                                }
-                            />
-                            <ConditionallyRender
-                                condition={
-                                    !isOss() &&
-                                    !Boolean(uiConfig.flags.newProjectLayout)
-                                }
-                                show={
-                                    <PermissionIconButton
-                                        permission={UPDATE_PROJECT}
-                                        projectId={projectId}
-                                        onClick={() =>
-                                            navigate(
-                                                `/projects/${projectId}/edit`
-                                            )
-                                        }
-                                        tooltipProps={{ title: 'Edit project' }}
-                                        data-loading
-                                        data-testid={NAVIGATE_TO_EDIT_PROJECT}
-                                    >
-                                        <Edit />
-                                    </PermissionIconButton>
-                                }
-                            />
-                            <ConditionallyRender
-                                condition={
-                                    !isOss() &&
-                                    !Boolean(uiConfig.flags.newProjectLayout)
-                                }
-                                show={
-                                    <PermissionIconButton
-                                        permission={DELETE_PROJECT}
-                                        projectId={projectId}
-                                        onClick={() => {
-                                            setShowDelDialog(true);
-                                        }}
-                                        tooltipProps={{
-                                            title: 'Delete project',
-                                        }}
-                                        data-loading
-                                    >
-                                        <Delete />
-                                    </PermissionIconButton>
-                                }
-                            />
+                            <ProjectStatus />
                         </StyledDiv>
                     </StyledTopRow>
                 </StyledInnerContainer>
@@ -215,25 +283,69 @@ export const Project = () => {
                 <StyledTabContainer>
                     <Tabs
                         value={activeTab?.path}
-                        indicatorColor="primary"
-                        textColor="primary"
-                        variant="scrollable"
+                        indicatorColor='primary'
+                        textColor='primary'
+                        variant='scrollable'
                         allowScrollButtonsMobile
                     >
-                        {tabs.map(tab => (
-                            <StyledTab
-                                key={tab.title}
-                                label={tab.title}
-                                value={tab.path}
-                                onClick={() => navigate(tab.path)}
-                                data-testid={`TAB_${tab.title}`}
-                            />
-                        ))}
+                        {filteredTabs.map((tab) => {
+                            return (
+                                <StyledTab
+                                    data-loading-project
+                                    key={tab.title}
+                                    label={
+                                        tab.labelOverride ? (
+                                            <tab.labelOverride />
+                                        ) : (
+                                            tab.title
+                                        )
+                                    }
+                                    value={tab.path}
+                                    onClick={() => {
+                                        if (tab.title !== 'Flags') {
+                                            trackEvent('project-navigation', {
+                                                props: {
+                                                    eventType: tab.title,
+                                                },
+                                            });
+                                        }
+                                        navigate(
+                                            isOss() && tab.ossPath
+                                                ? tab.ossPath
+                                                : tab.path,
+                                        );
+                                    }}
+                                    data-testid={`TAB_${tab.title}`}
+                                    iconPosition={
+                                        tab.isEnterprise ? 'end' : undefined
+                                    }
+                                    icon={
+                                        <>
+                                            <ConditionallyRender
+                                                condition={Boolean(tab.new)}
+                                                show={
+                                                    // extra span to avoid badge getting color override from the overly specific parent component
+                                                    <span>
+                                                        <StyledBadge color='success'>
+                                                            Beta
+                                                        </StyledBadge>
+                                                    </span>
+                                                }
+                                            />
+                                            {(tab.isEnterprise &&
+                                                isPro() &&
+                                                enterpriseIcon) ||
+                                                undefined}
+                                        </>
+                                    }
+                                />
+                            );
+                        })}
                     </Tabs>
                 </StyledTabContainer>
             </StyledHeader>
             <DeleteProjectDialogue
-                project={projectId}
+                projectId={projectId}
                 open={showDelDialog}
                 onClose={() => {
                     setShowDelDialog(false);
@@ -243,9 +355,9 @@ export const Project = () => {
                 }}
             />
             <Routes>
-                <Route path="health" element={<ProjectHealth />} />
+                <Route path='health' element={<ProjectHealth />} />
                 <Route
-                    path="access/*"
+                    path='access/*'
                     element={
                         <Navigate
                             replace
@@ -253,19 +365,32 @@ export const Project = () => {
                         />
                     }
                 />
-                <Route path="environments" element={<ProjectEnvironment />} />
-                <Route path="archive" element={<ProjectFeaturesArchive />} />
-                <Route path="logs" element={<ProjectLog />} />
+                <Route path='environments' element={<ProjectEnvironment />} />
+                <Route path='archive' element={<ProjectFeaturesArchive />} />
+                <Route path='insights' element={<ProjectInsights />} />
+                <Route path='logs' element={<ProjectLog />} />
                 <Route
-                    path="change-requests"
+                    path='change-requests'
                     element={<ProjectChangeRequests />}
                 />
                 <Route
-                    path="change-requests/:id"
-                    element={<ChangeRequestOverview />}
+                    path='change-requests/:id'
+                    element={
+                        <ChangeRequestPlausibleProvider
+                            value={{
+                                willOverwriteStrategyChanges:
+                                    changeRequestChangesWillOverwrite,
+                                registerWillOverwriteStrategyChanges: () =>
+                                    setChangeRequestChangesWillOverwrite(true),
+                            }}
+                        >
+                            <ChangeRequestOverview />
+                        </ChangeRequestPlausibleProvider>
+                    }
                 />
-                <Route path="settings/*" element={<ProjectSettings />} />
-                <Route path="*" element={<ProjectOverview />} />
+                <Route path='settings/*' element={<ProjectSettings />} />
+                <Route path='applications' element={<ProjectApplications />} />
+                <Route path='*' element={<ProjectFlags />} />
             </Routes>
             <ImportModal
                 open={modalOpen}

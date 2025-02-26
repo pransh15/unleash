@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { TablePlaceholder, VirtualizedTable } from 'component/common/Table';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
-import { IRole, PredefinedRoleType } from 'interfaces/role';
+import type { IRole, PredefinedRoleType } from 'interfaces/role';
 import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { PageContent } from 'component/common/PageContent/PageContent';
@@ -13,7 +13,7 @@ import { TextCell } from 'component/common/Table/cells/TextCell/TextCell';
 import { useConditionallyHiddenColumns } from 'hooks/useConditionallyHiddenColumns';
 import { useSearch } from 'hooks/useSearch';
 import { IconCell } from 'component/common/Table/cells/IconCell/IconCell';
-import { SupervisedUserCircle } from '@mui/icons-material';
+import SupervisedUserCircle from '@mui/icons-material/SupervisedUserCircle';
 import { RolesActionsCell } from './RolesActionsCell/RolesActionsCell';
 import { RolesCell } from './RolesCell/RolesCell';
 import { RoleDeleteDialog } from './RoleDeleteDialog/RoleDeleteDialog';
@@ -52,7 +52,7 @@ export const RolesTable = ({
         try {
             await removeRole(role.id);
             setToastData({
-                title: `${role.name} has been deleted`,
+                text: `${role.name} has been deleted`,
                 type: 'success',
             });
             refetch();
@@ -70,7 +70,7 @@ export const RolesTable = ({
                 id: 'Icon',
                 Cell: () => (
                     <IconCell
-                        icon={<SupervisedUserCircle color="disabled" />}
+                        icon={<SupervisedUserCircle color='disabled' />}
                     />
                 ),
                 disableGlobalFilter: true,
@@ -118,7 +118,7 @@ export const RolesTable = ({
                 searchable: true,
             },
         ],
-        []
+        [],
     );
 
     const [initialState] = useState({
@@ -129,7 +129,7 @@ export const RolesTable = ({
     const { data, getSearchText } = useSearch(
         columns,
         searchValue,
-        type === ROOT_ROLE_TYPE ? roles : projectRoles
+        type === ROOT_ROLE_TYPE ? roles : projectRoles,
     );
 
     const { headerGroups, rows, prepareRow, setHiddenColumns } = useTable(
@@ -147,7 +147,7 @@ export const RolesTable = ({
             },
         },
         useSortBy,
-        useFlexLayout
+        useFlexLayout,
     );
 
     useConditionallyHiddenColumns(
@@ -158,7 +158,7 @@ export const RolesTable = ({
             },
         ],
         setHiddenColumns,
-        columns
+        columns,
     );
 
     return (

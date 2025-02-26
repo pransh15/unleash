@@ -1,8 +1,8 @@
 import { Alert, styled, Typography } from '@mui/material';
 import { UserToken } from 'component/admin/apiToken/ConfirmToken/UserToken/UserToken';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
-import { INewPersonalAPIToken } from 'interfaces/personalAPIToken';
-import { FC } from 'react';
+import type { INewPersonalAPIToken } from 'interfaces/personalAPIToken';
+import type { FC } from 'react';
 
 const StyledAlert = styled(Alert)(({ theme }) => ({
     marginBottom: theme.spacing(3),
@@ -21,19 +21,19 @@ export const ServiceAccountTokenDialog: FC<IServiceAccountDialogProps> = ({
 }) => (
     <Dialogue
         open={open}
-        secondaryButtonText="Close"
+        secondaryButtonText='Close'
         onClose={(_, muiCloseReason?: string) => {
             if (!muiCloseReason) {
                 setOpen(false);
             }
         }}
-        title="Service account token created"
+        title='Service account token created'
     >
-        <StyledAlert severity="info">
+        <StyledAlert severity='info'>
             Make sure to copy your service account API token now. You won't be
             able to see it again!
         </StyledAlert>
-        <Typography variant="body1">Your token:</Typography>
+        <Typography variant='body1'>Your token:</Typography>
         <UserToken token={token?.secret || ''} />
     </Dialogue>
 );

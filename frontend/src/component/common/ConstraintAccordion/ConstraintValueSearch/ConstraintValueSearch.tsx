@@ -1,6 +1,5 @@
-import { TextField, InputAdornment, Chip } from '@mui/material';
-import { Search } from '@mui/icons-material';
-import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
+import { TextField, InputAdornment } from '@mui/material';
+import Search from '@mui/icons-material/Search';
 
 interface IConstraintValueSearchProps {
     filter: string;
@@ -13,38 +12,28 @@ export const ConstraintValueSearch = ({
 }: IConstraintValueSearchProps) => {
     return (
         <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{ width: '300px' }}>
+            <div style={{ width: '100%' }}>
                 <TextField
-                    label="Search"
-                    name="search"
+                    label='Search'
+                    name='search'
                     value={filter}
-                    onChange={e => setFilter(e.target.value)}
-                    placeholder="Filter values"
+                    onChange={(e) => setFilter(e.target.value)}
+                    placeholder='Filter values'
                     style={{
                         width: '100%',
                         margin: '1rem 0',
                     }}
-                    variant="outlined"
-                    size="small"
+                    variant='outlined'
+                    size='small'
                     InputProps={{
                         startAdornment: (
-                            <InputAdornment position="start">
+                            <InputAdornment position='start'>
                                 <Search />
                             </InputAdornment>
                         ),
                     }}
                 />
             </div>
-            <ConditionallyRender
-                condition={Boolean(filter)}
-                show={
-                    <Chip
-                        style={{ marginLeft: '1rem' }}
-                        label={`filter active: ${filter}`}
-                        onDelete={() => setFilter('')}
-                    />
-                }
-            />
         </div>
     );
 };

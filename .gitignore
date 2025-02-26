@@ -3,6 +3,7 @@ lerna-debug
 npm-debug
 .DS_Store
 /dist
+.vscode
 
 # Logs
 logs
@@ -36,8 +37,22 @@ unleash-server.tar.gz
 # Visual Studio Code
 jsconfig.json
 typings
-.vscode
 .nyc_output
+
+# Emacs, nix, devenv, pijul
+# Only Thomas uses this and he doesn't want to add it to the repo
+.devenv
+.devenv.flake.nix
+.dir-locals.el
+.envrc
+shell.nix
+# Pijul + ignore
+.ignore
+.pijul
+# Custom hooks in husky directory
+.husky/pre-push
+.husky/prepare-commit-msg
+
 
 # We use yarn.lock
 package-lock.json
@@ -53,8 +68,42 @@ package-lock.json
 # Ignore frontend build
 frontend/build
 
+# Ignore orval apis
+frontend/src/openapi/apis
+frontend/src/openapi/index.ts
+
 # Generated docs
-website/docs/reference/api/**/sidebar.js
+website/docs/reference/api/**/sidebar.ts
 website/docs/reference/api/**/**.info.mdx
 website/docs/generated
 reports/jest-junit.xml
+
+# Yarn (https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored)
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+frontend/.yarn/*
+!frontend/.yarn/patches
+!frontend/.yarn/plugins
+!frontend/.yarn/releases
+!frontend/.yarn/sdks
+!frontend/.yarn/versions
+
+docker/.yarn/*
+!docker/.yarn/patches
+!docker/.yarn/plugins
+!docker/.yarn/releases
+!docker/.yarn/sdks
+!docker/.yarn/versions
+
+website/.yarn/*
+!website/.yarn/patches
+!website/.yarn/plugins
+!website/.yarn/releases
+!website/.yarn/sdks
+!website/.yarn/versions
+

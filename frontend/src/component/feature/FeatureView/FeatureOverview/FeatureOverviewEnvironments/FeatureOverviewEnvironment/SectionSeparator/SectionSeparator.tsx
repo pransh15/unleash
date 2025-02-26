@@ -1,4 +1,5 @@
-import { FC } from 'react';
+import type React from 'react';
+import type { FC } from 'react';
 import { styled } from '@mui/material';
 
 const SeparatorContainer = styled('div')(({ theme }) => ({
@@ -22,13 +23,14 @@ const SeparatorContent = styled('span')(({ theme }) => ({
     fontSize: theme.fontSizes.bodySize,
     textAlign: 'center',
     padding: '0 1rem',
-    background: theme.palette.envAccordion.expanded,
     position: 'relative',
     maxWidth: '80%',
     color: theme.palette.text.primary,
 }));
 
-export const SectionSeparator: FC = ({ children }) => (
+export const SectionSeparator: FC<{ children?: React.ReactNode }> = ({
+    children,
+}) => (
     <SeparatorContainer>
         <SeparatorContent>{children}</SeparatorContent>
     </SeparatorContainer>

@@ -1,11 +1,20 @@
-import React, { FC } from 'react';
+import type { FC } from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { render as rtlRender, RenderOptions } from '@testing-library/react';
+import {
+    render as rtlRender,
+    type RenderOptions,
+} from '@testing-library/react';
 import { SWRConfig } from 'swr';
 import { ThemeProvider } from 'themes/ThemeProvider';
-import { IPermission } from 'interfaces/user';
+import type { IPermission } from 'interfaces/user';
 import { AnnouncerProvider } from 'component/common/Announcer/AnnouncerProvider/AnnouncerProvider';
 import { AccessProviderMock } from 'component/providers/AccessProvider/AccessProviderMock';
+import { UIProviderContainer } from '../component/providers/UIProvider/UIProviderContainer';
+import { ReactRouter6Adapter } from 'use-query-params/adapters/react-router-6';
+import { QueryParamProvider } from 'use-query-params';
+import { FeedbackProvider } from 'component/feedbackNew/FeedbackProvider';
+import { StickyProvider } from 'component/common/Sticky/StickyProvider';
+import { HighlightProvider } from 'component/common/Highlight/HighlightProvider';
 
 export const render = (
     ui: JSX.Element,
@@ -16,19 +25,43 @@ export const render = (
     }: { route?: string; permissions?: IPermission[] } & Omit<
         RenderOptions,
         'queries'
-    > = {}
+    > = {},
 ) => {
+    if (!route.startsWith('/')) {
+        throw new Error('Route must start with a /');
+    }
+
     window.history.pushState({}, 'Test page', route);
 
-    const Wrapper: FC = ({ children }) => (
-        <SWRConfig value={{ provider: () => new Map() }}>
-            <AccessProviderMock permissions={permissions}>
-                <ThemeProvider>
-                    <AnnouncerProvider>
-                        <BrowserRouter>{children}</BrowserRouter>
-                    </AnnouncerProvider>
-                </ThemeProvider>
-            </AccessProviderMock>
+    const Wrapper: FC<{ children?: React.ReactNode }> = ({ children }) => (
+        <SWRConfig
+            value={{
+                provider: () => new Map(),
+                isVisible() {
+                    return true;
+                },
+                dedupingInterval: 0,
+            }}
+        >
+            <UIProviderContainer>
+                <FeedbackProvider>
+                    <AccessProviderMock permissions={permissions}>
+                        <BrowserRouter>
+                            <QueryParamProvider adapter={ReactRouter6Adapter}>
+                                <ThemeProvider>
+                                    <AnnouncerProvider>
+                                        <StickyProvider>
+                                            <HighlightProvider>
+                                                {children}
+                                            </HighlightProvider>
+                                        </StickyProvider>
+                                    </AnnouncerProvider>
+                                </ThemeProvider>
+                            </QueryParamProvider>
+                        </BrowserRouter>
+                    </AccessProviderMock>
+                </FeedbackProvider>
+            </UIProviderContainer>
         </SWRConfig>
     );
 

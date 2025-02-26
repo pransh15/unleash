@@ -1,10 +1,10 @@
-import React from 'react';
+import type React from 'react';
 import { createGlobalState } from 'react-hooks-global-state';
 import { getLocalStorageItem, setLocalStorageItem } from '../utils/storage';
 
 type UsePersistentGlobalState<T> = () => [
     value: T,
-    setValue: React.Dispatch<React.SetStateAction<T>>
+    setValue: React.Dispatch<React.SetStateAction<T>>,
 ];
 
 /**
@@ -16,7 +16,7 @@ type UsePersistentGlobalState<T> = () => [
  */
 export const createPersistentGlobalStateHook = <T extends object>(
     key: string,
-    initialValue: T
+    initialValue: T,
 ): UsePersistentGlobalState<T> => {
     const container = createGlobalState<{ [key: string]: T }>({
         [key]: getLocalStorageItem<T>(key) ?? initialValue,

@@ -1,4 +1,4 @@
-import { IConstraint } from 'interfaces/strategy';
+import type { IConstraint } from 'interfaces/strategy';
 
 import useUnleashContext from 'hooks/api/getters/useUnleashContext/useUnleashContext';
 import GeneralSelect from 'component/common/GeneralSelect/GeneralSelect';
@@ -13,8 +13,9 @@ import {
 } from 'constants/operators';
 import { resolveText } from './helpers';
 import { oneOf } from 'utils/oneOf';
-import React, { useEffect, useState } from 'react';
-import { Operator } from 'constants/operators';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import type { Operator } from 'constants/operators';
 import { ConstraintOperatorSelect } from 'component/common/ConstraintAccordion/ConstraintOperatorSelect';
 import {
     operatorsForContext,
@@ -105,7 +106,7 @@ export const ConstraintAccordionEditHeader = ({
     const { uiConfig } = useUiConfig();
 
     const caseInsensitiveInOperators = Boolean(
-        uiConfig.flags.caseInsensitiveInOperators
+        uiConfig.flags.caseInsensitiveInOperators,
     );
 
     /* We need a special case to handle the currenTime context field. Since
@@ -118,7 +119,7 @@ export const ConstraintAccordionEditHeader = ({
             contextName === CURRENT_TIME_CONTEXT_FIELD &&
             !oneOf(dateOperators, operator)
         ) {
-            setLocalConstraint(prev => ({
+            setLocalConstraint((prev) => ({
                 ...prev,
                 operator: DATE_AFTER,
                 value: new Date().toISOString(),
@@ -150,7 +151,7 @@ export const ConstraintAccordionEditHeader = ({
         return null;
     }
 
-    const constraintNameOptions = context.map(context => {
+    const constraintNameOptions = context.map((context) => {
         return { key: context.name, label: context.name };
     });
 
@@ -165,7 +166,7 @@ export const ConstraintAccordionEditHeader = ({
         }
 
         if (oneOf(dateOperators, operator)) {
-            setLocalConstraint(prev => ({
+            setLocalConstraint((prev) => ({
                 ...prev,
                 operator: operator,
                 value: new Date().toISOString(),
@@ -181,9 +182,9 @@ export const ConstraintAccordionEditHeader = ({
             <StyledSelectContainer>
                 <div>
                     <StyledGeneralSelect
-                        id="context-field-select"
-                        name="contextName"
-                        label="Context Field"
+                        id='context-field-select'
+                        name='contextName'
+                        label='Context Field'
                         autoFocus
                         options={constraintNameOptions}
                         value={contextName || ''}

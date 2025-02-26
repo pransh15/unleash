@@ -11,20 +11,18 @@ import {
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useState } from 'react';
-import { IEnvironment } from 'interfaces/environments';
+import type { IEnvironment } from 'interfaces/environments';
 import { PermissionHOC } from 'component/common/PermissionHOC/PermissionHOC';
 import {
     ADMIN,
     DELETE_ENVIRONMENT,
     UPDATE_ENVIRONMENT,
 } from 'component/providers/AccessProvider/permissions';
-import {
-    Delete,
-    Edit,
-    AddToPhotos as CopyIcon,
-    VisibilityOffOutlined,
-    VisibilityOutlined,
-} from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
+import Edit from '@mui/icons-material/Edit';
+import CopyIcon from '@mui/icons-material/AddToPhotos';
+import VisibilityOffOutlined from '@mui/icons-material/VisibilityOffOutlined';
+import VisibilityOutlined from '@mui/icons-material/VisibilityOutlined';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 
 const StyledMenuList = styled(MenuList)(({ theme }) => ({
@@ -73,14 +71,14 @@ export const EnvironmentActionCellPopover = ({
 
     return (
         <>
-            <Tooltip title="Environment actions" arrow describeChild>
+            <Tooltip title='Environment actions' arrow describeChild>
                 <IconButton
                     id={id}
                     aria-controls={open ? menuId : undefined}
-                    aria-haspopup="true"
+                    aria-haspopup='true'
                     aria-expanded={open ? 'true' : undefined}
                     onClick={handleClick}
-                    type="button"
+                    type='button'
                 >
                     <MoreVertIcon />
                 </IconButton>
@@ -108,7 +106,7 @@ export const EnvironmentActionCellPopover = ({
                                     <Edit />
                                 </ListItemIcon>
                                 <ListItemText>
-                                    <Typography variant="body2">
+                                    <Typography variant='body2'>
                                         Edit
                                     </Typography>
                                 </ListItemText>
@@ -128,7 +126,7 @@ export const EnvironmentActionCellPopover = ({
                                     <CopyIcon />
                                 </ListItemIcon>
                                 <ListItemText>
-                                    <Typography variant="body2">
+                                    <Typography variant='body2'>
                                         Clone
                                     </Typography>
                                 </ListItemText>
@@ -142,7 +140,7 @@ export const EnvironmentActionCellPopover = ({
                                     onDeprecateToggle();
                                     handleClose();
                                 }}
-                                disabled={!hasAccess || environment.protected}
+                                disabled={!hasAccess}
                             >
                                 <ListItemIcon>
                                     <ConditionallyRender
@@ -152,7 +150,7 @@ export const EnvironmentActionCellPopover = ({
                                     />
                                 </ListItemIcon>
                                 <ListItemText>
-                                    <Typography variant="body2">
+                                    <Typography variant='body2'>
                                         {environment.enabled
                                             ? 'Deprecate'
                                             : 'Undeprecate'}
@@ -174,7 +172,7 @@ export const EnvironmentActionCellPopover = ({
                                     <Delete />
                                 </StyledListItemIconNegative>
                                 <ListItemText>
-                                    <Typography variant="body2">
+                                    <Typography variant='body2'>
                                         Delete
                                     </Typography>
                                 </ListItemText>

@@ -1,4 +1,4 @@
-import {
+import type {
     ROOT_PERMISSION_TYPE,
     PROJECT_PERMISSION_TYPE,
     ENVIRONMENT_PERMISSION_TYPE,
@@ -10,7 +10,6 @@ export type PermissionType =
     | typeof ENVIRONMENT_PERMISSION_TYPE;
 
 export interface IPermission {
-    id: number;
     name: string;
     displayName: string;
     type: PermissionType;
@@ -36,4 +35,8 @@ export interface IPermissionCategory {
     label: string;
     type: PermissionType;
     permissions: IPermission[];
+}
+
+export interface IMatrixPermission extends IPermission {
+    hasPermission: boolean;
 }

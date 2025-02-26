@@ -1,4 +1,3 @@
-import React from 'react';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { REMOVE_USER_ERROR } from 'hooks/api/actions/useAdminUsersApi/useAdminUsersApi';
@@ -6,7 +5,7 @@ import { Alert, styled } from '@mui/material';
 import useLoading from 'hooks/useLoading';
 import { Typography } from '@mui/material';
 import { useThemeStyles } from 'themes/themeStyles';
-import { IUser } from 'interfaces/user';
+import type { IUser } from 'interfaces/user';
 import { UserAvatar } from 'component/common/UserAvatar/UserAvatar';
 
 const StyledUserAvatar = styled(UserAvatar)(({ theme }) => ({
@@ -38,11 +37,11 @@ const DeleteUser = ({
     return (
         <Dialogue
             open={showDialog}
-            title="Really delete user?"
+            title='Really delete user?'
             onClose={closeDialog}
             onClick={removeUser}
-            primaryButtonText="Delete user"
-            secondaryButtonText="Cancel"
+            primaryButtonText='Delete user'
+            secondaryButtonText='Cancel'
         >
             <div ref={ref}>
                 <ConditionallyRender
@@ -50,7 +49,7 @@ const DeleteUser = ({
                     show={
                         <Alert
                             data-loading
-                            severity="error"
+                            severity='error'
                             style={{ margin: '1rem 0' }}
                         >
                             {userApiErrors[REMOVE_USER_ERROR]}
@@ -58,9 +57,9 @@ const DeleteUser = ({
                     }
                 />
                 <div data-loading className={themeStyles.flexRow}>
-                    <StyledUserAvatar user={user} variant="rounded" />
+                    <StyledUserAvatar user={user} variant='rounded' />
                     <Typography
-                        variant="subtitle1"
+                        variant='subtitle1'
                         style={{ marginLeft: '1rem' }}
                     >
                         {user.username || user.email}
@@ -68,7 +67,7 @@ const DeleteUser = ({
                 </div>
                 <Typography
                     data-loading
-                    variant="body1"
+                    variant='body1'
                     style={{ marginTop: '1rem' }}
                 >
                     Are you sure you want to delete{' '}
@@ -78,6 +77,9 @@ const DeleteUser = ({
                           })`
                         : ''}
                     ?
+                    {user.scimId
+                        ? ' This user is currently managed by SCIM and may be re-added by your SCIM provider.'
+                        : ''}
                 </Typography>
             </div>
         </Dialogue>

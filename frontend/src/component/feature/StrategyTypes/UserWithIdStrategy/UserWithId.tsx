@@ -1,7 +1,7 @@
-import { IFeatureStrategyParameters } from 'interfaces/strategy';
+import type { IFeatureStrategyParameters } from 'interfaces/strategy';
 import StrategyInputList from '../StrategyInputList/StrategyInputList';
 import { parseParameterStrings } from 'utils/parseParameter';
-import { IFormErrors } from 'hooks/useFormErrors';
+import type { IFormErrors } from 'hooks/useFormErrors';
 
 interface IUserWithIdStrategyProps {
     parameters: IFeatureStrategyParameters;
@@ -19,7 +19,7 @@ const UserWithIdStrategy = ({
     return (
         <div>
             <StrategyInputList
-                name="userIds"
+                name='userIds'
                 list={parseParameterStrings(parameters.userIds)}
                 disabled={!editable}
                 setConfig={updateParameter}

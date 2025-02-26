@@ -1,22 +1,24 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import Controller from '../controller';
-import UserService from '../../services/user-service';
-import { Logger } from '../../logger';
-import { IUnleashConfig } from '../../types/option';
-import { IUnleashServices } from '../../types';
+import type UserService from '../../services/user-service';
+import type { Logger } from '../../logger';
+import type { IUnleashConfig } from '../../types/option';
+import type { IUnleashServices } from '../../types';
 import { NONE } from '../../types/permissions';
 import { createRequestSchema } from '../../openapi/util/create-request-schema';
 import { createResponseSchema } from '../../openapi/util/create-response-schema';
-import { OpenApiService } from '../../services/openapi-service';
+import type { OpenApiService } from '../../services/openapi-service';
 import {
     tokenUserSchema,
-    TokenUserSchema,
+    type TokenUserSchema,
 } from '../../openapi/spec/token-user-schema';
-import { EmailSchema } from '../../openapi/spec/email-schema';
+import type { EmailSchema } from '../../openapi/spec/email-schema';
 import {
     emptyResponse,
     getStandardResponses,
 } from '../../openapi/util/standard-responses';
+import rateLimit from 'express-rate-limit';
+import { minutesToMilliseconds } from 'date-fns';
 
 interface IValidateQuery {
     token: string;
@@ -128,6 +130,13 @@ class ResetPasswordController extends Controller {
                         200: emptyResponse,
                         ...getStandardResponses(401, 404, 415),
                     },
+                }),
+                rateLimit({
+                    windowMs: minutesToMilliseconds(1),
+                    max: config.rateLimiting.passwordResetMaxPerMinute,
+                    validate: false,
+                    standardHeaders: true,
+                    legacyHeaders: false,
                 }),
             ],
         });

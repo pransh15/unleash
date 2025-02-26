@@ -1,4 +1,4 @@
-import dbInit, { ITestDb } from '../../helpers/database-init';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
 import { setupApp, setupAppWithCustomConfig } from '../../helpers/test-helper';
 import getLogger from '../../../fixtures/no-logger';
 
@@ -16,7 +16,7 @@ afterAll(async () => {
     await db.destroy();
 });
 
-test('should not allow to create feature toggles in maintenance mode', async () => {
+test('should not allow to create feature flags in maintenance mode', async () => {
     const appWithMaintenanceMode = await setupAppWithCustomConfig(db.stores, {
         experimental: {
             flags: {

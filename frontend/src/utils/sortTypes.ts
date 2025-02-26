@@ -1,4 +1,4 @@
-import { IdType, Row } from 'react-table';
+import type { IdType, Row } from 'react-table';
 
 /**
  * For `react-table`.
@@ -10,7 +10,7 @@ export const sortTypes = {
         v1: Row<D>,
         v2: Row<D>,
         id: IdType<D>,
-        _desc?: boolean
+        _desc?: boolean,
     ) => {
         const a = new Date(v1?.values?.[id] || 0);
         const b = new Date(v2?.values?.[id] || 0);
@@ -20,7 +20,7 @@ export const sortTypes = {
         v1: Row<D>,
         v2: Row<D>,
         id: IdType<D>,
-        _desc?: boolean
+        _desc?: boolean,
     ) => {
         const a = v1?.values?.[id];
         const b = v2?.values?.[id];
@@ -30,7 +30,7 @@ export const sortTypes = {
         a: Row<D>,
         b: Row<D>,
         id: IdType<D>,
-        _desc?: boolean
+        _desc?: boolean,
     ) => {
         const aVal = `${a?.values?.[id] || ''}`.toLowerCase();
         const bVal = `${b?.values?.[id] || ''}`.toLowerCase();
@@ -40,7 +40,7 @@ export const sortTypes = {
         v1: Row<D>,
         v2: Row<D>,
         id: IdType<D>,
-        _desc?: boolean
+        _desc?: boolean,
     ) => {
         const a = v1?.values?.[id];
         const b = v2?.values?.[id];
@@ -55,12 +55,14 @@ export const sortTypes = {
         a: Row<D>,
         b: Row<D>,
         id: IdType<D>,
-        _desc?: boolean
+        _desc?: boolean,
     ) => {
-        let aVal =
-            parseInt(`${a?.values?.[id] || 0}`, 10) || Number.MAX_SAFE_INTEGER;
-        let bVal =
-            parseInt(`${b?.values?.[id] || 0}`, 10) || Number.MAX_SAFE_INTEGER;
+        const aVal =
+            Number.parseInt(`${a?.values?.[id] || 0}`, 10) ||
+            Number.MAX_SAFE_INTEGER;
+        const bVal =
+            Number.parseInt(`${b?.values?.[id] || 0}`, 10) ||
+            Number.MAX_SAFE_INTEGER;
         return aVal - bVal;
     },
 };

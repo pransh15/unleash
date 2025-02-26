@@ -1,13 +1,14 @@
-import { IUnleashConfig } from '../types/option';
-import { IUnleashStores } from '../types/stores';
-import { Logger } from '../logger';
-import { ISettingStore } from '../types/stores/settings-store';
-import { IEventStore } from '../types/stores/event-store';
+import type { IUnleashConfig } from '../types/option';
+import type { IUnleashStores } from '../types/stores';
+import type { Logger } from '../logger';
+import type { ISettingStore } from '../types/stores/settings-store';
 import {
     SettingCreatedEvent,
     SettingDeletedEvent,
     SettingUpdatedEvent,
 } from '../types/events';
+import type EventService from '../features/events/event-service';
+import type { IAuditUser } from '../types';
 
 export default class SettingService {
     private config: IUnleashConfig;
@@ -16,52 +17,75 @@ export default class SettingService {
 
     private settingStore: ISettingStore;
 
-    private eventStore: IEventStore;
+    private eventService: EventService;
 
     constructor(
-        {
-            settingStore,
-            eventStore,
-        }: Pick<IUnleashStores, 'settingStore' | 'eventStore'>,
+        { settingStore }: Pick<IUnleashStores, 'settingStore'>,
         config: IUnleashConfig,
+        eventService: EventService,
     ) {
         this.config = config;
         this.logger = config.getLogger('services/setting-service.ts');
         this.settingStore = settingStore;
-        this.eventStore = eventStore;
+        this.eventService = eventService;
     }
 
-    async get<T>(id: string, defaultValue?: T): Promise<T> {
-        const value = await this.settingStore.get(id);
+    /**
+     * @deprecated use getWithDefault instead
+     */
+    async get<T>(id: string, defaultValue?: T): Promise<T | undefined> {
+        const value = await this.settingStore.get<T>(id);
         return value || defaultValue;
     }
 
-    async insert(id: string, value: object, createdBy: string): Promise<void> {
-        const exists = await this.settingStore.exists(id);
-        if (exists) {
+    async getWithDefault<T>(id: string, defaultValue: T): Promise<T> {
+        const value = await this.settingStore.get<T>(id);
+        return value || defaultValue;
+    }
+
+    async insert(
+        id: string,
+        value: object,
+        auditUser: IAuditUser,
+        hideEventDetails: boolean = true,
+    ): Promise<void> {
+        const existingSettings = await this.settingStore.get<object>(id);
+
+        let data: object = { id, ...value };
+        let preData = existingSettings;
+
+        if (hideEventDetails) {
+            preData = { hideEventDetails: true };
+            data = { id, hideEventDetails: true };
+        }
+
+        if (existingSettings) {
             await this.settingStore.updateRow(id, value);
-            await this.eventStore.store(
-                new SettingUpdatedEvent({
-                    createdBy,
-                    data: { id },
-                }),
+            await this.eventService.storeEvent(
+                new SettingUpdatedEvent(
+                    {
+                        data,
+                        auditUser,
+                    },
+                    preData,
+                ),
             );
         } else {
             await this.settingStore.insert(id, value);
-            await this.eventStore.store(
+            await this.eventService.storeEvent(
                 new SettingCreatedEvent({
-                    createdBy,
-                    data: { id },
+                    auditUser,
+                    data,
                 }),
             );
         }
     }
 
-    async delete(id: string, createdBy: string): Promise<void> {
+    async delete(id: string, auditUser: IAuditUser): Promise<void> {
         await this.settingStore.delete(id);
-        await this.eventStore.store(
+        await this.eventService.storeEvent(
             new SettingDeletedEvent({
-                createdBy,
+                auditUser,
                 data: {
                     id,
                 },

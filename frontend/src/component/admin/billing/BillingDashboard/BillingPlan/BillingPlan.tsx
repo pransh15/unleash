@@ -1,20 +1,24 @@
-import { FC } from 'react';
-import { Alert, Divider, Grid, styled, Typography } from '@mui/material';
-import { Link } from 'react-router-dom';
-import CheckIcon from '@mui/icons-material/Check';
-import { useUsers } from 'hooks/api/getters/useUsers/useUsers';
+import { Alert, Grid, styled } from '@mui/material';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
-import {
-    IInstanceStatus,
-    InstanceState,
-    InstancePlan,
-} from 'interfaces/instance';
+import { InstanceState, InstancePlan } from 'interfaces/instance';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import { trialHasExpired, isTrialInstance } from 'utils/instanceTrial';
 import { GridRow } from 'component/common/GridRow/GridRow';
 import { GridCol } from 'component/common/GridCol/GridCol';
 import { Badge } from 'component/common/Badge/Badge';
-import { GridColLink } from './GridColLink/GridColLink';
+import { BillingDetails } from './BillingDetails';
+import { useInstanceStatus } from 'hooks/api/getters/useInstanceStatus/useInstanceStatus';
+
+export const BILLING_PLAN_PRICES: Record<string, number> = {
+    [InstancePlan.PRO]: 80,
+};
+
+export const BILLING_PAYG_USER_PRICE = 75;
+export const BILLING_PAYG_DEFAULT_MINIMUM_SEATS = 5;
+export const BILLING_PRO_USER_PRICE = 15;
+export const BILLING_PRO_DEFAULT_INCLUDED_SEATS = 5;
+export const BILLING_INCLUDED_REQUESTS = 53_000_000;
+export const BILLING_TRAFFIC_BUNDLE_PRICE = 5;
 
 const StyledPlanBox = styled('aside')(({ theme }) => ({
     padding: theme.spacing(2.5),
@@ -26,20 +30,19 @@ const StyledPlanBox = styled('aside')(({ theme }) => ({
     },
 }));
 
-const StyledInfoLabel = styled(Typography)(({ theme }) => ({
-    fontSize: theme.fontSizes.smallBody,
-    color: theme.palette.text.secondary,
-}));
-
 const StyledPlanSpan = styled('span')(({ theme }) => ({
     fontSize: '3.25rem',
     lineHeight: 1,
     color: theme.palette.primary.main,
     fontWeight: 800,
+    marginRight: theme.spacing(1.5),
+}));
+
+const StyledPAYGSpan = styled('span')(({ theme }) => ({
+    fontWeight: theme.fontWeight.bold,
 }));
 
 const StyledTrialSpan = styled('span')(({ theme }) => ({
-    marginLeft: theme.spacing(1.5),
     fontWeight: theme.fontWeight.bold,
 }));
 
@@ -58,41 +61,24 @@ const StyledAlert = styled(Alert)(({ theme }) => ({
     },
 }));
 
-const StyledCheckIcon = styled(CheckIcon)(({ theme }) => ({
-    fontSize: '1rem',
-    marginRight: theme.spacing(1),
-}));
+export const BillingPlan = () => {
+    const {
+        uiConfig: { billing },
+    } = useUiConfig();
+    const { instanceStatus } = useInstanceStatus();
 
-const StyledDivider = styled(Divider)(({ theme }) => ({
-    margin: `${theme.spacing(3)} 0`,
-}));
+    const isPAYG = billing === 'pay-as-you-go';
 
-interface IBillingPlanProps {
-    instanceStatus: IInstanceStatus;
-}
+    if (!instanceStatus)
+        return (
+            <Grid item xs={12} md={7}>
+                <StyledPlanBox data-loading sx={{ flex: 1, height: '400px' }} />
+            </Grid>
+        );
 
-export const BillingPlan: FC<IBillingPlanProps> = ({ instanceStatus }) => {
-    const { users } = useUsers();
     const expired = trialHasExpired(instanceStatus);
-    const { uiConfig } = useUiConfig();
-
-    const eligibleUsers = users.filter((user: any) => user.email);
-
-    const price = {
-        [InstancePlan.PRO]: 80,
-        [InstancePlan.COMPANY]: 0,
-        [InstancePlan.TEAM]: 0,
-        [InstancePlan.ENTERPRISE]: 0,
-        [InstancePlan.UNKNOWN]: 0,
-        user: 15,
-    };
-
-    const planPrice = price[instanceStatus.plan];
-    const seats = instanceStatus.seats ?? 5;
-    const freeAssigned = Math.min(eligibleUsers.length, seats);
-    const paidAssigned = eligibleUsers.length - freeAssigned;
-    const paidAssignedPrice = price.user * paidAssigned;
-    const finalPrice = planPrice + paidAssignedPrice;
+    const planPrice = BILLING_PLAN_PRICES[instanceStatus.plan] ?? 0;
+    const plan = `${instanceStatus.plan}${isPAYG ? ' Pay-as-You-Go' : ''}`;
     const inactive = instanceStatus.state !== InstanceState.ACTIVE;
 
     return (
@@ -101,20 +87,25 @@ export const BillingPlan: FC<IBillingPlanProps> = ({ instanceStatus }) => {
                 <ConditionallyRender
                     condition={inactive}
                     show={
-                        <StyledAlert severity="info">
+                        <StyledAlert severity='info'>
                             After you have sent your billing information, your
                             instance will be upgraded - you don't have to do
                             anything.{' '}
-                            <a href="mailto:elise@getunleash.ai?subject=PRO plan clarifications">
+                            <a
+                                href={`mailto:support@getunleash.io?subject=${plan} plan clarifications`}
+                            >
                                 Get in touch with us
                             </a>{' '}
                             for any clarification
                         </StyledAlert>
                     }
                 />
-                <Badge color="success">Current plan</Badge>
-                <Grid container>
-                    <GridRow sx={theme => ({ marginBottom: theme.spacing(3) })}>
+                <Badge color='success'>Current plan</Badge>
+                <Grid
+                    container
+                    sx={(theme) => ({ marginBottom: theme.spacing(3) })}
+                >
+                    <GridRow>
                         <GridCol>
                             <StyledPlanSpan>
                                 {instanceStatus.plan}
@@ -123,7 +114,7 @@ export const BillingPlan: FC<IBillingPlanProps> = ({ instanceStatus }) => {
                                 condition={isTrialInstance(instanceStatus)}
                                 show={
                                     <StyledTrialSpan
-                                        sx={theme => ({
+                                        sx={(theme) => ({
                                             color: expired
                                                 ? theme.palette.error.dark
                                                 : theme.palette.warning.dark,
@@ -132,8 +123,8 @@ export const BillingPlan: FC<IBillingPlanProps> = ({ instanceStatus }) => {
                                         {expired
                                             ? 'Trial expired'
                                             : instanceStatus.trialExtended
-                                            ? 'Extended Trial'
-                                            : 'Trial'}
+                                              ? 'Extended Trial'
+                                              : 'Trial'}
                                     </StyledTrialSpan>
                                 }
                             />
@@ -149,97 +140,18 @@ export const BillingPlan: FC<IBillingPlanProps> = ({ instanceStatus }) => {
                             />
                         </GridCol>
                     </GridRow>
+                    <GridRow>
+                        <ConditionallyRender
+                            condition={isPAYG}
+                            show={
+                                <StyledPAYGSpan>Pay-as-You-Go</StyledPAYGSpan>
+                            }
+                        />
+                    </GridRow>
                 </Grid>
-                <ConditionallyRender
-                    condition={Boolean(
-                        uiConfig?.flags?.proPlanAutoCharge &&
-                            instanceStatus.plan === InstancePlan.PRO
-                    )}
-                    show={
-                        <>
-                            <Grid container>
-                                <GridRow
-                                    sx={theme => ({
-                                        marginBottom: theme.spacing(1.5),
-                                    })}
-                                >
-                                    <GridCol vertical>
-                                        <Typography>
-                                            <strong>Included members</strong>
-                                            <GridColLink>
-                                                <Link to="/admin/users">
-                                                    {freeAssigned} of 5 assigned
-                                                </Link>
-                                            </GridColLink>
-                                        </Typography>
-                                        <StyledInfoLabel>
-                                            You have 5 team members included in
-                                            your PRO plan
-                                        </StyledInfoLabel>
-                                    </GridCol>
-                                    <GridCol>
-                                        <StyledCheckIcon />
-                                        <Typography variant="body2">
-                                            included
-                                        </Typography>
-                                    </GridCol>
-                                </GridRow>
-                                <GridRow>
-                                    <GridCol vertical>
-                                        <Typography>
-                                            <strong>Paid members</strong>
-                                            <GridColLink>
-                                                <Link to="/admin/users">
-                                                    {paidAssigned} assigned
-                                                </Link>
-                                            </GridColLink>
-                                        </Typography>
-                                        <StyledInfoLabel>
-                                            $15/month per paid member
-                                        </StyledInfoLabel>
-                                    </GridCol>
-                                    <GridCol>
-                                        <Typography
-                                            sx={theme => ({
-                                                fontSize:
-                                                    theme.fontSizes.mainHeader,
-                                            })}
-                                        >
-                                            ${paidAssignedPrice.toFixed(2)}
-                                        </Typography>
-                                    </GridCol>
-                                </GridRow>
-                            </Grid>
-                            <StyledDivider />
-                            <Grid container>
-                                <GridRow>
-                                    <GridCol>
-                                        <Typography
-                                            sx={theme => ({
-                                                fontWeight:
-                                                    theme.fontWeight.bold,
-                                                fontSize:
-                                                    theme.fontSizes.mainHeader,
-                                            })}
-                                        >
-                                            Total per month
-                                        </Typography>
-                                    </GridCol>
-                                    <GridCol>
-                                        <Typography
-                                            sx={theme => ({
-                                                fontWeight:
-                                                    theme.fontWeight.bold,
-                                                fontSize: '2rem',
-                                            })}
-                                        >
-                                            ${finalPrice.toFixed(2)}
-                                        </Typography>
-                                    </GridCol>
-                                </GridRow>
-                            </Grid>
-                        </>
-                    }
+                <BillingDetails
+                    instanceStatus={instanceStatus}
+                    isPAYG={isPAYG}
                 />
             </StyledPlanBox>
         </Grid>

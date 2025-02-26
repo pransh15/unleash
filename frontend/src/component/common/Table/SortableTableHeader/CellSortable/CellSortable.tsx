@@ -1,6 +1,7 @@
+import type React from 'react';
 import {
-    FC,
-    MouseEventHandler,
+    type FC,
+    type MouseEventHandler,
     useContext,
     useEffect,
     useMemo,
@@ -31,6 +32,8 @@ interface ICellSortableProps {
     isFlex?: boolean;
     isFlexGrow?: boolean;
     onClick?: MouseEventHandler<HTMLButtonElement>;
+    styles?: React.CSSProperties;
+    children?: React.ReactNode;
 }
 
 export const CellSortable: FC<ICellSortableProps> = ({
@@ -46,6 +49,7 @@ export const CellSortable: FC<ICellSortableProps> = ({
     isFlex,
     isFlexGrow,
     onClick = () => {},
+    styles,
 }) => {
     const { setAnnouncement } = useContext(AnnouncerContext);
     const [title, setTitle] = useState('');
@@ -57,12 +61,12 @@ export const CellSortable: FC<ICellSortableProps> = ({
             : 'ascending'
         : undefined;
 
-    const onSortClick: MouseEventHandler<HTMLButtonElement> = event => {
+    const onSortClick: MouseEventHandler<HTMLButtonElement> = (event) => {
         onClick(event);
         setAnnouncement(
             `Sorted${ariaTitle ? ` by ${ariaTitle} ` : ''}, ${
                 isDescending ? 'ascending' : 'descending'
-            }`
+            }`,
         );
     };
 
@@ -89,27 +93,23 @@ export const CellSortable: FC<ICellSortableProps> = ({
     }, [align]);
 
     useEffect(() => {
-        const updateTitle = () => {
-            const newTitle =
-                ariaTitle &&
-                ref.current &&
-                ref?.current?.offsetWidth < ref?.current?.scrollWidth
-                    ? `${children}`
-                    : '';
+        const newTitle =
+            ariaTitle &&
+            ref.current &&
+            ref?.current?.offsetWidth < ref?.current?.scrollWidth
+                ? `${children}`
+                : '';
 
-            if (newTitle !== title) {
-                setTitle(newTitle);
-            }
-        };
-
-        updateTitle();
-    }, [setTitle, ariaTitle]); // eslint-disable-line react-hooks/exhaustive-deps
+        if (newTitle !== title) {
+            setTitle(newTitle);
+        }
+    }, [setTitle, ariaTitle]);
 
     return (
         <StyledTableCell
-            component="th"
+            component='th'
             aria-sort={ariaSort}
-            style={{ width, minWidth, maxWidth }}
+            style={{ width, minWidth, maxWidth, ...styles }}
             isFlex={isFlex}
             isFlexGrow={isFlexGrow}
             isSortable={isSortable}
@@ -120,7 +120,7 @@ export const CellSortable: FC<ICellSortableProps> = ({
                     <Tooltip title={title} arrow>
                         <StyledButton
                             isSorted={isSorted}
-                            type="button"
+                            type='button'
                             onClick={onSortClick}
                         >
                             <StyledHiddenMeasurementLayer
@@ -142,7 +142,7 @@ export const CellSortable: FC<ICellSortableProps> = ({
                                 <SortArrow
                                     isSorted={isSorted}
                                     isDesc={isDescending}
-                                    className="sort-arrow"
+                                    className='sort-arrow'
                                 />
                             </StyledVisibleAbsoluteLayer>
                         </StyledButton>

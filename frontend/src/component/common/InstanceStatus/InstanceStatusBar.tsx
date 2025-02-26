@@ -1,7 +1,8 @@
 import { styled, Button, Typography } from '@mui/material';
-import { IInstanceStatus, InstancePlan } from 'interfaces/instance';
+import { type IInstanceStatus, InstancePlan } from 'interfaces/instance';
 import { INSTANCE_STATUS_BAR_ID } from 'utils/testIds';
-import { InfoOutlined, WarningAmber } from '@mui/icons-material';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import WarningAmber from '@mui/icons-material/WarningAmber';
 import { useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import AccessContext from 'contexts/AccessContext';
@@ -12,6 +13,7 @@ import {
     isTrialInstance,
 } from 'utils/instanceTrial';
 import { formatDistanceToNowStrict, parseISO } from 'date-fns';
+import useUiConfig from '../../../hooks/api/getters/useUiConfig/useUiConfig';
 
 const StyledWarningBar = styled('aside')(({ theme }) => ({
     position: 'relative',
@@ -81,7 +83,9 @@ const StatusBarExpired = ({ instanceStatus }: IInstanceStatusBarProps) => {
     return (
         <StyledWarningBar data-testid={INSTANCE_STATUS_BAR_ID}>
             <StyledWarningIcon />
-            <Typography sx={theme => ({ fontSize: theme.fontSizes.smallBody })}>
+            <Typography
+                sx={(theme) => ({ fontSize: theme.fontSizes.smallBody })}
+            >
                 <strong>Warning!</strong> Your free {instanceStatus.plan} trial
                 has expired. <strong>Upgrade trial</strong> otherwise your{' '}
                 <strong>account will be deleted.</strong>
@@ -94,13 +98,15 @@ const StatusBarExpired = ({ instanceStatus }: IInstanceStatusBarProps) => {
 const StatusBarExpiresSoon = ({ instanceStatus }: IInstanceStatusBarProps) => {
     const timeRemaining = formatDistanceToNowStrict(
         parseISO(instanceStatus.trialExpiry!),
-        { roundingMethod: 'floor' }
+        { roundingMethod: 'floor' },
     );
 
     return (
         <StyledInfoBar data-testid={INSTANCE_STATUS_BAR_ID}>
             <StyledInfoIcon />
-            <Typography sx={theme => ({ fontSize: theme.fontSizes.smallBody })}>
+            <Typography
+                sx={(theme) => ({ fontSize: theme.fontSizes.smallBody })}
+            >
                 <strong>Heads up!</strong> You have{' '}
                 <strong>{timeRemaining}</strong> left of your free{' '}
                 {instanceStatus.plan} trial.
@@ -114,7 +120,9 @@ const StatusBarExpiresLater = ({ instanceStatus }: IInstanceStatusBarProps) => {
     return (
         <StyledInfoBar data-testid={INSTANCE_STATUS_BAR_ID}>
             <StyledInfoIcon />
-            <Typography sx={theme => ({ fontSize: theme.fontSizes.smallBody })}>
+            <Typography
+                sx={(theme) => ({ fontSize: theme.fontSizes.smallBody })}
+            >
                 <strong>Heads up!</strong> You're currently on a free{' '}
                 {instanceStatus.plan} trial account.
             </Typography>
@@ -125,20 +133,24 @@ const StatusBarExpiresLater = ({ instanceStatus }: IInstanceStatusBarProps) => {
 
 const BillingLink = ({ instanceStatus }: IInstanceStatusBarProps) => {
     const { hasAccess } = useContext(AccessContext);
+    const { uiConfig } = useUiConfig();
     const navigate = useNavigate();
 
     if (!hasAccess(ADMIN)) {
         return null;
     }
 
-    if (instanceStatus.plan === InstancePlan.ENTERPRISE) {
+    if (
+        instanceStatus.plan === InstancePlan.ENTERPRISE &&
+        uiConfig.billing !== 'pay-as-you-go'
+    ) {
         return null;
     }
 
     return (
         <StyledButton
             onClick={() => navigate('/admin/billing')}
-            variant="outlined"
+            variant='outlined'
         >
             Upgrade trial
         </StyledButton>

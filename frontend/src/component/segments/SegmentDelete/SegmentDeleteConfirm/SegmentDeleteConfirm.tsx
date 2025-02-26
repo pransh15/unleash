@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import Input from 'component/common/Input/Input';
-import { ISegment } from 'interfaces/segment';
+import type { ISegment } from 'interfaces/segment';
 import { SEGMENT_DIALOG_NAME_ID } from 'utils/testIds';
-import { styled } from '@mui/material';
+import { Alert, styled } from '@mui/material';
 
 const StyledInput = styled(Input)(({ theme }) => ({
     marginTop: theme.spacing(2),
@@ -14,6 +15,7 @@ interface ISegmentDeleteConfirmProps {
     open: boolean;
     onClose: () => void;
     onRemove: () => void;
+    title: string;
 }
 
 export const SegmentDeleteConfirm = ({
@@ -21,6 +23,7 @@ export const SegmentDeleteConfirm = ({
     open,
     onClose,
     onRemove,
+    title,
 }: ISegmentDeleteConfirmProps) => {
     const [confirmName, setConfirmName] = useState('');
 
@@ -34,10 +37,10 @@ export const SegmentDeleteConfirm = ({
     const formId = 'delete-segment-confirmation-form';
     return (
         <Dialogue
-            title="Are you sure you want to delete this segment?"
+            title='Are you sure you want to delete this segment?'
             open={open}
-            primaryButtonText="Delete segment"
-            secondaryButtonText="Cancel"
+            primaryButtonText={title}
+            secondaryButtonText='Cancel'
             onClick={() => {
                 onRemove();
                 setConfirmName('');
@@ -46,6 +49,11 @@ export const SegmentDeleteConfirm = ({
             onClose={handleCancel}
             formId={formId}
         >
+            <Alert sx={{ marginBottom: 2 }} severity='warning'>
+                Deleted segments may be referenced in strategies if the feature
+                flag is archived. Removing the segment will also remove the
+                segments from strategies of archived flags.
+            </Alert>
             <p>
                 In order to delete this segment, please enter the name of the
                 segment in the field below: <strong>{segment?.name}</strong>
@@ -56,7 +64,7 @@ export const SegmentDeleteConfirm = ({
                     autoFocus
                     onChange={handleChange}
                     value={confirmName}
-                    label="Segment name"
+                    label='Segment name'
                     data-testid={SEGMENT_DIALOG_NAME_ID}
                 />
             </form>

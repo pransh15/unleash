@@ -6,8 +6,9 @@ import PermissionButton from 'component/common/PermissionButton/PermissionButton
 import { NAVIGATE_TO_CREATE_SEGMENT } from 'utils/testIds';
 import { useNavigate } from 'react-router-dom';
 import { useOptionalPathParam } from 'hooks/useOptionalPathParam';
+import type { FC } from 'react';
 
-export const CreateSegmentButton = () => {
+export const CreateSegmentButton: FC = () => {
     const projectId = useOptionalPathParam('projectId');
     const navigate = useNavigate();
 

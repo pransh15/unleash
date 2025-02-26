@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import {
     Button,
     FormControl,
@@ -11,7 +12,6 @@ import {
     TextField,
 } from '@mui/material';
 import { Alert } from '@mui/material';
-import { PageContent } from 'component/common/PageContent/PageContent';
 import { AutoCreateForm } from '../AutoCreateForm/AutoCreateForm';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import useAuthSettingsApi from 'hooks/api/actions/useAuthSettingsApi/useAuthSettingsApi';
@@ -20,10 +20,13 @@ import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { removeEmptyStringFields } from 'utils/removeEmptyStringFields';
 import { SsoGroupSettings } from '../SsoGroupSettings';
+import type { IRole } from 'interfaces/role';
+import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 
 const initialState = {
     enabled: false,
     enableSingleSignOut: false,
+    addGroupsScope: false,
     enableGroupSyncing: false,
     autoCreate: false,
     unleashHostname: location.hostname,
@@ -35,10 +38,16 @@ const initialState = {
     idTokenSigningAlgorithm: 'RS256',
 };
 
+type State = typeof initialState & {
+    defaultRootRole?: string;
+    defaultRootRoleId?: number;
+};
+
 export const OidcAuth = () => {
     const { setToastData, setToastApiError } = useToast();
     const { uiConfig } = useUiConfig();
-    const [data, setData] = useState(initialState);
+    const { oidcConfiguredThroughEnv } = uiConfig;
+    const [data, setData] = useState<State>(initialState);
     const { config } = useAuthSettings('oidc');
     const { updateSettings, errors, loading } = useAuthSettingsApi('oidc');
 
@@ -52,6 +61,10 @@ export const OidcAuth = () => {
         setValue(event.target.name, event.target.value);
     };
 
+    const trimAndUpdateField = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setValue(event.target.name, event.target.value.trim());
+    };
+
     const updateEnabled = () => {
         setData({ ...data, enabled: !data.enabled });
     };
@@ -60,10 +73,21 @@ export const OidcAuth = () => {
         setData({ ...data, enableSingleSignOut: !data.enableSingleSignOut });
     };
 
-    const setValue = (name: string, value: string | boolean) => {
+    const setValue = (
+        name: string,
+        value: string | boolean | number | undefined,
+    ) => {
         setData({
             ...data,
             [name]: value,
+        });
+    };
+
+    const onUpdateRole = (role: IRole | null) => {
+        setData({
+            ...data,
+            defaultRootRole: undefined,
+            defaultRootRoleId: role?.id,
         });
     };
 
@@ -73,7 +97,7 @@ export const OidcAuth = () => {
         try {
             await updateSettings(removeEmptyStringFields(data));
             setToastData({
-                title: 'Settings stored',
+                text: 'Settings stored',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -82,20 +106,38 @@ export const OidcAuth = () => {
     };
 
     return (
-        <PageContent>
+        <>
             <Grid container sx={{ mb: 3 }}>
                 <Grid item md={12}>
-                    <Alert severity="info">
+                    <ConditionallyRender
+                        condition={Boolean(oidcConfiguredThroughEnv)}
+                        show={
+                            <Alert sx={{ mb: 2 }} severity='warning'>
+                                OIDC is currently configured via environment
+                                variables. Please refer to the{' '}
+                                <a
+                                    href='https://www.unleash-hosted.com/docs/enterprise-authentication'
+                                    target='_blank'
+                                    rel='noreferrer'
+                                >
+                                    documentation
+                                </a>{' '}
+                                for detailed instructions on how to set up OIDC
+                                using these variables.
+                            </Alert>
+                        }
+                    />
+                    <Alert severity='info'>
                         Please read the{' '}
                         <a
-                            href="https://www.unleash-hosted.com/docs/enterprise-authentication"
-                            target="_blank"
-                            rel="noreferrer"
+                            href='https://www.unleash-hosted.com/docs/enterprise-authentication'
+                            target='_blank'
+                            rel='noreferrer'
                         >
                             documentation
                         </a>{' '}
-                        to learn how to integrate with specific Open Id Connect
-                        providers (Okta, Keycloak, Google, etc). <br />
+                        to learn how to integrate with specific OpenID Connect
+                        providers (such as Okta and Keycloak). <br />
                         Callback URL:{' '}
                         <code>{uiConfig.unleashUrl}/auth/oidc/callback</code>
                     </Alert>
@@ -113,11 +155,12 @@ export const OidcAuth = () => {
                                 <Switch
                                     onChange={updateEnabled}
                                     value={data.enabled}
-                                    name="enabled"
+                                    name='enabled'
                                     checked={data.enabled}
                                 />
                             }
                             label={data.enabled ? 'Enabled' : 'Disabled'}
+                            disabled={oidcConfiguredThroughEnv}
                         />
                     </Grid>
                 </Grid>
@@ -128,14 +171,14 @@ export const OidcAuth = () => {
                     </Grid>
                     <Grid item md={6}>
                         <TextField
-                            onChange={updateField}
-                            label="Discover URL"
-                            name="discoverUrl"
+                            onChange={trimAndUpdateField}
+                            label='Discover URL'
+                            name='discoverUrl'
                             value={data.discoverUrl}
-                            disabled={!data.enabled}
+                            disabled={!data.enabled || oidcConfiguredThroughEnv}
                             style={{ width: '400px' }}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                         />
                     </Grid>
                 </Grid>
@@ -146,14 +189,14 @@ export const OidcAuth = () => {
                     </Grid>
                     <Grid item md={6}>
                         <TextField
-                            onChange={updateField}
-                            label="Client ID"
-                            name="clientId"
+                            onChange={trimAndUpdateField}
+                            label='Client ID'
+                            name='clientId'
                             value={data.clientId}
-                            disabled={!data.enabled}
+                            disabled={!data.enabled || oidcConfiguredThroughEnv}
                             style={{ width: '400px' }}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                             required
                         />
                     </Grid>
@@ -167,14 +210,14 @@ export const OidcAuth = () => {
                     </Grid>
                     <Grid item md={6}>
                         <TextField
-                            onChange={updateField}
-                            label="Client Secret"
-                            name="secret"
+                            onChange={trimAndUpdateField}
+                            label='Client Secret'
+                            name='secret'
                             value={data.secret}
-                            disabled={!data.enabled}
+                            disabled={!data.enabled || oidcConfiguredThroughEnv}
                             style={{ width: '400px' }}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                             required
                         />
                     </Grid>
@@ -194,8 +237,11 @@ export const OidcAuth = () => {
                                 <Switch
                                     onChange={updateSingleSignOut}
                                     value={data.enableSingleSignOut}
-                                    disabled={!data.enabled}
-                                    name="enableSingleSignOut"
+                                    disabled={
+                                        !data.enabled ||
+                                        oidcConfiguredThroughEnv
+                                    }
+                                    name='enableSingleSignOut'
                                     checked={data.enableSingleSignOut}
                                 />
                             }
@@ -222,22 +268,29 @@ export const OidcAuth = () => {
                     <Grid item md={6}>
                         <TextField
                             onChange={updateField}
-                            label="ACR Values"
-                            name="acrValues"
+                            label='ACR Values'
+                            name='acrValues'
                             value={data.acrValues}
-                            disabled={!data.enabled}
+                            disabled={!data.enabled || oidcConfiguredThroughEnv}
                             style={{ width: '400px' }}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                         />
                     </Grid>
                 </Grid>
                 <SsoGroupSettings
-                    ssoType="OIDC"
+                    ssoType='OIDC'
                     data={data}
                     setValue={setValue}
+                    disabled={oidcConfiguredThroughEnv}
                 />
-                <AutoCreateForm data={data} setValue={setValue} />
+
+                <AutoCreateForm
+                    data={data}
+                    setValue={setValue}
+                    onUpdateRole={onUpdateRole}
+                    disabled={oidcConfiguredThroughEnv}
+                />
                 <Grid container spacing={3} mb={2}>
                     <Grid item md={5}>
                         <strong>ID Signing algorithm</strong>
@@ -250,37 +303,39 @@ export const OidcAuth = () => {
                     </Grid>
                     <Grid item md={6}>
                         <FormControl style={{ minWidth: '200px' }}>
-                            <InputLabel id="defaultRootRole-label">
+                            <InputLabel id='defaultRootRole-label'>
                                 Signing algorithm
                             </InputLabel>
                             <Select
-                                label="Signing algorithm"
-                                labelId="idTokenSigningAlgorithm-label"
-                                id="idTokenSigningAlgorithm"
-                                name="idTokenSigningAlgorithm"
+                                label='Signing algorithm'
+                                labelId='idTokenSigningAlgorithm-label'
+                                id='idTokenSigningAlgorithm'
+                                name='idTokenSigningAlgorithm'
                                 value={data.idTokenSigningAlgorithm || 'RS256'}
-                                onChange={e =>
+                                onChange={(e) =>
                                     setValue(
                                         'idTokenSigningAlgorithm',
-                                        e.target.value
+                                        e.target.value,
                                     )
                                 }
+                                disabled={oidcConfiguredThroughEnv}
                             >
                                 {/*consider these from API or constants. */}
-                                <MenuItem value="RS256">RS256</MenuItem>
-                                <MenuItem value="RS384">RS384</MenuItem>
-                                <MenuItem value="RS512">RS512</MenuItem>
+                                <MenuItem value='RS256'>RS256</MenuItem>
+                                <MenuItem value='RS384'>RS384</MenuItem>
+                                <MenuItem value='RS512'>RS512</MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>
                 </Grid>
+
                 <Grid container spacing={3}>
                     <Grid item md={12}>
                         <Button
-                            variant="contained"
-                            color="primary"
-                            type="submit"
-                            disabled={loading}
+                            variant='contained'
+                            color='primary'
+                            type='submit'
+                            disabled={loading || oidcConfiguredThroughEnv}
                         >
                             Save
                         </Button>{' '}
@@ -292,6 +347,6 @@ export const OidcAuth = () => {
                     </Grid>
                 </Grid>
             </form>
-        </PageContent>
+        </>
     );
 };

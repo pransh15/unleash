@@ -1,6 +1,6 @@
 import { formatApiPath } from 'utils/formatPath';
 import handleErrorResponses from '../httpErrorResponseHandler';
-import { IChangeRequestEnvironmentConfig } from 'component/changeRequest/changeRequest.types';
+import type { IChangeRequestEnvironmentConfig } from 'component/changeRequest/changeRequest.types';
 import { useConditionalSWR } from '../useConditionalSWR/useConditionalSWR';
 import useUiConfig from '../useUiConfig/useUiConfig';
 
@@ -12,9 +12,8 @@ export const useChangeRequestConfig = (projectId: string) => {
         Boolean(projectId) && isEnterprise(),
         [],
         formatApiPath(`api/admin/projects/${projectId}/change-requests/config`),
-        fetcher
+        fetcher,
     );
-
     return {
         data: data || [],
         loading: !error && !data,
@@ -26,5 +25,5 @@ export const useChangeRequestConfig = (projectId: string) => {
 const fetcher = (path: string) => {
     return fetch(path)
         .then(handleErrorResponses('Request changes'))
-        .then(res => res.json());
+        .then((res) => res.json());
 };

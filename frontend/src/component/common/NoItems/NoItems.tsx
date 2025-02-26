@@ -1,5 +1,5 @@
 import { ReactComponent as NoItemsIcon } from 'assets/icons/addfiles.svg';
-import React from 'react';
+import type React from 'react';
 import { styled } from '@mui/material';
 
 const StyledContainer = styled('div')(({ theme }) => ({
@@ -37,7 +37,7 @@ const StyledIcon = styled(NoItemsIcon)(({ theme }) => ({
     },
 }));
 
-const NoItems: React.FC = ({ children }) => {
+const NoItems: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     return (
         <StyledContainer>
             <StyledTextContainer>{children}</StyledTextContainer>

@@ -1,22 +1,23 @@
 import { createRef, useLayoutEffect } from 'react';
 
-type refElement = HTMLDivElement;
-
-const useLoading = (loading: boolean, selector = '[data-loading=true]') => {
-    const ref = createRef<refElement>();
+const useLoading = <T extends HTMLElement = HTMLDivElement>(
+    loading: boolean,
+    selector = '[data-loading=true]',
+) => {
+    const ref = createRef<T>();
     useLayoutEffect(() => {
         if (ref.current) {
             const elements = ref.current.querySelectorAll(selector);
 
-            elements.forEach(element => {
+            elements.forEach((element) => {
                 if (loading) {
                     element.classList.add('skeleton');
                 } else {
-                    element.classList.remove('skeleton');
+                    setTimeout(() => element.classList.remove('skeleton'), 10);
                 }
             });
         }
-    }, [loading, ref]);
+    }, [loading, selector, ref]);
 
     return ref;
 };

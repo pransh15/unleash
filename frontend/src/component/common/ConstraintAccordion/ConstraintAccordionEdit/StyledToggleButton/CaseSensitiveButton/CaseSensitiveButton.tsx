@@ -1,13 +1,12 @@
 import { Tooltip, Box } from '@mui/material';
 import { ReactComponent as CaseSensitive } from 'assets/icons/24_Text format.svg';
 import { ReactComponent as CaseSensitiveOff } from 'assets/icons/24_Text format off.svg';
-import React from 'react';
 import {
     StyledToggleButtonOff,
     StyledToggleButtonOn,
 } from '../StyledToggleButton';
 import { ConditionallyRender } from '../../../../ConditionallyRender/ConditionallyRender';
-import { IConstraint } from 'interfaces/strategy';
+import type { IConstraint } from 'interfaces/strategy';
 
 interface CaseSensitiveButtonProps {
     localConstraint: IConstraint;
@@ -20,7 +19,7 @@ export const CaseSensitiveButton = ({
 }: CaseSensitiveButtonProps) => (
     <Tooltip
         title={
-            Boolean(localConstraint.caseInsensitive)
+            localConstraint.caseInsensitive
                 ? 'Make it case sensitive'
                 : 'Make it case insensitive'
         }
@@ -39,7 +38,7 @@ export const CaseSensitiveButton = ({
                 }
                 elseShow={
                     <StyledToggleButtonOn
-                        className="operator-is-active"
+                        className='operator-is-active'
                         onClick={setCaseInsensitive}
                         disableRipple
                     >

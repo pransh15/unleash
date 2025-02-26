@@ -1,5 +1,5 @@
-import { IChangeRequestReorderStrategy } from '../../../../changeRequest.types';
-import { ReactNode } from 'react';
+import type { IChangeRequestReorderStrategy } from '../../../../changeRequest.types';
+import type { ReactNode } from 'react';
 import { useFeature } from 'hooks/api/getters/useFeature/useFeature';
 import { TooltipLink } from 'component/common/TooltipLink/TooltipLink';
 import { Box, styled } from '@mui/material';
@@ -40,7 +40,7 @@ interface IEnvironmentStrategyExecutionOrderProps {
     project: string;
     environment: string;
     change: IChangeRequestReorderStrategy;
-    discard?: ReactNode;
+    actions?: ReactNode;
 }
 
 export const EnvironmentStrategyExecutionOrder = ({
@@ -48,11 +48,14 @@ export const EnvironmentStrategyExecutionOrder = ({
     environment,
     change,
     project,
-    discard,
+    actions,
 }: IEnvironmentStrategyExecutionOrderProps) => {
-    const { feature: featureData } = useFeature(project, feature);
+    const { feature: featureData, loading } = useFeature(project, feature);
+
+    if (loading) return null;
+
     const featureEnvironment = featureData.environments.find(
-        ({ name }) => environment === name
+        ({ name }) => environment === name,
     );
     const environmentStrategies = featureEnvironment?.strategies || [];
 
@@ -68,15 +71,17 @@ export const EnvironmentStrategyExecutionOrder = ({
                     }
                     return 0;
                 })
-                .map(strategy => strategy.id) ?? [],
+                .map((strategy) => strategy.id) ?? [],
     };
 
-    const updatedStrategies = change.payload.map(({ id }) => {
-        return environmentStrategies.find(s => s.id === id);
-    });
+    const updatedStrategies = change.payload
+        .map(({ id }) => {
+            return environmentStrategies.find((s) => s.id === id);
+        })
+        .filter(Boolean);
 
     const data = {
-        strategyIds: updatedStrategies.map(strategy => strategy!.id),
+        strategyIds: updatedStrategies.map((strategy) => strategy!.id),
     };
 
     return (
@@ -96,7 +101,7 @@ export const EnvironmentStrategyExecutionOrder = ({
                 >
                     Updating strategy execution order to:
                 </TooltipLink>
-                {discard}
+                {actions}
             </StyledChangeHeader>
             <StyledStrategyExecutionWrapper>
                 {updatedStrategies.map((strategy, index) => (

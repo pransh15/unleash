@@ -1,5 +1,5 @@
 import React from 'react';
-import { IToast } from 'interfaces/toast';
+import type { IToast } from 'interfaces/toast';
 
 interface IUIContext {
     toastData: IToast;
@@ -15,7 +15,6 @@ export type themeMode = 'light' | 'dark';
 export const createEmptyToast = (): IToast => {
     return {
         type: 'success',
-        title: '',
         text: '',
         components: [],
         show: false,

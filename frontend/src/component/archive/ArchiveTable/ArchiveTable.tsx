@@ -2,7 +2,7 @@ import { PageContent } from 'component/common/PageContent/PageContent';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
 import { TablePlaceholder, VirtualizedTable } from 'component/common/Table';
 import {
-    SortingRule,
+    type SortingRule,
     useFlexLayout,
     useRowSelect,
     useSortBy,
@@ -17,28 +17,26 @@ import { DateCell } from 'component/common/Table/cells/DateCell/DateCell';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { Search } from 'component/common/Search/Search';
 import { FeatureTypeCell } from 'component/common/Table/cells/FeatureTypeCell/FeatureTypeCell';
-import { FeatureSeenCell } from 'component/common/Table/cells/FeatureSeenCell/FeatureSeenCell';
 import { LinkCell } from 'component/common/Table/cells/LinkCell/LinkCell';
-import { FeatureStaleCell } from 'component/feature/FeatureToggleList/FeatureStaleCell/FeatureStaleCell';
 import { ArchivedFeatureActionCell } from 'component/archive/ArchiveTable/ArchivedFeatureActionCell/ArchivedFeatureActionCell';
 import { featuresPlaceholder } from 'component/feature/FeatureToggleList/FeatureToggleListTable';
 import theme from 'themes/theme';
-import { FeatureSchema } from 'openapi';
-import { useFeatureArchiveApi } from 'hooks/api/actions/useFeatureArchiveApi/useReviveFeatureApi';
-import useToast from 'hooks/useToast';
-import { formatUnknownError } from 'utils/formatUnknownError';
+import type { ArchivedFeatureSchema } from 'openapi';
 import { useSearch } from 'hooks/useSearch';
 import { FeatureArchivedCell } from './FeatureArchivedCell/FeatureArchivedCell';
 import { useSearchParams } from 'react-router-dom';
 import { ArchivedFeatureDeleteConfirm } from './ArchivedFeatureActionCell/ArchivedFeatureDeleteConfirm/ArchivedFeatureDeleteConfirm';
-import { IFeatureToggle } from 'interfaces/featureToggle';
+import type { IFeatureToggle } from 'interfaces/featureToggle';
 import { useConditionallyHiddenColumns } from 'hooks/useConditionallyHiddenColumns';
 import { RowSelectCell } from '../../project/Project/ProjectFeatureToggles/RowSelectCell/RowSelectCell';
 import { BatchSelectionActionsBar } from '../../common/BatchSelectionActionsBar/BatchSelectionActionsBar';
 import { ArchiveBatchActions } from './ArchiveBatchActions';
+import { FeatureEnvironmentSeenCell } from 'component/common/Table/cells/FeatureSeenCell/FeatureEnvironmentSeenCell';
+import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
+import { ArchivedFeatureReviveConfirm } from './ArchivedFeatureActionCell/ArchivedFeatureReviveConfirm/ArchivedFeatureReviveConfirm';
 
 export interface IFeaturesArchiveTableProps {
-    archivedFeatures: FeatureSchema[];
+    archivedFeatures: ArchivedFeatureSchema[];
     title: string;
     refetch: () => void;
     loading: boolean;
@@ -46,7 +44,7 @@ export interface IFeaturesArchiveTableProps {
     setStoredParams: (
         newValue:
             | SortingRule<string>
-            | ((prev: SortingRule<string>) => SortingRule<string>)
+            | ((prev: SortingRule<string>) => SortingRule<string>),
     ) => SortingRule<string>;
     projectId?: string;
 }
@@ -62,34 +60,19 @@ export const ArchiveTable = ({
 }: IFeaturesArchiveTableProps) => {
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
     const isMediumScreen = useMediaQuery(theme.breakpoints.down('lg'));
-    const { setToastData, setToastApiError } = useToast();
-
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deletedFeature, setDeletedFeature] = useState<IFeatureToggle>();
 
+    const [reviveModalOpen, setReviveModalOpen] = useState(false);
+    const [revivedFeature, setRevivedFeature] = useState<IFeatureToggle>();
+
     const [searchParams, setSearchParams] = useSearchParams();
-    const { reviveFeature } = useFeatureArchiveApi();
 
     const [searchValue, setSearchValue] = useState(
-        searchParams.get('search') || ''
+        searchParams.get('search') || '',
     );
 
-    const onRevive = useCallback(
-        async (feature: string) => {
-            try {
-                await reviveFeature(feature);
-                await refetch();
-                setToastData({
-                    type: 'success',
-                    title: "And we're back!",
-                    text: 'The feature toggle has been revived.',
-                });
-            } catch (e: unknown) {
-                setToastApiError(formatUnknownError(e));
-            }
-        },
-        [refetch, reviveFeature, setToastApiError, setToastData]
-    );
+    const { uiConfig } = useUiConfig();
 
     const columns = useMemo(
         () => [
@@ -98,7 +81,10 @@ export const ArchiveTable = ({
                       {
                           id: 'Select',
                           Header: ({ getToggleAllRowsSelectedProps }: any) => (
-                              <Checkbox {...getToggleAllRowsSelectedProps()} />
+                              <Checkbox
+                                  data-testid='select_all_rows'
+                                  {...getToggleAllRowsSelectedProps()}
+                              />
                           ),
                           Cell: ({ row }: any) => (
                               <RowSelectCell
@@ -113,11 +99,12 @@ export const ArchiveTable = ({
                 : []),
             {
                 Header: 'Seen',
-                width: 85,
-                canSort: true,
-                Cell: FeatureSeenCell,
                 accessor: 'lastSeenAt',
+                Cell: ({ value, row: { original: feature } }: any) => {
+                    return <FeatureEnvironmentSeenCell feature={feature} />;
+                },
                 align: 'center',
+                maxWidth: 80,
             },
             {
                 Header: 'Type',
@@ -145,14 +132,12 @@ export const ArchiveTable = ({
                 accessor: 'createdAt',
                 width: 150,
                 Cell: DateCell,
-                sortType: 'date',
             },
             {
                 Header: 'Archived',
                 accessor: 'archivedAt',
                 width: 150,
                 Cell: FeatureArchivedCell,
-                sortType: 'date',
             },
             ...(!projectId
                 ? [
@@ -181,7 +166,10 @@ export const ArchiveTable = ({
                 Cell: ({ row: { original: feature } }: any) => (
                     <ArchivedFeatureActionCell
                         project={feature.project}
-                        onRevive={() => onRevive(feature.name)}
+                        onRevive={() => {
+                            setRevivedFeature(feature);
+                            setReviveModalOpen(true);
+                        }}
                         onDelete={() => {
                             setDeletedFeature(feature);
                             setDeleteModalOpen(true);
@@ -197,7 +185,7 @@ export const ArchiveTable = ({
             },
         ],
         //eslint-disable-next-line
-        [projectId]
+        [projectId],
     );
 
     const {
@@ -208,7 +196,7 @@ export const ArchiveTable = ({
 
     const data = useMemo(
         () => (loading ? featuresPlaceholder : searchedData),
-        [searchedData, loading]
+        [searchedData, loading],
     );
 
     const [initialState] = useState(() => ({
@@ -232,6 +220,7 @@ export const ArchiveTable = ({
         state: { sortBy, selectedRowIds },
         prepareRow,
         setHiddenColumns,
+        toggleAllRowsSelected,
     } = useTable(
         {
             columns: columns as any[], // TODO: fix after `react-table` v8 update
@@ -246,7 +235,7 @@ export const ArchiveTable = ({
         },
         useFlexLayout,
         useSortBy,
-        useRowSelect
+        useRowSelect,
     );
 
     useConditionallyHiddenColumns(
@@ -261,7 +250,7 @@ export const ArchiveTable = ({
             },
         ],
         setHiddenColumns,
-        columns
+        columns,
     );
 
     useEffect(() => {
@@ -319,14 +308,13 @@ export const ArchiveTable = ({
                             condition={searchValue?.length > 0}
                             show={
                                 <TablePlaceholder>
-                                    No feature toggles found matching &ldquo;
+                                    No feature flags found matching &ldquo;
                                     {searchValue}&rdquo;
                                 </TablePlaceholder>
                             }
                             elseShow={
                                 <TablePlaceholder>
-                                    None of the feature toggles were archived
-                                    yet.
+                                    None of the feature flags were archived yet.
                                 </TablePlaceholder>
                             }
                         />
@@ -339,6 +327,13 @@ export const ArchiveTable = ({
                     setOpen={setDeleteModalOpen}
                     refetch={refetch}
                 />
+                <ArchivedFeatureReviveConfirm
+                    revivedFeatures={[revivedFeature?.name!]}
+                    projectId={projectId ?? revivedFeature?.project!}
+                    open={reviveModalOpen}
+                    setOpen={setReviveModalOpen}
+                    refetch={refetch}
+                />
             </PageContent>
             <ConditionallyRender
                 condition={Boolean(projectId)}
@@ -349,6 +344,7 @@ export const ArchiveTable = ({
                         <ArchiveBatchActions
                             selectedIds={Object.keys(selectedRowIds)}
                             projectId={projectId!}
+                            onConfirm={() => toggleAllRowsSelected(false)}
                         />
                     </BatchSelectionActionsBar>
                 }

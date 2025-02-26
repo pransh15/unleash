@@ -1,6 +1,5 @@
 import { screen } from '@testing-library/react';
 import { render } from 'utils/testRenderer';
-import React from 'react';
 import { useDefaultStrategy } from './EditDefaultStrategy';
 import { testServerRoute, testServerSetup } from 'utils/testServer';
 
@@ -15,14 +14,14 @@ const RenderStrategy = () => {
 const RenderFallbackStrategy = () => {
     const { defaultStrategyFallback } = useDefaultStrategy(
         'default',
-        'development'
+        'development',
     );
 
     return <div>{defaultStrategyFallback.parameters.stickiness}</div>;
 };
 
 test('should render default strategy from project', async () => {
-    testServerRoute(server, '/api/admin/projects/default', {
+    testServerRoute(server, '/api/admin/projects/default/overview', {
         environments: [
             {
                 environment: 'development',
@@ -36,7 +35,7 @@ test('should render default strategy from project', async () => {
 });
 
 test('should render fallback default strategy with project default stickiness', async () => {
-    testServerRoute(server, '/api/admin/projects/default', {
+    testServerRoute(server, '/api/admin/projects/default/overview', {
         defaultStickiness: 'clientId',
         environments: [],
     });
@@ -46,7 +45,7 @@ test('should render fallback default strategy with project default stickiness', 
 });
 
 test('should render fallback default strategy with no project default stickiness', async () => {
-    testServerRoute(server, '/api/admin/projects/default', {
+    testServerRoute(server, '/api/admin/projects/default/overview', {
         environments: [],
     });
     render(<RenderFallbackStrategy />);

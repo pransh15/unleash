@@ -1,34 +1,25 @@
 import useSWR from 'swr';
-import { FeatureSchema, FeaturesSchema } from 'openapi';
+import type { ArchivedFeaturesSchema } from 'openapi';
 import handleErrorResponses from '../httpErrorResponseHandler';
 import { formatApiPath } from 'utils/formatPath';
 
-export interface IUseFeaturesArchiveOutput {
-    archivedFeatures?: FeatureSchema[];
-    refetchArchived: () => void;
-    loading: boolean;
-    error?: Error;
-}
-
 const fetcher = (path: string) => {
     return fetch(path)
-        .then(handleErrorResponses('Feature toggle archive'))
-        .then(res => res.json());
+        .then(handleErrorResponses('Feature flag archive'))
+        .then((res) => res.json());
 };
 
-export const useFeaturesArchive = (
-    projectId?: string
-): IUseFeaturesArchiveOutput => {
-    const { data, error, mutate, isLoading } = useSWR<FeaturesSchema>(
+export const useFeaturesArchive = (projectId?: string) => {
+    const { data, error, mutate, isLoading } = useSWR<ArchivedFeaturesSchema>(
         formatApiPath(
             projectId
                 ? `/api/admin/archive/features/${projectId}`
-                : 'api/admin/archive/features'
+                : 'api/admin/archive/features',
         ),
         fetcher,
         {
             refreshInterval: 15 * 1000, // ms
-        }
+        },
     );
 
     return {

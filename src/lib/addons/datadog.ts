@@ -1,19 +1,25 @@
 import Addon from './addon';
 
 import definition from './datadog-definition';
-import { IAddonConfig } from '../types/model';
+import Mustache from 'mustache';
 import {
-    FeatureEventFormatter,
+    type IAddonConfig,
+    type IFlagResolver,
+    serializeDates,
+} from '../types';
+import {
+    type FeatureEventFormatter,
     FeatureEventFormatterMd,
-    LinkStyle,
 } from './feature-event-formatter-md';
-import { IEvent } from '../types/events';
+import type { IEvent } from '../types/events';
+import type { IntegrationEventState } from '../features/integration-events/integration-events-store';
 
 interface IDatadogParameters {
     url: string;
     apiKey: string;
     sourceTypeName?: string;
     customHeaders?: string;
+    bodyTemplate?: string;
 }
 
 interface DDRequestBody {
@@ -26,32 +32,47 @@ interface DDRequestBody {
 export default class DatadogAddon extends Addon {
     private msgFormatter: FeatureEventFormatter;
 
+    flagResolver: IFlagResolver;
+
     constructor(config: IAddonConfig) {
         super(definition, config);
-        this.msgFormatter = new FeatureEventFormatterMd(
-            config.unleashUrl,
-            LinkStyle.MD,
-        );
+        this.msgFormatter = new FeatureEventFormatterMd({
+            unleashUrl: config.unleashUrl,
+        });
+        this.flagResolver = config.flagResolver;
     }
 
     async handleEvent(
         event: IEvent,
         parameters: IDatadogParameters,
+        integrationId: number,
     ): Promise<void> {
+        let state: IntegrationEventState = 'success';
+        const stateDetails: string[] = [];
+
         const {
             url = 'https://api.datadoghq.com/api/v1/events',
             apiKey,
             sourceTypeName,
             customHeaders,
+            bodyTemplate,
         } = parameters;
 
-        const text = this.msgFormatter.format(event);
+        const context = {
+            event,
+        };
+
+        let text: string;
+        if (typeof bodyTemplate === 'string' && bodyTemplate.length > 1) {
+            text = Mustache.render(bodyTemplate, context);
+        } else {
+            text = `%%% \n ${this.msgFormatter.format(event).text} \n %%% `;
+        }
 
         const { tags: eventTags } = event;
-        const tags =
-            eventTags && eventTags.map((tag) => `${tag.type}:${tag.value}`);
+        const tags = eventTags?.map((tag) => `${tag.type}:${tag.value}`);
         const body: DDRequestBody = {
-            text: `%%% \n ${text} \n %%% `,
+            text: text,
             title: 'Unleash notification update',
             tags,
         };
@@ -63,9 +84,11 @@ export default class DatadogAddon extends Addon {
             try {
                 extraHeaders = JSON.parse(customHeaders);
             } catch (e) {
-                this.logger.warn(
-                    `Could not parse the json in the customHeaders parameter. [${customHeaders}]`,
-                );
+                state = 'successWithErrors';
+                const badHeadersMessage =
+                    'Could not parse the JSON in the customHeaders parameter.';
+                stateDetails.push(badHeadersMessage);
+                this.logger.warn(badHeadersMessage);
             }
         }
         const requestOpts = {
@@ -78,8 +101,29 @@ export default class DatadogAddon extends Addon {
             body: JSON.stringify(body),
         };
         const res = await this.fetchRetry(url, requestOpts);
-        this.logger.info(
-            `Handled event ${event.type}. Status codes=${res.status}`,
-        );
+
+        this.logger.info(`Handled event "${event.type}".`);
+
+        if (res.ok) {
+            const successMessage = `Datadog Events API request was successful with status code: ${res.status}.`;
+            stateDetails.push(successMessage);
+            this.logger.info(successMessage);
+        } else {
+            state = 'failed';
+            const failedMessage = `Datadog Events API request failed with status code: ${res.status}.`;
+            stateDetails.push(failedMessage);
+            this.logger.warn(failedMessage);
+        }
+
+        this.registerEvent({
+            integrationId,
+            state,
+            stateDetails: stateDetails.join('\n'),
+            event: serializeDates(event),
+            details: {
+                url,
+                body,
+            },
+        });
     }
 }

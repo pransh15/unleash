@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SWRConfiguration } from 'swr';
+import type { SWRConfiguration } from 'swr';
 import { dequal } from 'dequal';
 import { StaleDataNotification } from 'component/common/StaleDataNotification/StaleDataNotification';
 
@@ -43,7 +43,7 @@ export const useCollaborateData = <Type,>(
     getterOptions: IGetterOptions,
     initialData: Type,
     notificationOptions: IStaleNotificationOptions,
-    comparisonModeratorFunc: (data: Type) => any
+    comparisonModeratorFunc: (data: Type) => any,
 ): ICollaborateDataOutput<Type> => {
     const { data, refetch } = formatUnleashGetter<Type>(getterOptions);
     const [cache, setCache] = useState<Type | null>(initialData || null);

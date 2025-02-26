@@ -1,19 +1,15 @@
-import { useMemo, useState, VFC } from 'react';
-import { IconButton, Tooltip, useMediaQuery } from '@mui/material';
+import { useMemo, useState, type VFC } from 'react';
+import { IconButton, Tooltip } from '@mui/material';
 import { TextCell } from 'component/common/Table/cells/TextCell/TextCell';
-import { IGroupUser } from 'interfaces/group';
+import type { IGroupUser } from 'interfaces/group';
 import { HighlightCell } from 'component/common/Table/cells/HighlightCell/HighlightCell';
 import { ActionCell } from 'component/common/Table/cells/ActionCell/ActionCell';
-import { Delete } from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { VirtualizedTable } from 'component/common/Table';
 import { useFlexLayout, useSortBy, useTable } from 'react-table';
 import { sortTypes } from 'utils/sortTypes';
 import { UserAvatar } from 'component/common/UserAvatar/UserAvatar';
-import theme from 'themes/theme';
-import { useConditionallyHiddenColumns } from 'hooks/useConditionallyHiddenColumns';
-
-const hiddenColumnsSmall = ['imageUrl', 'name'];
 
 interface IGroupFormUsersTableProps {
     users: IGroupUser[];
@@ -24,8 +20,6 @@ export const GroupFormUsersTable: VFC<IGroupFormUsersTableProps> = ({
     users,
     setUsers,
 }) => {
-    const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
-
     const columns = useMemo(
         () => [
             {
@@ -59,7 +53,7 @@ export const GroupFormUsersTable: VFC<IGroupFormUsersTableProps> = ({
                 Cell: ({ row: { original: rowUser } }: any) => (
                     <ActionCell>
                         <Tooltip
-                            title="Remove user from group"
+                            title='Remove user from group'
                             arrow
                             describeChild
                         >
@@ -67,8 +61,8 @@ export const GroupFormUsersTable: VFC<IGroupFormUsersTableProps> = ({
                                 onClick={() =>
                                     setUsers((users: IGroupUser[]) =>
                                         users.filter(
-                                            user => user.id !== rowUser.id
-                                        )
+                                            (user) => user.id !== rowUser.id,
+                                        ),
                                     )
                                 }
                             >
@@ -93,14 +87,14 @@ export const GroupFormUsersTable: VFC<IGroupFormUsersTableProps> = ({
                 searchable: true,
             },
         ],
-        [setUsers]
+        [setUsers],
     );
 
     const [initialState] = useState(() => ({
         hiddenColumns: ['Username', 'Email'],
     }));
 
-    const { headerGroups, rows, prepareRow, setHiddenColumns } = useTable(
+    const { headerGroups, rows, prepareRow } = useTable(
         {
             columns: columns as any[],
             data: users as any[],
@@ -112,18 +106,7 @@ export const GroupFormUsersTable: VFC<IGroupFormUsersTableProps> = ({
             disableMultiSort: true,
         },
         useSortBy,
-        useFlexLayout
-    );
-
-    useConditionallyHiddenColumns(
-        [
-            {
-                condition: isSmallScreen,
-                columns: hiddenColumnsSmall,
-            },
-        ],
-        setHiddenColumns,
-        columns
+        useFlexLayout,
     );
 
     return (

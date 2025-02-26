@@ -1,9 +1,10 @@
-import {
+import type {
     IChangeRequestAddStrategy,
     IChangeRequestDeleteStrategy,
     IChangeRequestUpdateStrategy,
 } from 'component/changeRequest/changeRequest.types';
-import { FC } from 'react';
+import type React from 'react';
+import type { FC } from 'react';
 import {
     formatStrategyName,
     GetFeatureStrategyIcon,
@@ -12,9 +13,9 @@ import EventDiff from 'component/events/EventDiff/EventDiff';
 import omit from 'lodash.omit';
 import { TooltipLink } from 'component/common/TooltipLink/TooltipLink';
 import { Typography, styled } from '@mui/material';
-import { IFeatureStrategy } from 'interfaces/strategy';
-import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
+import type { IFeatureStrategy } from 'interfaces/strategy';
 import { textTruncated } from 'themes/themeStyles';
+import { NameWithChangeInfo } from '../NameWithChangeInfo/NameWithChangeInfo';
 
 const StyledCodeSection = styled('div')(({ theme }) => ({
     overflowX: 'auto',
@@ -27,6 +28,18 @@ const StyledCodeSection = styled('div')(({ theme }) => ({
     },
 }));
 
+const sortSegments = <T extends { segments?: number[] }>(
+    item?: T,
+): T | undefined => {
+    if (!item || !item.segments) {
+        return item;
+    }
+    return {
+        ...item,
+        segments: [...item.segments].sort((a, b) => a - b),
+    };
+};
+
 export const StrategyDiff: FC<{
     change:
         | IChangeRequestAddStrategy
@@ -37,61 +50,41 @@ export const StrategyDiff: FC<{
     const changeRequestStrategy =
         change.action === 'deleteStrategy' ? undefined : change.payload;
 
+    const sortedCurrentStrategy = sortSegments(currentStrategy);
+    const sortedChangeRequestStrategy = sortSegments(changeRequestStrategy);
+
     return (
         <StyledCodeSection>
             <EventDiff
                 entry={{
-                    preData: omit(currentStrategy, 'sortOrder'),
-                    data: changeRequestStrategy,
+                    preData: omit(sortedCurrentStrategy, 'sortOrder'),
+                    data: omit(sortedChangeRequestStrategy, 'snapshot'),
                 }}
             />
         </StyledCodeSection>
     );
 };
 
-export const StrategyName: FC<{
-    change:
-        | IChangeRequestAddStrategy
-        | IChangeRequestUpdateStrategy
-        | IChangeRequestDeleteStrategy;
-    previousTitle: string | undefined;
-}> = ({ change, previousTitle }) => {
-    return (
-        <>
-            <ConditionallyRender
-                condition={Boolean(
-                    previousTitle && previousTitle !== change.payload.title
-                )}
-                show={
-                    <Truncated>
-                        <Typography component="span" color="text.secondary">
-                            {previousTitle ||
-                                formatStrategyName(change.payload.name)}
-                        </Typography>{' '}
-                    </Truncated>
-                }
-            />
-            <Truncated>
-                <Typography component="span">{change.payload.title}</Typography>
-            </Truncated>
-        </>
-    );
-};
-
 interface IStrategyTooltipLinkProps {
-    change:
-        | IChangeRequestAddStrategy
-        | IChangeRequestUpdateStrategy
-        | IChangeRequestDeleteStrategy;
+    name: string;
+    title?: string;
     previousTitle?: string;
+    children?: React.ReactNode;
 }
 
-const StyledContainer: FC = styled('div')(({ theme }) => ({
-    display: 'grid',
-    gridAutoFlow: 'column',
-    gridTemplateColumns: 'auto 1fr',
-    gap: theme.spacing(1),
-    alignItems: 'center',
+const StyledContainer: FC<{ children?: React.ReactNode }> = styled('div')(
+    ({ theme }) => ({
+        display: 'grid',
+        gridAutoFlow: 'column',
+        gridTemplateColumns: 'auto 1fr',
+        gap: theme.spacing(1),
+        alignItems: 'center',
+    }),
+);
+
+const ViewDiff = styled('span')(({ theme }) => ({
+    color: theme.palette.primary.main,
+    marginLeft: theme.spacing(1),
 }));
 
 const Truncated = styled('div')(() => ({
@@ -100,25 +93,32 @@ const Truncated = styled('div')(() => ({
 }));
 
 export const StrategyTooltipLink: FC<IStrategyTooltipLinkProps> = ({
-    change,
+    name,
+    title,
     previousTitle,
     children,
-}) => (
-    <StyledContainer>
-        <GetFeatureStrategyIcon strategyName={change.payload.name} />
-        <Truncated>
-            <TooltipLink
-                tooltip={children}
-                tooltipProps={{
-                    maxWidth: 500,
-                    maxHeight: 600,
-                }}
-            >
-                <Typography component="span">
-                    {formatStrategyName(change.payload.name)}
+}) => {
+    return (
+        <StyledContainer>
+            <GetFeatureStrategyIcon strategyName={name} />
+            <Truncated>
+                <Typography component='span'>
+                    {formatStrategyName(name)}
                 </Typography>
-            </TooltipLink>
-            {<StrategyName change={change} previousTitle={previousTitle} />}
-        </Truncated>
-    </StyledContainer>
-);
+                <TooltipLink
+                    tooltip={children}
+                    tooltipProps={{
+                        maxWidth: 500,
+                        maxHeight: 600,
+                    }}
+                >
+                    <ViewDiff>View Diff</ViewDiff>
+                </TooltipLink>
+                <NameWithChangeInfo
+                    newName={title}
+                    previousName={previousTitle}
+                />
+            </Truncated>
+        </StyledContainer>
+    );
+};

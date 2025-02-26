@@ -9,35 +9,59 @@ import type { CreateUserResponseSchemaRootRole } from './createUserResponseSchem
  * An Unleash user after creation
  */
 export interface CreateUserResponseSchema {
-    /** The user id */
-    id: number;
+    /** A user is either an actual User or a Service Account */
+    accountType?: string;
     /**
-     * (Deprecated): Used internally to know which operations the user should be allowed to perform
-     * @deprecated
+     * Count of active browser sessions for this user
+     * @nullable
      */
-    isAPI?: boolean;
-    /** Name of the user */
-    name?: string | null;
+    activeSessions?: number | null;
+    /** The user was created at this time */
+    createdAt?: string;
+    /** Experimental. The number of deleted browser sessions after last login */
+    deletedSessions?: number;
     /** Email of the user */
     email?: string;
-    /** A unique username for the user */
-    username?: string;
-    /** URL used for the userprofile image */
+    /** Is the welcome email sent to the user or not */
+    emailSent?: boolean;
+    /** The user id */
+    id: number;
+    /** URL used for the user profile image */
     imageUrl?: string;
     /** If the user is actively inviting other users, this is the link that can be shared with other users */
     inviteLink?: string;
-    /** How many unsuccessful attempts at logging in has the user made */
+    /**
+     * Deprecated in v5. Used internally to know which operations the user should be allowed to perform
+     * @deprecated
+     */
+    isAPI?: boolean;
+    /**
+     * How many unsuccessful attempts at logging in has the user made
+     * @minimum 0
+     */
     loginAttempts?: number;
-    /** Is the welcome email sent to the user or not */
-    emailSent?: boolean;
-    /** Which [root role](https://docs.getunleash.io/reference/rbac#standard-roles) this user is assigned. Usually a numeric role ID, but can be a string when returning newly created user with an explicit string role. */
-    rootRole?: CreateUserResponseSchemaRootRole;
-    /** The last time this user logged in */
-    seenAt?: string | null;
-    /** The user was created at this time */
-    createdAt?: string;
-    /** A user is either an actual User or a Service Account */
-    accountType?: string;
+    /**
+     * Name of the user
+     * @nullable
+     */
+    name?: string | null;
     /** Deprecated */
     permissions?: string[];
+    /** Which [root role](https://docs.getunleash.io/reference/rbac#predefined-roles) this user is assigned. Usually a numeric role ID, but can be a string when returning newly created user with an explicit string role. */
+    rootRole?: CreateUserResponseSchemaRootRole;
+    /**
+     * The SCIM ID of the user, only present if managed by SCIM
+     * @nullable
+     */
+    scimId?: string | null;
+    /**
+     * The last time this user logged in
+     * @nullable
+     */
+    seenAt?: string | null;
+    /**
+     * A unique username for the user
+     * @nullable
+     */
+    username?: string | null;
 }

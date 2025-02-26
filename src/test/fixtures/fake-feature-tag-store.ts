@@ -1,5 +1,5 @@
-import { ITag } from '../../lib/types/model';
-import {
+import type { ITag } from '../../lib/types/model';
+import type {
     IFeatureAndTag,
     IFeatureTag,
     IFeatureTagStore,
@@ -46,11 +46,16 @@ export default class FakeFeatureTagStore implements IFeatureTagStore {
         return this.featureTags;
     }
 
-    async tagFeature(featureName: string, tag: ITag): Promise<ITag> {
+    async tagFeature(
+        featureName: string,
+        tag: ITag,
+        createdByUserId: number,
+    ): Promise<ITag> {
         this.featureTags.push({
             featureName,
             tagType: tag.type,
             tagValue: tag.value,
+            createdByUserId,
         });
         return Promise.resolve(tag);
     }
@@ -67,10 +72,14 @@ export default class FakeFeatureTagStore implements IFeatureTagStore {
     async tagFeatures(featureTags: IFeatureTag[]): Promise<IFeatureAndTag[]> {
         return Promise.all(
             featureTags.map(async (fT) => {
-                const saved = await this.tagFeature(fT.featureName, {
-                    value: fT.tagValue,
-                    type: fT.tagType,
-                });
+                const saved = await this.tagFeature(
+                    fT.featureName,
+                    {
+                        value: fT.tagValue,
+                        type: fT.tagType,
+                    },
+                    fT.createdByUserId,
+                );
                 return {
                     featureName: fT.featureName,
                     tag: saved,

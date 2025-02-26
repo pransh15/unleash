@@ -1,9 +1,8 @@
-import React from 'react';
 import { Alert } from '@mui/material';
 
 export const CorsHelpAlert = () => {
     return (
-        <Alert severity="info">
+        <Alert severity='info'>
             <p>
                 Use this page to configure allowed CORS origins for the Frontend
                 API (<code>/api/frontend</code>).

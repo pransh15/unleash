@@ -3,11 +3,11 @@ import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import {
     calculateExpirationDate,
     ExpirationOption,
-    IPersonalAPITokenFormErrors,
+    type IPersonalAPITokenFormErrors,
     PersonalAPITokenForm,
 } from 'component/user/Profile/PersonalAPITokensTab/CreatePersonalAPIToken/PersonalAPITokenForm/PersonalAPITokenForm';
-import { ICreateServiceAccountTokenPayload } from 'hooks/api/actions/useServiceAccountTokensApi/useServiceAccountTokensApi';
-import { IPersonalAPIToken } from 'interfaces/personalAPIToken';
+import type { ICreateServiceAccountTokenPayload } from 'hooks/api/actions/useServiceAccountTokensApi/useServiceAccountTokensApi';
+import type { IPersonalAPIToken } from 'interfaces/personalAPIToken';
 
 const DEFAULT_EXPIRATION = ExpirationOption['30DAYS'];
 
@@ -28,7 +28,7 @@ export const ServiceAccountCreateTokenDialog = ({
     const [patExpiration, setPatExpiration] =
         useState<ExpirationOption>(DEFAULT_EXPIRATION);
     const [patExpiresAt, setPatExpiresAt] = useState(
-        calculateExpirationDate(DEFAULT_EXPIRATION)
+        calculateExpirationDate(DEFAULT_EXPIRATION),
     );
     const [patErrors, setPatErrors] = useState<IPersonalAPITokenFormErrors>({});
 
@@ -40,7 +40,7 @@ export const ServiceAccountCreateTokenDialog = ({
     }, [open]);
 
     const isDescriptionUnique = (description: string) =>
-        !tokens?.some(token => token.description === description);
+        !tokens?.some((token) => token.description === description);
 
     const isPATValid =
         patDescription.length &&
@@ -50,8 +50,8 @@ export const ServiceAccountCreateTokenDialog = ({
     return (
         <Dialogue
             open={open}
-            primaryButtonText="Create token"
-            secondaryButtonText="Cancel"
+            primaryButtonText='Create token'
+            secondaryButtonText='Cancel'
             onClick={() =>
                 onCreateClick({
                     description: patDescription,
@@ -62,7 +62,7 @@ export const ServiceAccountCreateTokenDialog = ({
             onClose={() => {
                 setOpen(false);
             }}
-            title="New token"
+            title='New token'
         >
             <PersonalAPITokenForm
                 description={patDescription}

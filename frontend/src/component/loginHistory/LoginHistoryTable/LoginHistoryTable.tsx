@@ -5,7 +5,12 @@ import { PageContent } from 'component/common/PageContent/PageContent';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
 import { IconButton, Tooltip, useMediaQuery } from '@mui/material';
 import { SearchHighlightProvider } from 'component/common/Table/SearchHighlightContext/SearchHighlightContext';
-import { SortingRule, useFlexLayout, useSortBy, useTable } from 'react-table';
+import {
+    type SortingRule,
+    useFlexLayout,
+    useSortBy,
+    useTable,
+} from 'react-table';
 import { sortTypes } from 'utils/sortTypes';
 import { HighlightCell } from 'component/common/Table/cells/HighlightCell/HighlightCell';
 import { TextCell } from 'component/common/Table/cells/TextCell/TextCell';
@@ -16,22 +21,22 @@ import { useSearch } from 'hooks/useSearch';
 import { TimeAgoCell } from 'component/common/Table/cells/TimeAgoCell/TimeAgoCell';
 import { useLoginHistory } from 'hooks/api/getters/useLoginHistory/useLoginHistory';
 import { LoginHistorySuccessfulCell } from './LoginHistorySuccessfulCell/LoginHistorySuccessfulCell';
-import { ILoginEvent } from 'interfaces/loginEvent';
+import type { ILoginEvent } from 'interfaces/loginEvent';
 import { useLoginHistoryApi } from 'hooks/api/actions/useLoginHistoryApi/useLoginHistoryApi';
 import { formatDateYMDHMS } from 'utils/formatDate';
 import { useSearchParams } from 'react-router-dom';
 import { createLocalStorage } from 'utils/createLocalStorage';
-import { Download } from '@mui/icons-material';
+import Download from '@mui/icons-material/Download';
 
 export type PageQueryType = Partial<
     Record<'sort' | 'order' | 'search', string>
 >;
 
-const defaultSort: SortingRule<string> = { id: 'created_at' };
+const defaultSort: SortingRule<string> = { id: 'created_at', desc: true };
 
 const { value: storedParams, setValue: setStoredParams } = createLocalStorage(
     'LoginHistoryTable:v1',
-    defaultSort
+    defaultSort,
 );
 
 const AUTH_TYPE_LABEL: { [key: string]: string } = {
@@ -72,7 +77,6 @@ export const LoginHistoryTable = () => {
                 Cell: ({ value }: { value: Date }) => (
                     <TimeAgoCell value={value} dateFormat={formatDateYMDHMS} />
                 ),
-                sortType: 'date',
                 maxWidth: 150,
             },
             {
@@ -113,13 +117,13 @@ export const LoginHistoryTable = () => {
                 searchable: true,
             },
         ],
-        []
+        [],
     );
 
     const { data, getSearchText, getSearchContext } = useSearch(
         columns,
         searchValue,
-        events
+        events,
     );
 
     const {
@@ -143,7 +147,7 @@ export const LoginHistoryTable = () => {
             },
         },
         useSortBy,
-        useFlexLayout
+        useFlexLayout,
     );
 
     useConditionallyHiddenColumns(
@@ -158,7 +162,7 @@ export const LoginHistoryTable = () => {
             },
         ],
         setHiddenColumns,
-        columns
+        columns,
     );
 
     useEffect(() => {
@@ -208,7 +212,7 @@ export const LoginHistoryTable = () => {
                                             show={<PageHeader.Divider />}
                                         />
                                         <Tooltip
-                                            title="Download login history"
+                                            title='Download login history'
                                             arrow
                                         >
                                             <IconButton onClick={downloadCSV}>

@@ -1,14 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
 import { useRequiredQueryParam } from 'hooks/useRequiredQueryParam';
-import { FeatureStrategyForm } from 'component/feature/FeatureStrategy/FeatureStrategyForm/FeatureStrategyForm';
 import FormTemplate from 'component/common/FormTemplate/FormTemplate';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import useFeatureStrategyApi from 'hooks/api/actions/useFeatureStrategyApi/useFeatureStrategyApi';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { useNavigate } from 'react-router-dom';
 import useToast from 'hooks/useToast';
-import { IFeatureStrategy, IFeatureStrategyPayload } from 'interfaces/strategy';
+import type {
+    IFeatureStrategy,
+    IFeatureStrategyPayload,
+} from 'interfaces/strategy';
 import {
     createStrategyPayload,
     featureStrategyDocsLink,
@@ -17,14 +19,13 @@ import {
     formatFeaturePath,
 } from '../FeatureStrategyEdit/FeatureStrategyEdit';
 import { CREATE_FEATURE_STRATEGY } from 'component/providers/AccessProvider/permissions';
-import { ISegment } from 'interfaces/segment';
-import { formatStrategyName } from 'utils/strategyNames';
+import type { ISegment } from 'interfaces/segment';
 import { useFormErrors } from 'hooks/useFormErrors';
 import { createFeatureStrategy } from 'utils/createFeatureStrategy';
 import { useStrategy } from 'hooks/api/getters/useStrategy/useStrategy';
 import { useCollaborateData } from 'hooks/useCollaborateData';
 import { useFeature } from 'hooks/api/getters/useFeature/useFeature';
-import { IFeatureToggle } from 'interfaces/featureToggle';
+import type { IFeatureToggle } from 'interfaces/featureToggle';
 import { comparisonModerator } from '../featureStrategy.utils';
 import { useChangeRequestApi } from 'hooks/api/actions/useChangeRequestApi/useChangeRequestApi';
 import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
@@ -33,8 +34,24 @@ import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
 import useQueryParams from 'hooks/useQueryParams';
 import { useSegments } from 'hooks/api/getters/useSegments/useSegments';
 import { useDefaultStrategy } from '../../../project/Project/ProjectSettings/ProjectDefaultStrategySettings/ProjectEnvironment/ProjectEnvironmentDefaultStrategy/EditDefaultStrategy';
+import { FeatureStrategyForm } from '../FeatureStrategyForm/FeatureStrategyForm';
+import { NewStrategyVariants } from 'component/feature/StrategyTypes/NewStrategyVariants';
+import { Limit } from 'component/common/Limit/Limit';
+
+const useStrategyLimit = (strategyCount: number) => {
+    const { uiConfig } = useUiConfig();
+    const featureEnvironmentStrategiesLimit =
+        uiConfig.resourceLimits?.featureEnvironmentStrategies || 100;
+    const limitReached = strategyCount >= featureEnvironmentStrategiesLimit;
+
+    return {
+        limit: featureEnvironmentStrategiesLimit,
+        limitReached,
+    };
+};
 
 export const FeatureStrategyCreate = () => {
+    const [tab, setTab] = useState(0);
     const projectId = useRequiredPathParam('projectId');
     const featureId = useRequiredPathParam('featureId');
     const environmentId = useRequiredQueryParam('environmentId');
@@ -42,18 +59,18 @@ export const FeatureStrategyCreate = () => {
     const { strategy: defaultStrategy, defaultStrategyFallback } =
         useDefaultStrategy(projectId, environmentId);
     const shouldUseDefaultStrategy: boolean = JSON.parse(
-        useQueryParams().get('defaultStrategy') || 'false'
+        useQueryParams().get('defaultStrategy') || 'false',
     );
 
     const { segments: allSegments } = useSegments();
-    const strategySegments = (allSegments || []).filter(segment => {
+    const strategySegments = (allSegments || []).filter((segment) => {
         return defaultStrategy?.segments?.includes(segment.id);
     });
 
     const [strategy, setStrategy] = useState<Partial<IFeatureStrategy>>({});
 
     const [segments, setSegments] = useState<ISegment[]>(
-        shouldUseDefaultStrategy ? strategySegments : []
+        shouldUseDefaultStrategy ? strategySegments : [],
     );
     const { strategyDefinition } = useStrategy(strategyName);
     const errors = useFormErrors();
@@ -66,6 +83,11 @@ export const FeatureStrategyCreate = () => {
     const navigate = useNavigate();
 
     const { feature, refetchFeature } = useFeature(projectId, featureId);
+    const featureEnvironment = feature?.environments.find(
+        (featureEnvironment) => featureEnvironment.name === environmentId,
+    );
+    const strategyCount = featureEnvironment?.strategies.length || 0;
+    const { limit, limitReached } = useStrategyLimit(strategyCount);
     const ref = useRef<IFeatureToggle>(feature);
     const { isChangeRequestConfigured } = useChangeRequestsEnabled(projectId);
     const { refetch: refetchChangeRequests } =
@@ -85,7 +107,7 @@ export const FeatureStrategyCreate = () => {
             {
                 afterSubmitAction: refetchFeature,
             },
-            comparisonModerator
+            comparisonModerator,
         );
 
     useEffect(() => {
@@ -115,6 +137,7 @@ export const FeatureStrategyCreate = () => {
     }, [
         featureId,
         JSON.stringify(strategyDefinition),
+        JSON.stringify(defaultStrategy),
         shouldUseDefaultStrategy,
     ]);
 
@@ -123,13 +146,12 @@ export const FeatureStrategyCreate = () => {
             projectId,
             featureId,
             environmentId,
-            payload
+            payload,
         );
 
         setToastData({
-            title: 'Strategy created',
+            text: 'Strategy created',
             type: 'success',
-            confetti: true,
         });
     };
 
@@ -141,9 +163,8 @@ export const FeatureStrategyCreate = () => {
         });
         // FIXME: segments in change requests
         setToastData({
-            title: 'Strategy added to draft',
+            text: 'Strategy added to draft',
             type: 'success',
-            confetti: true,
         });
         refetchChangeRequests();
     };
@@ -178,17 +199,17 @@ export const FeatureStrategyCreate = () => {
     return (
         <FormTemplate
             modal
-            title={formatStrategyName(strategyName)}
             description={featureStrategyHelp}
             documentationLink={featureStrategyDocsLink}
             documentationLinkLabel={featureStrategyDocsLinkLabel}
+            disablePadding
             formatApiCode={() =>
                 formatAddStrategyApiCode(
                     projectId,
                     featureId,
                     environmentId,
                     payload,
-                    unleashUrl
+                    unleashUrl,
                 )
             }
         >
@@ -205,6 +226,26 @@ export const FeatureStrategyCreate = () => {
                 permission={CREATE_FEATURE_STRATEGY}
                 errors={errors}
                 isChangeRequest={isChangeRequestConfigured(environmentId)}
+                tab={tab}
+                setTab={setTab}
+                StrategyVariants={
+                    <NewStrategyVariants
+                        strategy={strategy}
+                        setStrategy={setStrategy}
+                        environment={environmentId}
+                        projectId={projectId}
+                        editable
+                    />
+                }
+                Limit={
+                    <Limit
+                        name='strategies in this environment'
+                        shortName='strategies'
+                        currentValue={strategyCount}
+                        limit={limit}
+                    />
+                }
+                disabled={limitReached}
             />
             {staleDataNotification}
         </FormTemplate>
@@ -216,7 +257,7 @@ export const formatCreateStrategyPath = (
     featureId: string,
     environmentId: string,
     strategyName: string,
-    defaultStrategy: boolean = false
+    defaultStrategy: boolean = false,
 ): string => {
     const params = new URLSearchParams({
         environmentId,
@@ -232,7 +273,7 @@ export const formatAddStrategyApiCode = (
     featureId: string,
     environmentId: string,
     strategy: Partial<IFeatureStrategy>,
-    unleashUrl?: string
+    unleashUrl?: string,
 ): string => {
     if (!unleashUrl) {
         return '';

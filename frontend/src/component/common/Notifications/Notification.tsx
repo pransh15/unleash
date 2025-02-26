@@ -6,17 +6,17 @@ import {
     ListItemButton,
     useTheme,
 } from '@mui/material';
-import {
+import type {
     NotificationsSchemaItem,
     NotificationsSchemaItemNotificationType,
 } from 'openapi';
 import { ReactComponent as ChangesAppliedIcon } from 'assets/icons/merge.svg';
-import TimeAgo from 'react-timeago';
-import { ToggleOffOutlined } from '@mui/icons-material';
+import { TimeAgo } from 'component/common/TimeAgo/TimeAgo';
+import ToggleOffOutlined from '@mui/icons-material/ToggleOffOutlined';
 import { flexRow } from 'themes/themeStyles';
 
 const StyledContainerBox = styled(Box, {
-    shouldForwardProp: prop => prop !== 'readAt',
+    shouldForwardProp: (prop) => prop !== 'readAt',
 })<{ readAt: boolean }>(({ theme, readAt }) => ({
     padding: theme.spacing(0.5),
     marginRight: theme.spacing(1.5),
@@ -63,7 +63,7 @@ const StyledSecondaryInfoBox = styled(Box)(({ theme }) => ({
 }));
 
 const StyledMessageTypography = styled(Typography, {
-    shouldForwardProp: prop => prop !== 'readAt',
+    shouldForwardProp: (prop) => prop !== 'readAt',
 })<{ readAt: boolean }>(({ theme, readAt }) => ({
     display: 'flex',
     alignItems: 'center',
@@ -126,10 +126,10 @@ export const Notification = ({
             return (
                 <StyledContainerBox readAt={Boolean(readAt)}>
                     <ToggleOffOutlined
-                        sx={theme => ({
+                        sx={(theme) => ({
                             height: '20px',
                             width: '20px',
-                            color: Boolean(readAt)
+                            color: readAt
                                 ? theme.palette.neutral.main
                                 : theme.palette.primary.main,
                         })}
@@ -157,7 +157,7 @@ export const Notification = ({
                     </StyledUserContainer>
 
                     <StyledTimeAgoTypography>
-                        <TimeAgo date={new Date(notification.createdAt)} />
+                        <TimeAgo date={notification.createdAt} />
                     </StyledTimeAgoTypography>
                 </StyledSecondaryInfoBox>
             </StyledNotificationMessageBox>

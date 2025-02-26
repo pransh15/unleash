@@ -1,7 +1,8 @@
-import { IConstraint } from 'interfaces/strategy';
+import type { IConstraint } from 'interfaces/strategy';
 import { SegmentFormStepOne } from './SegmentFormStepOne';
 import { SegmentFormStepTwo } from './SegmentFormStepTwo';
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { SegmentFormStepList } from 'component/segments/SegmentFormStepList';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { styled } from '@mui/material';
@@ -22,6 +23,7 @@ interface ISegmentProps {
     errors: { [key: string]: string };
     clearErrors: () => void;
     mode: SegmentFormMode;
+    children?: React.ReactNode;
 }
 
 const StyledForm = styled('form')(({ theme }) => ({
@@ -72,6 +74,7 @@ export const SegmentForm: React.FC<ISegmentProps> = ({
                     condition={currentStep === 2}
                     show={
                         <SegmentFormStepTwo
+                            project={project}
                             constraints={constraints}
                             setConstraints={setConstraints}
                             setCurrentStep={setCurrentStep}

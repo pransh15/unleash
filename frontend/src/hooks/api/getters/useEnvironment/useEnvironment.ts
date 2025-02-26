@@ -1,8 +1,8 @@
-import useSWR, { mutate, SWRConfiguration } from 'swr';
+import useSWR, { mutate, type SWRConfiguration } from 'swr';
 import { useState, useEffect } from 'react';
 
 import { formatApiPath } from 'utils/formatPath';
-import { IEnvironment } from 'interfaces/environments';
+import type { IEnvironment } from 'interfaces/environments';
 import handleErrorResponses from '../httpErrorResponseHandler';
 import { defaultEnvironment } from './defaultEnvironment';
 
@@ -13,7 +13,7 @@ const useEnvironment = (id: string, options: SWRConfiguration = {}) => {
             method: 'GET',
         })
             .then(handleErrorResponses('Environment data'))
-            .then(res => res.json());
+            .then((res) => res.json());
     };
 
     const FEATURE_CACHE_KEY = `api/admin/environments/${id}`;

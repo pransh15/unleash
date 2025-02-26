@@ -1,6 +1,6 @@
 import { Alert } from '@mui/material';
-import React from 'react';
-import { IEnvironment } from 'interfaces/environments';
+import type React from 'react';
+import type { IEnvironment } from 'interfaces/environments';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import { EnvironmentTableSingle } from 'component/environments/EnvironmentTable/EnvironmentTableSingle';
@@ -26,7 +26,7 @@ export const EnvironmentDeprecateToggleDialog = ({
             title={`${actionName} environment?`}
             open={open}
             primaryButtonText={actionName}
-            secondaryButtonText="Close"
+            secondaryButtonText='Close'
             onClick={onConfirm}
             onClose={() => {
                 setOpen(false);
@@ -35,7 +35,7 @@ export const EnvironmentDeprecateToggleDialog = ({
             <ConditionallyRender
                 condition={enabled}
                 show={
-                    <Alert severity="info">
+                    <Alert severity='info'>
                         Deprecating an environment will mark it as deprecated.
                         Deprecated environments are set as not visible by
                         default for new projects. Project owners are still able
@@ -45,7 +45,7 @@ export const EnvironmentDeprecateToggleDialog = ({
                     </Alert>
                 }
                 elseShow={
-                    <Alert severity="info">
+                    <Alert severity='info'>
                         Undeprecating an environment will no longer mark it as
                         deprecated. An undeprecated environment will be set as
                         visible by default for new projects.

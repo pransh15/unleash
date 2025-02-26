@@ -1,7 +1,7 @@
-import { mutate, SWRConfiguration } from 'swr';
+import { mutate, type SWRConfiguration } from 'swr';
 import { useState, useEffect } from 'react';
 import { formatApiPath } from 'utils/formatPath';
-import { ITag } from 'interfaces/tags';
+import type { ITag } from 'interfaces/tags';
 import handleErrorResponses from '../httpErrorResponseHandler';
 import { useConditionalSWR } from '../useConditionalSWR/useConditionalSWR';
 
@@ -21,7 +21,7 @@ const useTags = (type: string, options: SWRConfiguration = {}) => {
         { tags: [] },
         KEY,
         fetcher,
-        options
+        options,
     );
     const [loading, setLoading] = useState(!error && !data);
 

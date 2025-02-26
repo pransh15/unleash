@@ -1,8 +1,8 @@
-import useSWR, { mutate, SWRConfiguration } from 'swr';
+import useSWR, { mutate, type SWRConfiguration } from 'swr';
 import { useState, useEffect } from 'react';
 import { formatApiPath } from 'utils/formatPath';
 
-import { IPermissions } from 'interfaces/permissions';
+import type { IPermissions } from 'interfaces/permissions';
 import handleErrorResponses from '../httpErrorResponseHandler';
 
 interface IUsePermissions {
@@ -19,7 +19,7 @@ const usePermissions = (options: SWRConfiguration = {}): IUsePermissions => {
             method: 'GET',
         })
             .then(handleErrorResponses('Project permissions'))
-            .then(res => res.json());
+            .then((res) => res.json());
     };
 
     const KEY = `api/admin/permissions`;
@@ -27,7 +27,7 @@ const usePermissions = (options: SWRConfiguration = {}): IUsePermissions => {
     const { data, error } = useSWR<{ permissions: IPermissions }>(
         KEY,
         fetcher,
-        options
+        options,
     );
     const [loading, setLoading] = useState(!error && !data);
 

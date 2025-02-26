@@ -1,16 +1,28 @@
 import useAPI from '../useApi/useApi';
 import { usePlausibleTracker } from '../../../usePlausibleTracker';
+import type { PlausibleChangeRequestState } from 'component/changeRequest/changeRequest.types';
+import { getUniqueChangeRequestId } from 'utils/unique-change-request-id';
+import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
+import { useChangeRequestPlausibleContext } from 'component/changeRequest/ChangeRequestContext';
 
 export interface IChangeSchema {
-    feature: string;
+    feature: string | null;
     action:
         | 'updateEnabled'
         | 'addStrategy'
         | 'updateStrategy'
         | 'deleteStrategy'
         | 'patchVariant'
-        | 'reorderStrategy';
-    payload: string | boolean | object | number;
+        | 'reorderStrategy'
+        | 'archiveFeature'
+        | 'updateSegment'
+        | 'deleteSegment'
+        | 'addDependency'
+        | 'deleteDependency'
+        | 'addReleasePlan'
+        | 'deleteReleasePlan'
+        | 'startMilestone';
+    payload: string | boolean | object | number | undefined;
 }
 
 export interface IChangeRequestConfig {
@@ -25,11 +37,13 @@ export const useChangeRequestApi = () => {
     const { makeRequest, createRequest, errors, loading } = useAPI({
         propagateErrors: true,
     });
+    const { uiConfig } = useUiConfig();
+    const { willOverwriteStrategyChanges } = useChangeRequestPlausibleContext();
 
     const addChange = async (
         project: string,
         environment: string,
-        payload: IChangeSchema | IChangeSchema[]
+        payload: IChangeSchema | IChangeSchema[],
     ) => {
         trackEvent('change_request', {
             props: {
@@ -42,25 +56,33 @@ export const useChangeRequestApi = () => {
             method: 'POST',
             body: JSON.stringify(payload),
         });
-        try {
-            const response = await makeRequest(req.caller, req.id);
-            return response.json();
-        } catch (e) {
-            throw e;
-        }
+
+        const response = await makeRequest(req.caller, req.id);
+        return response.json();
     };
 
     const changeState = async (
         project: string,
         changeRequestId: number,
+        previousState: PlausibleChangeRequestState,
         payload: {
-            state: 'Approved' | 'Applied' | 'Cancelled' | 'In review';
+            state:
+                | 'Approved'
+                | 'Applied'
+                | 'Scheduled'
+                | 'Cancelled'
+                | 'In review'
+                | 'Rejected';
             comment?: string;
-        }
+            scheduledAt?: string;
+        },
     ) => {
         trackEvent('change_request', {
             props: {
                 eventType: payload.state,
+                previousState,
+                willOverwriteStrategyChanges,
+                id: getUniqueChangeRequestId(uiConfig, changeRequestId),
             },
         });
 
@@ -69,46 +91,37 @@ export const useChangeRequestApi = () => {
             method: 'PUT',
             body: JSON.stringify(payload),
         });
-        try {
-            const response = await makeRequest(req.caller, req.id);
-            return response.json();
-        } catch (e) {
-            throw e;
-        }
+
+        const response = await makeRequest(req.caller, req.id);
+        return response.json();
     };
 
     const discardChange = async (
         project: string,
         changeRequestId: number,
-        changeId: number
+        changeId: number,
     ) => {
         const path = `api/admin/projects/${project}/change-requests/${changeRequestId}/changes/${changeId}`;
         const req = createRequest(path, {
             method: 'DELETE',
         });
-        try {
-            return await makeRequest(req.caller, req.id);
-        } catch (e) {
-            throw e;
-        }
+
+        return makeRequest(req.caller, req.id);
     };
 
     const editChange = async (
         project: string,
         changeRequestId: number,
         changeId: number,
-        payload: IChangeSchema
+        payload: IChangeSchema,
     ) => {
         const path = `api/admin/projects/${project}/change-requests/${changeRequestId}/changes/${changeId}`;
         const req = createRequest(path, {
             method: 'PUT',
             body: JSON.stringify(payload),
         });
-        try {
-            return await makeRequest(req.caller, req.id);
-        } catch (e) {
-            throw e;
-        }
+
+        return makeRequest(req.caller, req.id);
     };
 
     const updateChangeRequestEnvironmentConfig = async ({
@@ -126,11 +139,7 @@ export const useChangeRequestApi = () => {
             }),
         });
 
-        try {
-            return await makeRequest(req.caller, req.id);
-        } catch (e) {
-            throw e;
-        }
+        return makeRequest(req.caller, req.id);
     };
 
     const discardDraft = async (projectId: string, draftId: number) => {
@@ -139,17 +148,13 @@ export const useChangeRequestApi = () => {
             method: 'DELETE',
         });
 
-        try {
-            return await makeRequest(req.caller, req.id);
-        } catch (e) {
-            throw e;
-        }
+        return makeRequest(req.caller, req.id);
     };
 
     const addComment = async (
         projectId: string,
         changeRequestId: string,
-        text: string
+        text: string,
     ) => {
         trackEvent('change_request', {
             props: {
@@ -163,17 +168,13 @@ export const useChangeRequestApi = () => {
             body: JSON.stringify({ text }),
         });
 
-        try {
-            return await makeRequest(req.caller, req.id);
-        } catch (e) {
-            throw e;
-        }
+        return makeRequest(req.caller, req.id);
     };
 
     const updateTitle = async (
         project: string,
         changeRequestId: number,
-        title: string
+        title: string,
     ) => {
         trackEvent('change_request', {
             props: {
@@ -186,11 +187,8 @@ export const useChangeRequestApi = () => {
             method: 'PUT',
             body: JSON.stringify({ title }),
         });
-        try {
-            await makeRequest(req.caller, req.id);
-        } catch (e) {
-            throw e;
-        }
+
+        return makeRequest(req.caller, req.id);
     };
 
     return {

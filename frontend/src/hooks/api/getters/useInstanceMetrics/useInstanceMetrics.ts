@@ -1,8 +1,10 @@
-import useSWR, { SWRConfiguration } from 'swr';
+import type { SWRConfiguration } from 'swr';
 import { useMemo } from 'react';
 import { formatApiPath } from 'utils/formatPath';
 import handleErrorResponses from '../httpErrorResponseHandler';
-import { RequestsPerSecondSchema } from 'openapi';
+import type { RequestsPerSecondSchema } from 'openapi';
+import { useConditionalSWR } from '../useConditionalSWR/useConditionalSWR';
+import useUiConfig from '../useUiConfig/useUiConfig';
 
 export interface IInstanceMetricsResponse {
     metrics: RequestsPerSecondSchema;
@@ -15,12 +17,18 @@ export interface IInstanceMetricsResponse {
 }
 
 export const useInstanceMetrics = (
-    options: SWRConfiguration = {}
+    options: SWRConfiguration = {},
 ): IInstanceMetricsResponse => {
-    const { data, error, mutate } = useSWR(
+    const {
+        uiConfig: { prometheusAPIAvailable },
+    } = useUiConfig();
+
+    const { data, error, mutate } = useConditionalSWR(
+        prometheusAPIAvailable,
+        {},
         formatApiPath(`api/admin/metrics/rps`),
         fetcher,
-        options
+        options,
     );
 
     return useMemo(
@@ -30,12 +38,12 @@ export const useInstanceMetrics = (
             refetch: () => mutate(),
             error,
         }),
-        [data, error, mutate]
+        [data, error, mutate],
     );
 };
 
 const fetcher = (path: string) => {
     return fetch(path)
         .then(handleErrorResponses('Instance Metrics'))
-        .then(res => res.json());
+        .then((res) => res.json());
 };

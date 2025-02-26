@@ -1,6 +1,7 @@
 import { styled, Alert } from '@mui/material';
-import React, { useEffect, useState } from 'react';
-import { IProjectEnvironment } from 'interfaces/environments';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import type { IProjectEnvironment } from 'interfaces/environments';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import Input from 'component/common/Input/Input';
 import { ProjectEnvironmentTableSingle } from './ProjectEnvironmentTableSingle/ProjectEnvironmentTableSingle';
@@ -35,19 +36,19 @@ export const EnvironmentHideDialog = ({
 
     return (
         <Dialogue
-            title="Hide environment and disable feature toggles?"
+            title='Hide environment and disable feature flags?'
             open={open}
-            primaryButtonText="Hide environment and disable feature toggles"
+            primaryButtonText='Hide environment and disable feature flags'
             disabledPrimaryButton={environment?.name !== confirmName}
-            secondaryButtonText="Close"
+            secondaryButtonText='Close'
             onClick={onConfirm}
             onClose={() => {
                 setOpen(false);
             }}
         >
-            <Alert severity="error">
+            <Alert severity='error'>
                 <strong>Danger!</strong> Hiding an environment will disable all
-                the feature toggles that are enabled in this environment and it
+                the feature flags that are enabled in this environment and it
                 can impact client applications connected to the environment.
             </Alert>
 
@@ -59,9 +60,9 @@ export const EnvironmentHideDialog = ({
                 <strong>{environment?.name}</strong>
             </StyledLabel>
             <StyledInput
-                label="Environment name"
+                label='Environment name'
                 value={confirmName}
-                onChange={e => setConfirmName(e.target.value)}
+                onChange={(e) => setConfirmName(e.target.value)}
             />
         </Dialogue>
     );

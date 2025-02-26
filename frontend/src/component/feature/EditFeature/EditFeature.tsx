@@ -1,6 +1,6 @@
 import FormTemplate from 'component/common/FormTemplate/FormTemplate';
 import { useNavigate } from 'react-router-dom';
-import FeatureForm from '../FeatureForm/FeatureForm';
+import EditFeatureForm from '../FeatureForm/EditFeatureForm';
 import useFeatureForm from '../hooks/useFeatureForm';
 import * as jsonpatch from 'fast-json-patch';
 import { UpdateButton } from 'component/common/UpdateButton/UpdateButton';
@@ -19,28 +19,25 @@ const EditFeature = () => {
     const { setToastData, setToastApiError } = useToast();
     const { uiConfig } = useUiConfig();
     const navigate = useNavigate();
-    const { patchFeatureToggle, loading } = useFeatureApi();
+    const { patchFeatureToggle: patchFeatureFlag, loading } = useFeatureApi();
     const { feature } = useFeature(projectId, featureId);
 
     const {
         type,
         setType,
         name,
-        setName,
         project,
-        setProject,
         description,
         setDescription,
         impressionData,
         setImpressionData,
         clearErrors,
-        errors,
     } = useFeatureForm(
         feature?.name,
         feature?.type,
         feature?.project,
         feature?.description,
-        feature?.impressionData
+        feature?.impressionData,
     );
 
     const createPatch = () => {
@@ -54,10 +51,10 @@ const EditFeature = () => {
         clearErrors();
         const patch = createPatch();
         try {
-            await patchFeatureToggle(project, featureId, patch);
+            await patchFeatureFlag(project, featureId, patch);
             navigate(`/projects/${project}/features/${name}`);
             setToastData({
-                title: 'Toggle updated successfully',
+                text: 'Flag updated',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -81,32 +78,26 @@ const EditFeature = () => {
     return (
         <FormTemplate
             loading={loading}
-            title="Edit Feature toggle"
-            description="Feature toggles support different use cases, each with their own specific needs such as simple static routing or more complex routing.
-            The feature toggle is disabled when created and you decide when to enable"
-            documentationLink="https://docs.getunleash.io/reference/feature-toggle-types"
-            documentationLinkLabel="Feature toggle types documentation"
+            title='Edit Feature flag'
+            description='Feature flags support different use cases, each with their own specific needs such as simple static routing or more complex routing.
+            The feature flag is disabled when created and you decide when to enable'
+            documentationLink='https://docs.getunleash.io/reference/feature-toggles#feature-flag-types'
+            documentationLinkLabel='Feature flag types documentation'
             formatApiCode={formatApiCode}
         >
-            <FeatureForm
+            <EditFeatureForm
                 type={type}
                 name={name}
-                project={project}
                 description={description}
                 setType={setType}
-                setName={setName}
-                setProject={setProject}
                 setDescription={setDescription}
-                errors={errors}
                 handleSubmit={handleSubmit}
                 handleCancel={handleCancel}
                 impressionData={impressionData}
                 setImpressionData={setImpressionData}
-                mode="Edit"
-                clearErrors={clearErrors}
             >
                 <UpdateButton permission={UPDATE_FEATURE} projectId={project} />
-            </FeatureForm>
+            </EditFeatureForm>
         </FormTemplate>
     );
 };

@@ -1,11 +1,14 @@
-import dbInit from '../../test/e2e/helpers/database-init';
+import dbInit, { type ITestDb } from '../../test/e2e/helpers/database-init';
 import getLogger from '../../test/fixtures/no-logger';
-import FeatureStrategiesStore from './feature-strategy-store';
-import FeatureToggleStore from './feature-toggle-store';
-import StrategyStore from './strategy-store';
-import { IFeatureStrategy, PartialSome } from '../types';
+import type {
+    IFeatureStrategiesStore,
+    IFeatureStrategy,
+    IFeatureToggleStore,
+    IStrategyStore,
+    PartialSome,
+} from '../types';
 
-let db;
+let db: ITestDb;
 
 beforeAll(async () => {
     db = await dbInit('feature_strategy_store_serial', getLogger);
@@ -21,7 +24,7 @@ afterAll(async () => {
 
 test('returns 0 if no custom strategies', async () => {
     // Arrange
-    const featureStrategiesStore: FeatureStrategiesStore =
+    const featureStrategiesStore: IFeatureStrategiesStore =
         db.stores.featureStrategiesStore;
 
     // Act
@@ -34,21 +37,21 @@ test('returns 0 if no custom strategies', async () => {
 
 test('returns 0 if no custom strategies are in use', async () => {
     // Arrange
-    const featureToggleStore: FeatureToggleStore = db.stores.featureToggleStore;
-    const featureStrategiesStore: FeatureStrategiesStore =
+    const featureToggleStore: IFeatureToggleStore =
+        db.stores.featureToggleStore;
+    const featureStrategiesStore: IFeatureStrategiesStore =
         db.stores.featureStrategiesStore;
-    const strategyStore: StrategyStore = db.stores.strategyStore;
+    const strategyStore: IStrategyStore = db.stores.strategyStore;
 
-    featureToggleStore.create('default', {
+    await featureToggleStore.create('default', {
         name: 'test-toggle-2',
+        createdByUserId: 9999,
     });
 
-    strategyStore.createStrategy({
+    await strategyStore.createStrategy({
         name: 'strategy-2',
-        built_in: 0,
         parameters: [],
         description: '',
-        createdAt: '2023-06-09T09:00:12.242Z',
     });
 
     // Act
@@ -61,21 +64,21 @@ test('returns 0 if no custom strategies are in use', async () => {
 
 test('counts custom strategies in use', async () => {
     // Arrange
-    const featureToggleStore: FeatureToggleStore = db.stores.featureToggleStore;
-    const featureStrategiesStore: FeatureStrategiesStore =
+    const featureToggleStore: IFeatureToggleStore =
+        db.stores.featureToggleStore;
+    const featureStrategiesStore: IFeatureStrategiesStore =
         db.stores.featureStrategiesStore;
-    const strategyStore: StrategyStore = db.stores.strategyStore;
+    const strategyStore: IStrategyStore = db.stores.strategyStore;
 
     await featureToggleStore.create('default', {
         name: 'test-toggle',
+        createdByUserId: 9999,
     });
 
     await strategyStore.createStrategy({
         name: 'strategy-1',
-        built_in: 0,
         parameters: [],
         description: '',
-        createdAt: '2023-06-09T09:00:12.242Z',
     });
 
     await featureStrategiesStore.createStrategyFeatureEnv({
@@ -106,12 +109,14 @@ const baseStrategy: PartialSome<IFeatureStrategy, 'id' | 'createdAt'> = {
     variants: [],
 };
 test('increment sort order on each new insert', async () => {
-    const featureToggleStore: FeatureToggleStore = db.stores.featureToggleStore;
-    const featureStrategiesStore: FeatureStrategiesStore =
+    const featureToggleStore: IFeatureToggleStore =
+        db.stores.featureToggleStore;
+    const featureStrategiesStore: IFeatureStrategiesStore =
         db.stores.featureStrategiesStore;
 
     await featureToggleStore.create('default', {
         name: 'test-toggle-increment',
+        createdByUserId: 9999,
     });
 
     const { id: firstId } =
@@ -137,9 +142,8 @@ test('increment sort order on each new insert', async () => {
         });
 
     const firstStrategy = await featureStrategiesStore.getStrategyById(firstId);
-    const secondStrategy = await featureStrategiesStore.getStrategyById(
-        secondId,
-    );
+    const secondStrategy =
+        await featureStrategiesStore.getStrategyById(secondId);
     const thirdStrategy = await featureStrategiesStore.getStrategyById(thirdId);
 
     expect(firstStrategy.sortOrder).toEqual(0);

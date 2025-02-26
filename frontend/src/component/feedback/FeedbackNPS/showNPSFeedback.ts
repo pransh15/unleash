@@ -1,10 +1,10 @@
 import differenceInDays from 'date-fns/differenceInDays';
-import { IAuthFeedback } from 'hooks/api/getters/useAuth/useAuthEndpoint';
+import type { IAuthFeedback } from 'hooks/api/getters/useAuth/useAuthEndpoint';
 
 export const PNPS_FEEDBACK_ID = 'pnps';
 
 export const showNPSFeedback = (
-    feedbackList: IAuthFeedback[] | undefined
+    feedbackList: IAuthFeedback[] | undefined,
 ): boolean => {
     if (!feedbackList) {
         return false;
@@ -15,7 +15,7 @@ export const showNPSFeedback = (
     }
 
     const feedback = feedbackList.find(
-        feedback => feedback.feedbackId === PNPS_FEEDBACK_ID
+        (feedback) => feedback.feedbackId === PNPS_FEEDBACK_ID,
     );
 
     if (!feedback) {

@@ -1,9 +1,14 @@
 import { useTheme } from '@mui/material';
 import { PlaygroundResultChip } from '../../../../PlaygroundResultChip/PlaygroundResultChip';
-import { PlaygroundStrategySchema, PlaygroundRequestSchema } from 'openapi';
+import type {
+    PlaygroundStrategySchema,
+    PlaygroundRequestSchema,
+} from 'openapi';
 import { StrategyExecution } from './StrategyExecution/StrategyExecution';
 import { StrategyItemContainer } from 'component/common/StrategyItemContainer/StrategyItemContainer';
 import { objectId } from 'utils/objectId';
+import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
+import { DisabledStrategyExecution } from './StrategyExecution/DisabledStrategyExecution';
 
 interface IFeatureStrategyItemProps {
     strategy: PlaygroundStrategySchema;
@@ -19,18 +24,20 @@ export const FeatureStrategyItem = ({
     const { result } = strategy;
     const theme = useTheme();
     const label =
-        result.evaluationStatus === 'incomplete'
+        result.evaluationStatus === 'incomplete' ||
+        result.evaluationStatus === 'unevaluated'
             ? 'Unevaluated'
             : result.enabled
-            ? 'True'
-            : 'False';
+              ? 'True'
+              : 'False';
 
     return (
         <StrategyItemContainer
             style={{
-                borderColor: result.enabled
-                    ? theme.palette.success.main
-                    : 'none',
+                borderColor:
+                    result.enabled && result.evaluationStatus === 'complete'
+                        ? theme.palette.success.main
+                        : 'none',
             }}
             strategy={{ ...strategy, id: `${objectId(strategy)}` }}
             orderNumber={index + 1}
@@ -42,10 +49,21 @@ export const FeatureStrategyItem = ({
                 />
             }
         >
-            <StrategyExecution
-                strategyResult={strategy}
-                input={input}
-                percentageFill={theme.palette.background.elevation2}
+            <ConditionallyRender
+                condition={Boolean(strategy.disabled)}
+                show={
+                    <DisabledStrategyExecution
+                        strategyResult={strategy}
+                        input={input}
+                    />
+                }
+                elseShow={
+                    <StrategyExecution
+                        strategyResult={strategy}
+                        input={input}
+                        percentageFill={theme.palette.background.elevation2}
+                    />
+                }
             />
         </StrategyItemContainer>
     );

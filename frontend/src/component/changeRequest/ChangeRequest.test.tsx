@@ -1,4 +1,5 @@
-import { FC } from 'react';
+import type React from 'react';
+import type { FC } from 'react';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from 'themes/ThemeProvider';
@@ -8,6 +9,8 @@ import { AccessProvider } from '../providers/AccessProvider/AccessProvider';
 import { AnnouncerProvider } from '../common/Announcer/AnnouncerProvider/AnnouncerProvider';
 import { testServerRoute, testServerSetup } from '../../utils/testServer';
 import { UIProviderContainer } from '../providers/UIProvider/UIProviderContainer';
+import { StickyProvider } from 'component/common/Sticky/StickyProvider';
+import { HighlightProvider } from 'component/common/Highlight/HighlightProvider';
 
 const server = testServerSetup();
 
@@ -29,6 +32,7 @@ const pendingChangeRequest = (featureName: string) =>
                         'https://gravatar.com/avatar/21232f297a57a5a743894a0e4a801fc3?size=42&default=retro',
                 },
                 createdAt: '2022-12-02T09:19:12.242Z',
+                segments: [],
                 features: [
                     {
                         name: featureName,
@@ -56,7 +60,7 @@ const pendingChangeRequest = (featureName: string) =>
                 approvals: [],
                 comments: [],
             },
-        ]
+        ],
     );
 
 const changeRequestsEnabledIn = (env: string) =>
@@ -74,7 +78,7 @@ const changeRequestsEnabledIn = (env: string) =>
                 type: 'production',
                 changeRequestEnabled: env === 'production',
             },
-        ]
+        ],
     );
 
 const uiConfigForEnterprise = () =>
@@ -82,6 +86,9 @@ const uiConfigForEnterprise = () =>
         environment: 'Open Source',
         flags: {
             changeRequests: true,
+        },
+        resourceLimits: {
+            featureEnvironmentStrategies: 10,
         },
         slogan: 'getunleash.io - All rights reserved',
         name: 'Unleash enterprise',
@@ -178,6 +185,8 @@ const feature = ({ name, enabled }: { name: string; enabled: boolean }) =>
         lastSeenAt: null,
         type: 'release',
         archived: false,
+        dependencies: [],
+        children: [],
     });
 
 const otherRequests = (feature: string) => {
@@ -214,22 +223,28 @@ const otherRequests = (feature: string) => {
     });
 };
 
-const UnleashUiSetup: FC<{ path: string; pathTemplate: string }> = ({
-    children,
-    path,
-    pathTemplate,
-}) => (
+const UnleashUiSetup: FC<{
+    path: string;
+    pathTemplate: string;
+    children?: React.ReactNode;
+}> = ({ children, path, pathTemplate }) => (
     <UIProviderContainer>
         <AccessProvider>
             <MemoryRouter initialEntries={[path]}>
                 <ThemeProvider>
                     <AnnouncerProvider>
-                        <Routes>
-                            <Route
-                                path={pathTemplate}
-                                element={<MainLayout>{children}</MainLayout>}
-                            />
-                        </Routes>
+                        <StickyProvider>
+                            <HighlightProvider>
+                                <Routes>
+                                    <Route
+                                        path={pathTemplate}
+                                        element={
+                                            <MainLayout>{children}</MainLayout>
+                                        }
+                                    />
+                                </Routes>
+                            </HighlightProvider>
+                        </StickyProvider>
                     </AnnouncerProvider>
                 </ThemeProvider>
             </MemoryRouter>
@@ -256,11 +271,11 @@ const verifyBannerForPendingChangeRequest = async () => {
     return screen.findByText('Change request mode', {}, { timeout: 5000 });
 };
 
-const changeToggle = async (environment: string) => {
-    const featureToggleStatusBox = screen.getByTestId('feature-toggle-status');
-    await within(featureToggleStatusBox).findByText(environment);
-    const toggle = screen.getAllByRole('checkbox')[1];
-    fireEvent.click(toggle);
+const changeFlag = async (environment: string) => {
+    const featureFlagStatusBox = screen.getByTestId('feature-flag-status');
+    await within(featureFlagStatusBox).findByText(environment);
+    const flag = screen.getAllByRole('checkbox')[1];
+    fireEvent.click(flag);
 };
 
 const verifyChangeRequestDialog = async (bannerMainText: string) => {
@@ -269,21 +284,21 @@ const verifyChangeRequestDialog = async (bannerMainText: string) => {
     expect(message).toBe(bannerMainText);
 };
 
-test('add toggle change to pending change request', async () => {
+test('add flag change to pending change request', async () => {
     setupHttpRoutes({ featureName: 'test', enabled: false });
 
     render(
         <UnleashUiSetup
-            pathTemplate="/projects/:projectId/features/:featureId/*"
-            path="/projects/default/features/test"
+            pathTemplate='/projects/:projectId/features/:featureId/*'
+            path='/projects/default/features/test'
         >
             <FeatureView />
-        </UnleashUiSetup>
+        </UnleashUiSetup>,
     );
 
     await verifyBannerForPendingChangeRequest();
 
-    await changeToggle('production');
+    await changeFlag('production');
 
-    await verifyChangeRequestDialog('Enable feature toggle test in production');
-});
+    await verifyChangeRequestDialog('Enable feature flag test in production');
+}, 10000);

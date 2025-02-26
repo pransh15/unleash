@@ -1,5 +1,8 @@
 import FormTemplate from 'component/common/FormTemplate/FormTemplate';
-import { UPDATE_SEGMENT } from 'component/providers/AccessProvider/permissions';
+import {
+    UPDATE_PROJECT_SEGMENT,
+    UPDATE_SEGMENT,
+} from 'component/providers/AccessProvider/permissions';
 import { useSegmentsApi } from 'hooks/api/actions/useSegmentsApi/useSegmentsApi';
 import { useConstraintsValidation } from 'hooks/api/getters/useConstraintsValidation/useConstraintsValidation';
 import { useSegment } from 'hooks/api/getters/useSegment/useSegment';
@@ -7,7 +10,7 @@ import { useSegments } from 'hooks/api/getters/useSegments/useSegments';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
 import useToast from 'hooks/useToast';
-import React from 'react';
+import type React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { useSegmentForm } from '../hooks/useSegmentForm';
@@ -19,7 +22,8 @@ import { useSegmentValuesCount } from 'component/segments/hooks/useSegmentValues
 import { SEGMENT_SAVE_BTN_ID } from 'utils/testIds';
 import { useSegmentLimits } from 'hooks/api/getters/useSegmentLimits/useSegmentLimits';
 import { useOptionalPathParam } from 'hooks/useOptionalPathParam';
-import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
+import { useChangeRequestApi } from 'hooks/api/actions/useChangeRequestApi/useChangeRequestApi';
+import { useHighestPermissionChangeRequestEnvironment } from 'hooks/useHighestPermissionChangeRequestEnvironment';
 
 interface IEditSegmentProps {
     modal?: boolean;
@@ -51,22 +55,15 @@ export const EditSegment = ({ modal }: IEditSegmentProps) => {
         segment?.name,
         segment?.description,
         segment?.project,
-        segment?.constraints
+        segment?.constraints,
     );
 
     const hasValidConstraints = useConstraintsValidation(constraints);
     const segmentValuesCount = useSegmentValuesCount(constraints);
     const { segmentValuesLimit } = useSegmentLimits();
 
-    const { isChangeRequestConfiguredInAnyEnv } = useChangeRequestsEnabled(
-        segment?.project || ''
-    );
-    const activateSegmentChangeRequests =
-        uiConfig?.flags?.segmentChangeRequests &&
-        isChangeRequestConfiguredInAnyEnv();
-
     const overSegmentValuesLimit: boolean = Boolean(
-        segmentValuesLimit && segmentValuesCount > segmentValuesLimit
+        segmentValuesLimit && segmentValuesCount > segmentValuesLimit,
     );
 
     const formatApiCode = () => {
@@ -78,28 +75,37 @@ export const EditSegment = ({ modal }: IEditSegmentProps) => {
 --data-raw '${JSON.stringify(getSegmentPayload(), undefined, 2)}'`;
     };
 
+    const highestPermissionChangeRequestEnv =
+        useHighestPermissionChangeRequestEnvironment(segment?.project);
+    const changeRequestEnv = highestPermissionChangeRequestEnv();
+    const { addChange } = useChangeRequestApi();
+
     const handleSubmit = async (e: React.FormEvent) => {
         if (segment) {
             e.preventDefault();
             clearErrors();
             try {
-                if (activateSegmentChangeRequests) {
-                    throw new Error(
-                        "You can't add segments to change requests just yet."
-                    );
+                if (changeRequestEnv) {
+                    await addChange(segment.project || '', changeRequestEnv, {
+                        action: 'updateSegment',
+                        feature: null,
+                        payload: { id: segment.id, ...getSegmentPayload() },
+                    });
                 } else {
                     await updateSegment(segment.id, getSegmentPayload());
-                    refetchSegments();
-                    if (projectId) {
-                        navigate(`/projects/${projectId}/settings/segments/`);
-                    } else {
-                        navigate('/segments/');
-                    }
-                    setToastData({
-                        title: 'Segment updated',
-                        type: 'success',
-                    });
                 }
+                refetchSegments();
+                if (projectId) {
+                    navigate(`/projects/${projectId}/settings/segments/`);
+                } else {
+                    navigate('/segments/');
+                }
+                setToastData({
+                    text: `Segment ${
+                        changeRequestEnv ? 'change added to draft' : 'updated'
+                    }`,
+                    type: 'success',
+                });
             } catch (error: unknown) {
                 setToastApiError(formatUnknownError(error));
             }
@@ -110,10 +116,10 @@ export const EditSegment = ({ modal }: IEditSegmentProps) => {
         <FormTemplate
             loading={loading}
             modal={modal}
-            title="Edit segment"
+            title='Edit segment'
             description={segmentsFormDescription}
             documentationLink={segmentsDocsLink}
-            documentationLinkLabel="Segments documentation"
+            documentationLinkLabel='Segments documentation'
             formatApiCode={formatApiCode}
         >
             <SegmentForm
@@ -128,14 +134,15 @@ export const EditSegment = ({ modal }: IEditSegmentProps) => {
                 setConstraints={setConstraints}
                 errors={errors}
                 clearErrors={clearErrors}
-                mode="edit"
+                mode='edit'
             >
                 <UpdateButton
-                    permission={UPDATE_SEGMENT}
+                    permission={[UPDATE_SEGMENT, UPDATE_PROJECT_SEGMENT]}
+                    projectId={projectId}
                     disabled={!hasValidConstraints || overSegmentValuesLimit}
                     data-testid={SEGMENT_SAVE_BTN_ID}
                 >
-                    {activateSegmentChangeRequests ? 'Add to draft' : 'Save'}
+                    {changeRequestEnv ? 'Add to draft' : 'Save'}
                 </UpdateButton>
             </SegmentForm>
         </FormTemplate>

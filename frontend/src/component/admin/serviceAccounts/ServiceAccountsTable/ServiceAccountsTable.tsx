@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { TablePlaceholder, VirtualizedTable } from 'component/common/Table';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
-import { IRole } from 'interfaces/role';
+import type { IRole } from 'interfaces/role';
 import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { PageContent } from 'component/common/PageContent/PageContent';
@@ -23,11 +23,11 @@ import { useServiceAccountsApi } from 'hooks/api/actions/useServiceAccountsApi/u
 import { ServiceAccountModal } from './ServiceAccountModal/ServiceAccountModal';
 import { ServiceAccountDeleteDialog } from './ServiceAccountDeleteDialog/ServiceAccountDeleteDialog';
 import { ServiceAccountsActionsCell } from './ServiceAccountsActionsCell/ServiceAccountsActionsCell';
-import { INewPersonalAPIToken } from 'interfaces/personalAPIToken';
+import type { INewPersonalAPIToken } from 'interfaces/personalAPIToken';
 import { ServiceAccountTokenDialog } from './ServiceAccountTokenDialog/ServiceAccountTokenDialog';
 import { ServiceAccountTokensCell } from './ServiceAccountTokensCell/ServiceAccountTokensCell';
 import { TimeAgoCell } from 'component/common/Table/cells/TimeAgoCell/TimeAgoCell';
-import { IServiceAccount } from 'interfaces/service-account';
+import type { IServiceAccount } from 'interfaces/service-account';
 import { RoleCell } from 'component/common/Table/cells/RoleCell/RoleCell';
 
 export const ServiceAccountsTable = () => {
@@ -48,7 +48,7 @@ export const ServiceAccountsTable = () => {
         try {
             await removeServiceAccount(serviceAccount.id);
             setToastData({
-                title: `${serviceAccount.name} has been deleted`,
+                text: `${serviceAccount.name} has been deleted`,
                 type: 'success',
             });
             refetch();
@@ -93,9 +93,13 @@ export const ServiceAccountsTable = () => {
                 accessor: (row: any) =>
                     roles.find((role: IRole) => role.id === row.rootRole)
                         ?.name || '',
-                Cell: ({ row: { original: serviceAccount }, value }: any) => (
-                    <RoleCell value={value} roleId={serviceAccount.rootRole} />
-                ),
+                Cell: ({
+                    row: { original: serviceAccount },
+                    value,
+                }: {
+                    row: { original: IServiceAccount };
+                    value: string;
+                }) => <RoleCell value={value} role={serviceAccount.rootRole} />,
                 maxWidth: 120,
             },
             {
@@ -127,7 +131,6 @@ export const ServiceAccountsTable = () => {
                 Header: 'Created',
                 accessor: 'createdAt',
                 Cell: DateCell,
-                sortType: 'date',
                 width: 120,
                 maxWidth: 120,
             },
@@ -141,7 +144,6 @@ export const ServiceAccountsTable = () => {
                         return bSeenAt?.getTime() - aSeenAt?.getTime();
                     })[0]?.seenAt,
                 Cell: TimeAgoCell,
-                sortType: 'date',
                 maxWidth: 150,
             },
             {
@@ -170,18 +172,18 @@ export const ServiceAccountsTable = () => {
                 searchable: true,
             },
         ],
-        [roles]
+        [roles],
     );
 
     const [initialState] = useState({
-        sortBy: [{ id: 'createdAt' }],
+        sortBy: [{ id: 'createdAt', desc: true }],
         hiddenColumns: ['username'],
     });
 
     const { data, getSearchText } = useSearch(
         columns,
         searchValue,
-        serviceAccounts
+        serviceAccounts,
     );
 
     const { headerGroups, rows, prepareRow, setHiddenColumns } = useTable(
@@ -199,7 +201,7 @@ export const ServiceAccountsTable = () => {
             },
         },
         useSortBy,
-        useFlexLayout
+        useFlexLayout,
     );
 
     useConditionallyHiddenColumns(
@@ -214,7 +216,7 @@ export const ServiceAccountsTable = () => {
             },
         ],
         setHiddenColumns,
-        columns
+        columns,
     );
 
     return (
@@ -238,8 +240,8 @@ export const ServiceAccountsTable = () => {
                                 }
                             />
                             <Button
-                                variant="contained"
-                                color="primary"
+                                variant='contained'
+                                color='primary'
                                 onClick={() => {
                                     setSelectedServiceAccount(undefined);
                                     setModalOpen(true);

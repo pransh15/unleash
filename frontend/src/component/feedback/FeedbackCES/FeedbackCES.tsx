@@ -1,11 +1,11 @@
 import { IconButton, Modal, styled } from '@mui/material';
-import React, { useContext } from 'react';
+import { useContext } from 'react';
 import {
     feedbackCESContext,
-    IFeedbackCESState,
+    type IFeedbackCESState,
 } from 'component/feedback/FeedbackCESContext/FeedbackCESContext';
 import { FeedbackCESForm } from 'component/feedback/FeedbackCES/FeedbackCESForm';
-import { CloseOutlined } from '@mui/icons-material';
+import CloseOutlined from '@mui/icons-material/CloseOutlined';
 
 export interface IFeedbackCESProps {
     state?: IFeedbackCESState;
@@ -62,8 +62,8 @@ export const FeedbackCES = ({ state }: IFeedbackCESProps) => {
             <StyledOverlay>
                 <StyledModal>
                     <StyledClose>
-                        <IconButton onClick={hideFeedbackCES} size="large">
-                            <StyledCloseIcon titleAccess="Close" />
+                        <IconButton onClick={hideFeedbackCES} size='large'>
+                            <StyledCloseIcon titleAccess='Close' />
                         </IconButton>
                     </StyledClose>
                     {modalContent}

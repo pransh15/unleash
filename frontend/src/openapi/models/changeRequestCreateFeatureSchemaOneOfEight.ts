@@ -12,5 +12,7 @@ import type { ChangeRequestCreateFeatureSchemaOneOfEightPayload } from './change
 export type ChangeRequestCreateFeatureSchemaOneOfEight = {
     /** The name of this action. */
     action: ChangeRequestCreateFeatureSchemaOneOfEightAction;
+    /** The name of the feature that this change applies to. */
+    feature: string;
     payload: ChangeRequestCreateFeatureSchemaOneOfEightPayload;
 };

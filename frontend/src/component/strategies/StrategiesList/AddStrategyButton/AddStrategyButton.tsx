@@ -4,7 +4,7 @@ import PermissionButton from 'component/common/PermissionButton/PermissionButton
 import { useMediaQuery } from '@mui/material';
 import { CREATE_STRATEGY } from 'component/providers/AccessProvider/permissions';
 import { ADD_NEW_STRATEGY_ID } from 'utils/testIds';
-import { Add } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 
 export const AddStrategyButton = () => {
@@ -19,7 +19,7 @@ export const AddStrategyButton = () => {
                     data-testid={ADD_NEW_STRATEGY_ID}
                     onClick={() => navigate('/strategies/create')}
                     permission={CREATE_STRATEGY}
-                    size="large"
+                    size='large'
                     tooltipProps={{ title: 'New custom strategy' }}
                 >
                     <Add />
@@ -28,7 +28,7 @@ export const AddStrategyButton = () => {
             elseShow={
                 <PermissionButton
                     onClick={() => navigate('/strategies/create')}
-                    color="primary"
+                    color='primary'
                     permission={CREATE_STRATEGY}
                     data-testid={ADD_NEW_STRATEGY_ID}
                 >

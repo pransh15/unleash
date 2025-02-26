@@ -1,4 +1,11 @@
-import React, { CSSProperties, useEffect, useState, useRef, FC } from 'react';
+import type React from 'react';
+import {
+    type CSSProperties,
+    useEffect,
+    useState,
+    useRef,
+    type FC,
+} from 'react';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 
 interface IAnimateOnMountProps {
@@ -8,6 +15,7 @@ interface IAnimateOnMountProps {
     leave?: CSSProperties;
     onStart?: () => void;
     onEnd?: () => void;
+    children?: React.ReactNode;
 }
 
 const AnimateOnMount: FC<IAnimateOnMountProps> = ({

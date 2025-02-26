@@ -1,24 +1,54 @@
-import { EventEmitter } from 'stream';
-import { Logger } from '../../logger';
-import { IEventStore, IUnleashConfig, IUnleashStores } from '../../types';
+import type { Logger } from '../../logger';
+import type {
+    IEventStore,
+    IFlagResolver,
+    IUnleashConfig,
+    IUnleashStores,
+} from '../../types';
+import EventEmitter from 'events';
 
 export const UPDATE_REVISION = 'UPDATE_REVISION';
 
 export default class ConfigurationRevisionService extends EventEmitter {
+    private static instance: ConfigurationRevisionService;
+
     private logger: Logger;
 
     private eventStore: IEventStore;
 
     private revisionId: number;
 
-    constructor(
+    private flagResolver: IFlagResolver;
+
+    private constructor(
         { eventStore }: Pick<IUnleashStores, 'eventStore'>,
-        { getLogger }: Pick<IUnleashConfig, 'getLogger'>,
+        {
+            getLogger,
+            flagResolver,
+        }: Pick<IUnleashConfig, 'getLogger' | 'flagResolver'>,
     ) {
         super();
         this.logger = getLogger('configuration-revision-service.ts');
         this.eventStore = eventStore;
+        this.flagResolver = flagResolver;
         this.revisionId = 0;
+    }
+
+    static getInstance(
+        { eventStore }: Pick<IUnleashStores, 'eventStore'>,
+        {
+            getLogger,
+            flagResolver,
+        }: Pick<IUnleashConfig, 'getLogger' | 'flagResolver'>,
+    ) {
+        if (!ConfigurationRevisionService.instance) {
+            ConfigurationRevisionService.instance =
+                new ConfigurationRevisionService(
+                    { eventStore },
+                    { getLogger, flagResolver },
+                );
+        }
+        return ConfigurationRevisionService.instance;
     }
 
     async getMaxRevisionId(): Promise<number> {
@@ -29,7 +59,11 @@ export default class ConfigurationRevisionService extends EventEmitter {
         }
     }
 
-    async updateMaxRevisionId(): Promise<number> {
+    async updateMaxRevisionId(emit: boolean = true): Promise<number> {
+        if (this.flagResolver.isEnabled('disableUpdateMaxRevisionId')) {
+            return 0;
+        }
+
         const revisionId = await this.eventStore.getMaxRevisionId(
             this.revisionId,
         );
@@ -38,10 +72,16 @@ export default class ConfigurationRevisionService extends EventEmitter {
                 'Updating feature configuration with new revision Id',
                 revisionId,
             );
-            this.emit(UPDATE_REVISION, revisionId);
             this.revisionId = revisionId;
+            if (emit) {
+                this.emit(UPDATE_REVISION, revisionId);
+            }
         }
 
         return this.revisionId;
+    }
+
+    destroy(): void {
+        ConfigurationRevisionService.instance?.removeAllListeners();
     }
 }

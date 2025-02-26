@@ -1,10 +1,10 @@
-import { FC } from 'react';
+import type { FC } from 'react';
+import { Markdown } from 'component/common/Markdown/Markdown';
 import Paper from '@mui/material/Paper';
-import { Box, styled, Typography, Tooltip } from '@mui/material';
-import TimeAgo from 'react-timeago';
+import { Box, styled, Typography } from '@mui/material';
+import { TimeAgo } from 'component/common/TimeAgo/TimeAgo';
 import { StyledAvatar } from './StyledAvatar';
-import { IChangeRequestComment } from '../../changeRequest.types';
-import Linkify from 'react-linkify';
+import type { IChangeRequestComment } from '../../changeRequest.types';
 
 const ChangeRequestCommentWrapper = styled(Box)(({ theme }) => ({
     display: 'flex',
@@ -29,24 +29,18 @@ export const ChangeRequestComment: FC<{ comment: IChangeRequestComment }> = ({
     comment,
 }) => (
     <ChangeRequestCommentWrapper>
-        <Tooltip title={comment.createdBy.username}>
-            <StyledAvatar src={comment.createdBy.imageUrl} />
-        </Tooltip>
-        <CommentPaper variant="outlined">
+        <StyledAvatar user={comment.createdBy} />
+        <CommentPaper variant='outlined'>
             <CommentHeader>
                 <Box>
                     <strong>{comment.createdBy.username}</strong>{' '}
-                    <Typography color="text.secondary" component="span">
-                        commented{' '}
-                        <TimeAgo
-                            minPeriod={60}
-                            date={new Date(comment.createdAt)}
-                        />
+                    <Typography color='text.secondary' component='span'>
+                        commented <TimeAgo date={comment.createdAt} />
                     </Typography>
                 </Box>
             </CommentHeader>
             <Box sx={{ paddingTop: 2.5 }}>
-                <Linkify>{comment.text}</Linkify>
+                <Markdown>{comment.text}</Markdown>
             </Box>
         </CommentPaper>
     </ChangeRequestCommentWrapper>

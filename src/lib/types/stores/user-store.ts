@@ -1,5 +1,5 @@
-import { IUser } from '../user';
-import { Store } from './store';
+import type { IUser } from '../user';
+import type { Store } from './store';
 
 export interface ICreateUser {
     name?: string;
@@ -28,8 +28,17 @@ export interface IUserStore extends Store<IUser, number> {
     getAllWithId(userIdList: number[]): Promise<IUser[]>;
     getByQuery(idQuery: IUserLookup): Promise<IUser>;
     getPasswordHash(userId: number): Promise<string>;
-    setPasswordHash(userId: number, passwordHash: string): Promise<void>;
+    setPasswordHash(
+        userId: number,
+        passwordHash: string,
+        disallowNPreviousPasswords: number,
+    ): Promise<void>;
+    getPasswordsPreviouslyUsed(userId: number): Promise<string[]>;
+    getFirstUserDate(): Promise<Date | null>;
     incLoginAttempts(user: IUser): Promise<void>;
-    successfullyLogin(user: IUser): Promise<void>;
+    successfullyLogin(user: IUser): Promise<number>;
     count(): Promise<number>;
+    countRecentlyDeleted(): Promise<number>;
+    countServiceAccounts(): Promise<number>;
+    deleteScimUsers(): Promise<void>;
 }

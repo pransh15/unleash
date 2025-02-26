@@ -1,7 +1,7 @@
 import { Alert, styled } from '@mui/material';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
-import { IServiceAccount } from 'interfaces/service-account';
+import type { IServiceAccount } from 'interfaces/service-account';
 import { ServiceAccountTokens } from '../ServiceAccountModal/ServiceAccountTokens/ServiceAccountTokens';
 
 const StyledTableContainer = styled('div')(({ theme }) => ({
@@ -34,10 +34,10 @@ export const ServiceAccountDeleteDialog = ({
 
     return (
         <Dialogue
-            title="Delete service account?"
+            title='Delete service account?'
             open={open}
-            primaryButtonText="Delete service account"
-            secondaryButtonText="Cancel"
+            primaryButtonText='Delete service account'
+            secondaryButtonText='Cancel'
             onClick={() => onConfirm(serviceAccount!)}
             onClose={() => {
                 setOpen(false);
@@ -47,7 +47,7 @@ export const ServiceAccountDeleteDialog = ({
                 condition={Boolean(serviceAccount?.tokens.length)}
                 show={
                     <>
-                        <Alert severity="error">
+                        <Alert severity='error'>
                             Deleting this service account may break any existing
                             implementations currently using it.
                         </Alert>

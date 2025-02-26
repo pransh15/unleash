@@ -1,4 +1,4 @@
-import { IStrategy } from 'interfaces/strategy';
+import type { IStrategy } from 'interfaces/strategy';
 import { Link } from 'react-router-dom';
 import {
     getFeatureStrategyIcon,
@@ -74,7 +74,7 @@ export const FeatureStrategyMenuCard = ({
         featureId,
         environmentId,
         strategy.name,
-        defaultStrategy
+        defaultStrategy,
     );
 
     const openStrategyCreationModal = () => {
@@ -93,7 +93,7 @@ export const FeatureStrategyMenuCard = ({
             <div>
                 <StyledName
                     text={strategy.displayName || strategyName}
-                    maxWidth="200"
+                    maxWidth='200'
                     maxLength={25}
                 />
                 <StyledDescription>{strategy.description}</StyledDescription>

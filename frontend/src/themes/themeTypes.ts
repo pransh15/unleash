@@ -1,10 +1,16 @@
+// biome-ignore lint: we need this to correctly extend the MUI theme
+import { FormHelperTextOwnProps } from '@mui/material/FormHelperText';
+
 declare module '@mui/material/styles' {
     interface CustomTheme {
+        mode: 'light' | 'dark';
         /**
          * @deprecated
          */
         fontSizes: {
+            extraLargeHeader: string;
             largeHeader: string;
+            mediumHeader: string;
             mainHeader: string;
             bodySize: string;
             smallBody: string;
@@ -29,6 +35,8 @@ declare module '@mui/material/styles' {
             popup: string;
             primaryHeader: string;
             separator: string;
+            accordionFooter: string;
+            reverseFooter: string;
         };
     }
 
@@ -63,7 +71,7 @@ declare module '@mui/material/styles' {
         };
 
         /**
-         * For 'Seen' column on feature toggles list and other
+         * For 'Seen' column on feature flags list and other
          */
         seen: {
             unknown: string;
@@ -117,15 +125,51 @@ declare module '@mui/material/styles' {
          * Variants, percentage split in strategies
          **/
         variants: string[];
-    }
 
+        /**
+         * Dashboard and charts
+         */
+        charts: {
+            gauge: {
+                gradientStart: string;
+                gradientEnd: string;
+                background: string;
+                sectionLine: string;
+                text: string;
+            };
+            health: {
+                mainCircleBackground: string;
+                orbit: string;
+                circles: string;
+                text: string;
+                title: string;
+                healthy: string;
+                stale: string;
+                potentiallyStale: string;
+                gradientStale: string;
+                gradientPotentiallyStale: string;
+            };
+            series: string[];
+        };
+    }
     interface Theme extends CustomTheme {}
     interface ThemeOptions extends CustomTheme {}
 
     interface Palette extends CustomPalette {}
     interface PaletteOptions extends CustomPalette {}
-
     interface TypeBackground extends CustomTypeBackground {}
+
+    /* Extend the action object from MUI */
+    interface CustomTypeAction {
+        /**
+         * Add background color on hover for the interactive elements
+         * that use the alternative primary color. First used to add
+         * hover colors to button group elements
+         **/
+        alternative: string;
+    }
+
+    interface TypeAction extends CustomTypeAction {}
 
     /* Extend the background object from MUI */
     interface CustomTypeBackground {
@@ -172,5 +216,8 @@ declare module '@mui/material' {
         web: true;
     }
 }
-
-export {};
+declare module '@mui/material/FormHelperText' {
+    interface FormHelperTextOwnProps {
+        'data-testid'?: string;
+    }
+}

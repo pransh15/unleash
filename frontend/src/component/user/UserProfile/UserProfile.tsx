@@ -1,40 +1,42 @@
 import { useState } from 'react';
-import { Button, ClickAwayListener, styled } from '@mui/material';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import {
+    Box,
+    Button,
+    ClickAwayListener,
+    styled,
+    Typography,
+} from '@mui/material';
 import { UserProfileContent } from './UserProfileContent/UserProfileContent';
-import { IUser } from 'interfaces/user';
-import { HEADER_USER_AVATAR } from 'utils/testIds';
+import type { IUser } from 'interfaces/user';
 import { useId } from 'hooks/useId';
 import { UserAvatar } from 'component/common/UserAvatar/UserAvatar';
-import { flexRow, focusable, itemsCenter } from 'themes/themeStyles';
-
-const StyledUserAvatar = styled(UserAvatar)(({ theme }) => ({
-    width: theme.spacing(4.5),
-    height: theme.spacing(4.5),
-}));
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { HEADER_USER_AVATAR } from 'utils/testIds';
 
 const StyledProfileContainer = styled('div')(({ theme }) => ({
     position: 'relative',
-}));
-
-const StyledButton = styled(Button)(({ theme }) => ({
-    ...focusable(theme),
-    ...flexRow,
-    ...itemsCenter,
-    color: 'inherit',
-    padding: theme.spacing(0.5, 2),
-    '&:hover': {
-        backgroundColor: 'transparent',
-    },
-}));
-
-const StyledIcon = styled(KeyboardArrowDownIcon)(({ theme }) => ({
-    color: theme.palette.neutral.main,
+    marginLeft: theme.spacing(2),
+    cursor: 'pointer',
 }));
 
 interface IUserProfileProps {
     profile: IUser;
 }
+
+const StyledUserAvatar = styled(UserAvatar)(({ theme }) => ({
+    width: theme.spacing(4.75),
+    height: theme.spacing(4.75),
+    marginRight: theme.spacing(1.5),
+}));
+
+const StyledSubtitle = styled(Typography)(({ theme }) => ({
+    color: theme.palette.text.secondary,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: theme.spacing(35),
+}));
 
 const UserProfile = ({ profile }: IUserProfileProps) => {
     const [showProfile, setShowProfile] = useState(false);
@@ -43,19 +45,28 @@ const UserProfile = ({ profile }: IUserProfileProps) => {
     return (
         <ClickAwayListener onClickAway={() => setShowProfile(false)}>
             <StyledProfileContainer>
-                <StyledButton
-                    onClick={() => setShowProfile(prev => !prev)}
+                <Button
+                    component={Box}
+                    sx={{ display: 'flex', alignItems: 'center' }}
                     aria-controls={showProfile ? modalId : undefined}
                     aria-expanded={showProfile}
-                    color="secondary"
-                    disableRipple
+                    onClick={() => setShowProfile((prev) => !prev)}
                 >
                     <StyledUserAvatar
                         user={profile}
                         data-testid={HEADER_USER_AVATAR}
                     />
-                    <StyledIcon />
-                </StyledButton>
+                    <Box sx={{ mr: 3 }}>
+                        <Typography>
+                            {profile.name || profile.username}
+                        </Typography>
+                        <StyledSubtitle variant='body2' title={profile.email}>
+                            {profile.email}
+                        </StyledSubtitle>
+                    </Box>
+                    {showProfile ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </Button>
+
                 <UserProfileContent
                     id={modalId}
                     showProfile={showProfile}

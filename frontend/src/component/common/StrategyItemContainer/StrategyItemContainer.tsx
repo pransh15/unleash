@@ -1,14 +1,15 @@
-import { DragEventHandler, FC, ReactNode } from 'react';
-import { DragIndicator } from '@mui/icons-material';
+import type React from 'react';
+import type { DragEventHandler, FC, ReactNode } from 'react';
+import DragIndicator from '@mui/icons-material/DragIndicator';
 import { Box, IconButton, styled } from '@mui/material';
-import { IFeatureStrategy } from 'interfaces/strategy';
+import type { IFeatureStrategy } from 'interfaces/strategy';
 import {
     formatStrategyName,
     getFeatureStrategyIcon,
 } from 'utils/strategyNames';
 import StringTruncator from 'component/common/StringTruncator/StringTruncator';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
-import { PlaygroundStrategySchema } from 'openapi';
+import type { PlaygroundStrategySchema } from 'openapi';
 import { Badge } from '../Badge/Badge';
 import { Link } from 'react-router-dom';
 
@@ -21,6 +22,7 @@ interface IStrategyItemContainerProps {
     className?: string;
     style?: React.CSSProperties;
     description?: string;
+    children?: React.ReactNode;
 }
 
 const DragIcon = styled(IconButton)({
@@ -64,7 +66,7 @@ const StyledHeaderContainer = styled('div')({
 });
 
 const StyledContainer = styled(Box, {
-    shouldForwardProp: prop => prop !== 'disabled',
+    shouldForwardProp: (prop) => prop !== 'disabled',
 })<{ disabled?: boolean }>(({ theme, disabled }) => ({
     borderRadius: theme.shape.borderRadiusMedium,
     border: `1px solid ${theme.palette.divider}`,
@@ -77,7 +79,7 @@ const StyledContainer = styled(Box, {
 }));
 
 const StyledHeader = styled('div', {
-    shouldForwardProp: prop => prop !== 'draggable' && prop !== 'disabled',
+    shouldForwardProp: (prop) => prop !== 'draggable' && prop !== 'disabled',
 })<{ draggable: boolean; disabled: boolean }>(
     ({ theme, draggable, disabled }) => ({
         padding: theme.spacing(0.5, 2),
@@ -90,7 +92,7 @@ const StyledHeader = styled('div', {
         color: disabled
             ? theme.palette.text.secondary
             : theme.palette.text.primary,
-    })
+    }),
 );
 
 export const StrategyItemContainer: FC<IStrategyItemContainerProps> = ({
@@ -105,7 +107,7 @@ export const StrategyItemContainer: FC<IStrategyItemContainerProps> = ({
 }) => {
     const Icon = getFeatureStrategyIcon(strategy.name);
 
-    const StrategyHeaderLink: React.FC =
+    const StrategyHeaderLink: React.FC<{ children?: React.ReactNode }> =
         'links' in strategy
             ? ({ children }) => <Link to={strategy.links.edit}>{children}</Link>
             : ({ children }) => <> {children} </>;
@@ -130,14 +132,14 @@ export const StrategyItemContainer: FC<IStrategyItemContainerProps> = ({
                             <DragIcon
                                 draggable
                                 disableRipple
-                                size="small"
+                                size='small'
                                 onDragStart={onDragStart}
                                 onDragEnd={onDragEnd}
                                 sx={{ cursor: 'move' }}
                             >
                                 <DragIndicator
-                                    titleAccess="Drag to reorder"
-                                    cursor="grab"
+                                    titleAccess='Drag to reorder'
+                                    cursor='grab'
                                     sx={{ color: 'action.active' }}
                                 />
                             </DragIcon>
@@ -145,13 +147,13 @@ export const StrategyItemContainer: FC<IStrategyItemContainerProps> = ({
                     />
                     <Icon
                         sx={{
-                            fill: theme => theme.palette.action.disabled,
+                            fill: (theme) => theme.palette.action.disabled,
                         }}
                     />
                     <StyledHeaderContainer>
                         <StrategyHeaderLink>
                             <StringTruncator
-                                maxWidth="400"
+                                maxWidth='400'
                                 maxLength={15}
                                 text={formatStrategyName(String(strategy.name))}
                             />
@@ -160,7 +162,7 @@ export const StrategyItemContainer: FC<IStrategyItemContainerProps> = ({
                                 show={
                                     <StyledCustomTitle>
                                         {formatStrategyName(
-                                            String(strategy.title)
+                                            String(strategy.title),
                                         )}
                                     </StyledCustomTitle>
                                 }
@@ -180,7 +182,7 @@ export const StrategyItemContainer: FC<IStrategyItemContainerProps> = ({
                         condition={Boolean(strategy?.disabled)}
                         show={() => (
                             <>
-                                <Badge color="disabled">Disabled</Badge>
+                                <Badge color='disabled'>Disabled</Badge>
                             </>
                         )}
                     />
@@ -188,21 +190,14 @@ export const StrategyItemContainer: FC<IStrategyItemContainerProps> = ({
                         sx={{
                             marginLeft: 'auto',
                             display: 'flex',
-                            minHeight: theme => theme.spacing(6),
+                            minHeight: (theme) => theme.spacing(6),
                             alignItems: 'center',
                         }}
                     >
                         {actions}
                     </Box>
                 </StyledHeader>
-                <Box
-                    sx={{
-                        p: 2,
-                        justifyItems: 'center',
-                    }}
-                >
-                    {children}
-                </Box>
+                <Box sx={{ p: 2 }}>{children}</Box>
             </StyledContainer>
         </Box>
     );

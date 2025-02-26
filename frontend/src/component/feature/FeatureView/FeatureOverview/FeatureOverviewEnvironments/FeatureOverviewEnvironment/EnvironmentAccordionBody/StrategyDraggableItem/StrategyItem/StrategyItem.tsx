@@ -1,8 +1,8 @@
-import { DragEventHandler, FC } from 'react';
-import { Edit } from '@mui/icons-material';
+import type { DragEventHandler, FC } from 'react';
+import Edit from '@mui/icons-material/Edit';
 import { Link } from 'react-router-dom';
-import { IFeatureEnvironment } from 'interfaces/featureToggle';
-import { IFeatureStrategy } from 'interfaces/strategy';
+import type { IFeatureEnvironment } from 'interfaces/featureToggle';
+import type { IFeatureStrategy } from 'interfaces/strategy';
 import PermissionIconButton from 'component/common/PermissionIconButton/PermissionIconButton';
 import { UPDATE_FEATURE_STRATEGY } from 'component/providers/AccessProvider/permissions';
 import { formatEditStrategyPath } from 'component/feature/FeatureStrategy/FeatureStrategyEdit/FeatureStrategyEdit';
@@ -12,7 +12,8 @@ import { ConditionallyRender } from 'component/common/ConditionallyRender/Condit
 import { CopyStrategyIconMenu } from './CopyStrategyIconMenu/CopyStrategyIconMenu';
 import { StrategyItemContainer } from 'component/common/StrategyItemContainer/StrategyItemContainer';
 import MenuStrategyRemove from './MenuStrategyRemove/MenuStrategyRemove';
-
+import SplitPreviewSlider from 'component/feature/StrategyTypes/SplitPreviewSlider/SplitPreviewSlider';
+import { Box } from '@mui/material';
 interface IStrategyItemProps {
     environmentId: string;
     strategy: IFeatureStrategy;
@@ -39,7 +40,7 @@ export const StrategyItem: FC<IStrategyItemProps> = ({
         projectId,
         featureId,
         environmentId,
-        strategy.id
+        strategy.id,
     );
 
     return (
@@ -53,7 +54,7 @@ export const StrategyItem: FC<IStrategyItemProps> = ({
                     {headerChildren}
                     <ConditionallyRender
                         condition={Boolean(
-                            otherEnvironments && otherEnvironments?.length > 0
+                            otherEnvironments && otherEnvironments?.length > 0,
                         )}
                         show={() => (
                             <CopyStrategyIconMenu
@@ -86,6 +87,16 @@ export const StrategyItem: FC<IStrategyItemProps> = ({
             }
         >
             <StrategyExecution strategy={strategy} />
+
+            {strategy.variants &&
+                strategy.variants.length > 0 &&
+                (strategy.disabled ? (
+                    <Box sx={{ opacity: '0.5' }}>
+                        <SplitPreviewSlider variants={strategy.variants} />
+                    </Box>
+                ) : (
+                    <SplitPreviewSlider variants={strategy.variants} />
+                ))}
         </StrategyItemContainer>
     );
 };

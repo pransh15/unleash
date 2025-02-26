@@ -1,4 +1,4 @@
-import { IUser } from './user';
+import type { IUser } from './user';
 
 export interface IGroup {
     id: number;
@@ -11,6 +11,7 @@ export interface IGroup {
     userCount?: number;
     mappingsSSO: string[];
     rootRole?: number;
+    scimId?: string;
 }
 
 export interface IGroupUser extends IUser {

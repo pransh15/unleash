@@ -1,6 +1,6 @@
 import { basePath } from 'utils/formatPath';
 import { createPersistentGlobalStateHook } from './usePersistentGlobalState';
-import React from 'react';
+import type React from 'react';
 
 export interface IEventSettings {
     showData: boolean;
@@ -23,5 +23,5 @@ const createInitialValue = (): IEventSettings => {
 
 const useGlobalState = createPersistentGlobalStateHook<IEventSettings>(
     `${basePath}:useEventSettings:v1`,
-    createInitialValue()
+    createInitialValue(),
 );

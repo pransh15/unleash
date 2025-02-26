@@ -1,55 +1,64 @@
-import { styled } from '@mui/material';
 import GeneralSelect, {
-    IGeneralSelectProps,
+    type IGeneralSelectProps,
 } from 'component/common/GeneralSelect/GeneralSelect';
-
-const StyledTitle = styled('h2')(({ theme }) => ({
-    margin: 0,
-    marginBottom: theme.spacing(1),
-    fontSize: theme.fontSizes.smallBody,
-    fontWeight: theme.fontWeight.thin,
-    color: theme.palette.text.secondary,
-}));
+import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
+import { useEffect } from 'react';
+import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 
 interface IFeatureMetricsHoursProps {
     hoursBack: number;
     setHoursBack: (value: number) => void;
+    label?: string;
 }
 
-export const FEATURE_METRIC_HOURS_BACK_MAX = 48;
+export const FEATURE_METRIC_HOURS_BACK_DEFAULT = 48;
 
 export const FeatureMetricsHours = ({
     hoursBack,
     setHoursBack,
+    label = 'Period',
 }: IFeatureMetricsHoursProps) => {
-    const onChange: IGeneralSelectProps['onChange'] = key => {
-        setHoursBack(parseFeatureMetricsHour(key));
+    const { trackEvent } = usePlausibleTracker();
+
+    const onChange: IGeneralSelectProps['onChange'] = (key) => {
+        setHoursBack(Number.parseInt(key));
+        trackEvent('feature-metrics', {
+            props: {
+                eventType: 'change-period',
+                hoursBack: key,
+            },
+        });
     };
+    const { isEnterprise } = useUiConfig();
+    const options = isEnterprise()
+        ? [...hourOptions, ...daysOptions]
+        : hourOptions;
+
+    const normalizedHoursBack = options
+        .map((option) => Number(option.key))
+        .includes(hoursBack)
+        ? hoursBack
+        : FEATURE_METRIC_HOURS_BACK_DEFAULT;
+
+    useEffect(() => {
+        if (hoursBack !== normalizedHoursBack) {
+            setHoursBack(normalizedHoursBack);
+        }
+    }, [hoursBack]);
 
     return (
         <div>
-            <StyledTitle>Period</StyledTitle>
             <GeneralSelect
-                name="feature-metrics-period"
-                id="feature-metrics-period"
-                options={hourOptions}
-                value={String(hoursBack)}
+                name='feature-metrics-period'
+                label={label}
+                id='feature-metrics-period'
+                options={options}
+                value={String(normalizedHoursBack)}
                 onChange={onChange}
                 fullWidth
             />
         </div>
     );
-};
-
-const parseFeatureMetricsHour = (value: unknown) => {
-    switch (value) {
-        case '1':
-            return 1;
-        case '24':
-            return 24;
-        default:
-            return FEATURE_METRIC_HOURS_BACK_MAX;
-    }
 };
 
 const hourOptions: { key: `${number}`; label: string }[] = [
@@ -62,7 +71,22 @@ const hourOptions: { key: `${number}`; label: string }[] = [
         label: 'Last 24 hours',
     },
     {
-        key: `${FEATURE_METRIC_HOURS_BACK_MAX}`,
-        label: `Last ${FEATURE_METRIC_HOURS_BACK_MAX} hours`,
+        key: '48',
+        label: 'Last 48 hours',
+    },
+];
+
+const daysOptions: { key: `${number}`; label: string }[] = [
+    {
+        key: `${7 * 24}`,
+        label: 'Last 7 days',
+    },
+    {
+        key: `${30 * 24}`,
+        label: 'Last 30 days',
+    },
+    {
+        key: `${90 * 24}`,
+        label: 'Last 90 days',
     },
 ];

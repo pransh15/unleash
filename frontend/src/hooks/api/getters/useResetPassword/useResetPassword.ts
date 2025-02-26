@@ -1,4 +1,4 @@
-import useSWR, { SWRConfiguration } from 'swr';
+import useSWR, { type SWRConfiguration } from 'swr';
 import useQueryParams from 'hooks/useQueryParams';
 import { useState, useEffect } from 'react';
 import { formatApiPath } from 'utils/formatPath';
@@ -9,7 +9,7 @@ const getFetcher = (token: string) => () => {
     // Don't use handleErrorResponses here, because we need to read the error.
     return fetch(path, {
         method: 'GET',
-    }).then(res => res.json());
+    }).then((res) => res.json());
 };
 
 export const INVALID_TOKEN_ERROR = 'InvalidTokenError';
@@ -35,11 +35,10 @@ const useResetPassword = (options: SWRConfiguration = {}) => {
         setLoading(!error && !data);
     }, [data, error]);
 
-    const isValidToken =
+    const isValidToken = !(
         (!loading && data?.name === INVALID_TOKEN_ERROR) ||
         data?.name === USED_TOKEN_ERROR
-            ? false
-            : true;
+    );
 
     return {
         token,

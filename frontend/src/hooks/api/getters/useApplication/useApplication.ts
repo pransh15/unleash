@@ -1,8 +1,8 @@
-import useSWR, { mutate, SWRConfiguration } from 'swr';
+import useSWR, { mutate, type SWRConfiguration } from 'swr';
 import { useState, useEffect } from 'react';
 import { formatApiPath } from 'utils/formatPath';
 import handleErrorResponses from '../httpErrorResponseHandler';
-import { IApplication } from 'interfaces/application';
+import type { IApplication } from 'interfaces/application';
 
 interface IUseApplicationOutput {
     application: IApplication;
@@ -14,7 +14,7 @@ interface IUseApplicationOutput {
 
 const useApplication = (
     name: string,
-    options: SWRConfiguration = {}
+    options: SWRConfiguration = {},
 ): IUseApplicationOutput => {
     const path = formatApiPath(`api/admin/metrics/applications/${name}`);
 
@@ -23,7 +23,7 @@ const useApplication = (
             method: 'GET',
         })
             .then(handleErrorResponses('Application'))
-            .then(res => res.json());
+            .then((res) => res.json());
     };
 
     const APPLICATION_CACHE_KEY = `api/admin/metrics/applications/${name}`;
@@ -47,7 +47,7 @@ const useApplication = (
             appName: name,
             color: '',
             createdAt: '2022-02-02T21:04:00.268Z',
-            descriotion: '',
+            description: '',
             instances: [],
             strategies: [],
             seenToggles: [],

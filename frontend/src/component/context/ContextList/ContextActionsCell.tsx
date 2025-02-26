@@ -1,6 +1,7 @@
-import { VFC } from 'react';
+import type { VFC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Delete, Edit } from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
+import Edit from '@mui/icons-material/Edit';
 import {
     DELETE_CONTEXT_FIELD,
     UPDATE_CONTEXT_FIELD,
@@ -25,7 +26,7 @@ export const ContextActionsCell: VFC<IContextActionsCellProps> = ({
                 permission={UPDATE_CONTEXT_FIELD}
                 onClick={() => navigate(`/context/edit/${name}`)}
                 data-loading
-                aria-label="edit"
+                aria-label='edit'
                 tooltipProps={{
                     title: 'Edit context field',
                 }}
@@ -36,7 +37,7 @@ export const ContextActionsCell: VFC<IContextActionsCellProps> = ({
                 permission={DELETE_CONTEXT_FIELD}
                 onClick={onDelete}
                 data-loading
-                aria-label="delete"
+                aria-label='delete'
                 tooltipProps={{
                     title: 'Delete context field',
                 }}

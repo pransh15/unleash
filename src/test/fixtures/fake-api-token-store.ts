@@ -1,13 +1,19 @@
-import { IApiTokenStore } from '../../lib/types/stores/api-token-store';
-import { IApiToken, IApiTokenCreate } from '../../lib/types/models/api-token';
+import type { IApiTokenStore } from '../../lib/types/stores/api-token-store';
+import type {
+    ApiTokenType,
+    IApiToken,
+    IApiTokenCreate,
+} from '../../lib/types/models/api-token';
 
-import NotFoundError from '../../lib/error/notfound-error';
 import EventEmitter from 'events';
 
 export default class FakeApiTokenStore
     extends EventEmitter
     implements IApiTokenStore
 {
+    countByType(): Promise<Map<ApiTokenType, number>> {
+        return Promise.resolve(new Map());
+    }
     tokens: IApiToken[] = [];
 
     async delete(key: string): Promise<void> {
@@ -31,12 +37,10 @@ export default class FakeApiTokenStore
         return this.tokens.some((token) => token.secret === key);
     }
 
-    async get(key: string): Promise<IApiToken> {
-        const token = this.tokens.find((t) => t.secret === key);
-        if (token) {
-            return token;
-        }
-        throw new NotFoundError(`Could not find token with secret ${key}`);
+    async get(key: string): Promise<IApiToken | undefined> {
+        const found = this.tokens.find((t) => t.secret === key);
+        // clone the object to get a copy
+        return found ? { ...found } : undefined;
     }
 
     async getAll(): Promise<IApiToken[]> {
@@ -45,7 +49,7 @@ export default class FakeApiTokenStore
 
     async getAllActive(): Promise<IApiToken[]> {
         return this.tokens.filter(
-            (token) => token.expiresAt === null || token.expiresAt > new Date(),
+            (token) => !token.expiresAt || token.expiresAt > new Date(),
         );
     }
 
@@ -71,8 +75,29 @@ export default class FakeApiTokenStore
     }
 
     async setExpiry(secret: string, expiresAt: Date): Promise<IApiToken> {
-        const t = await this.get(secret);
-        t.expiresAt = expiresAt;
-        return t;
+        const found = this.tokens.find((t) => t.secret === secret);
+        if (!found) {
+            return undefined;
+        }
+        found.expiresAt = expiresAt;
+        return found;
+    }
+
+    async countDeprecatedTokens(): Promise<{
+        orphanedTokens: number;
+        activeOrphanedTokens: number;
+        legacyTokens: number;
+        activeLegacyTokens: number;
+    }> {
+        return {
+            orphanedTokens: 0,
+            activeOrphanedTokens: 0,
+            legacyTokens: 0,
+            activeLegacyTokens: 0,
+        };
+    }
+
+    async countProjectTokens(): Promise<number> {
+        return 0;
     }
 }

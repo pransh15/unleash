@@ -1,10 +1,8 @@
-import { VFC } from 'react';
-import { IconButton, IconButtonProps } from '@mui/material';
+import type { VFC } from 'react';
+import { IconButton, type IconButtonProps } from '@mui/material';
 import { ConditionallyRender } from '../ConditionallyRender/ConditionallyRender';
-import {
-    Star as StarIcon,
-    StarBorder as StarBorderIcon,
-} from '@mui/icons-material';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { TooltipResolver } from '../TooltipResolver/TooltipResolver';
 
 interface IFavoriteIconButtonProps extends IconButtonProps {
@@ -26,9 +24,9 @@ export const FavoriteIconButton: VFC<IFavoriteIconButtonProps> = ({
                     condition={isFavorite}
                     show={
                         <StarIcon
-                            color="primary"
+                            color='primary'
                             sx={{
-                                fontSize: theme =>
+                                fontSize: (theme) =>
                                     size === 'medium'
                                         ? theme.spacing(2)
                                         : theme.spacing(3),
@@ -37,9 +35,9 @@ export const FavoriteIconButton: VFC<IFavoriteIconButtonProps> = ({
                     }
                     elseShow={
                         <StarBorderIcon
-                            color="primary"
+                            color='primary'
                             sx={{
-                                fontSize: theme =>
+                                fontSize: (theme) =>
                                     size === 'medium'
                                         ? theme.spacing(2)
                                         : theme.spacing(3),

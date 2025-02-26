@@ -1,6 +1,6 @@
 import { StrategyParameter } from './StrategyParameter/StrategyParameter';
-import React from 'react';
-import { IStrategyParameter } from 'interfaces/strategy';
+import type React from 'react';
+import type { IStrategyParameter } from 'interfaces/strategy';
 
 interface IStrategyParametersProps {
     input: IStrategyParameter[];
@@ -20,7 +20,7 @@ export const StrategyParameters = ({
             <StrategyParameter
                 params={input}
                 key={index}
-                set={value => updateParameter(index, value)}
+                set={(value) => updateParameter(index, value)}
                 index={index}
                 input={input[index]}
                 setParams={setParams}

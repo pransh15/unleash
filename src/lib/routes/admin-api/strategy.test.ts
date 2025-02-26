@@ -5,8 +5,6 @@ import permissions from '../../../test/fixtures/permissions';
 import getApp from '../../app';
 import { createServices } from '../../services';
 
-let destroy;
-
 async function getSetup() {
     const randomBase = `/random${Math.round(Math.random() * 1000)}`;
     const perms = permissions();
@@ -18,11 +16,6 @@ async function getSetup() {
     const services = createServices(stores, config);
     const app = await getApp(config, stores, services);
 
-    destroy = () => {
-        services.versionService.destroy();
-        services.clientInstanceService.destroy();
-    };
-
     return {
         base: randomBase,
         strategyStore: stores.strategyStore,
@@ -30,10 +23,6 @@ async function getSetup() {
         perms,
     };
 }
-
-afterEach(() => {
-    destroy();
-});
 
 test('add version numbers for /strategies', async () => {
     const { request, base } = await getSetup();
@@ -55,7 +44,7 @@ test('require a name when creating a new strategy', async () => {
         .expect((res) => {
             expect(
                 ['name', 'property', 'required'].every((word) =>
-                    res.body.details[0].description.includes(word),
+                    res.body.details[0].message.includes(word),
                 ),
             ).toBeTruthy();
         });
@@ -68,7 +57,7 @@ test('require parameters array when creating a new strategy', async () => {
         .send({ name: 'TestStrat' })
         .expect(400);
 
-    const detailsDescription = body.details[0].description;
+    const detailsDescription = body.details[0].message;
     expect(detailsDescription).toEqual(expect.stringMatching('parameters'));
     expect(detailsDescription).toEqual(expect.stringMatching('required'));
 });

@@ -1,6 +1,6 @@
-import { FormEventHandler, useEffect, useState, VFC } from 'react';
+import { type FC, type FormEventHandler, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Box, Paper, useTheme, styled, Alert } from '@mui/material';
+import { Alert, Box, Paper, styled, useTheme } from '@mui/material';
 import { PageContent } from 'component/common/PageContent/PageContent';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
 import useToast from 'hooks/useToast';
@@ -17,28 +17,84 @@ import {
 } from './playground.utils';
 import { PlaygroundGuidance } from './PlaygroundGuidance/PlaygroundGuidance';
 import { PlaygroundGuidancePopper } from './PlaygroundGuidancePopper/PlaygroundGuidancePopper';
-import Loader from '../../common/Loader/Loader';
+import Loader from 'component/common/Loader/Loader';
 import { AdvancedPlaygroundResultsTable } from './AdvancedPlaygroundResultsTable/AdvancedPlaygroundResultsTable';
-import { AdvancedPlaygroundResponseSchema } from 'openapi';
+import type { AdvancedPlaygroundResponseSchema } from 'openapi';
 import { createLocalStorage } from 'utils/createLocalStorage';
-import { BadRequestError } from '../../../utils/apiUtils';
+import { BadRequestError } from 'utils/apiUtils';
+import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
 
 const StyledAlert = styled(Alert)(({ theme }) => ({
     marginBottom: theme.spacing(3),
 }));
 
-export const AdvancedPlayground: VFC<{
+const GenerateWarningMessages: React.FC<{
+    response?: AdvancedPlaygroundResponseSchema;
+}> = ({ response }) => {
+    const invalidContextProperties =
+        response?.warnings?.invalidContextProperties;
+
+    if (invalidContextProperties && invalidContextProperties.length > 0) {
+        invalidContextProperties.sort();
+        const summary =
+            'Some context properties were not taken into account during evaluation';
+
+        const StyledDetails = styled('details')(({ theme }) => ({
+            '* + *': { marginBlockStart: theme.spacing(1) },
+        }));
+
+        return (
+            <StyledAlert severity='warning'>
+                <StyledDetails>
+                    <summary>{summary}</summary>
+                    <p>
+                        The context you provided for this query contained
+                        top-level properties with invalid values. These
+                        properties were not taken into consideration when
+                        evaluating your query. The properties are:
+                    </p>
+                    <ul>
+                        {invalidContextProperties.map((prop) => (
+                            <li
+                                key={prop}
+                                data-testid='context-warning-list-element'
+                            >
+                                <code>{prop}</code>
+                            </li>
+                        ))}
+                    </ul>
+
+                    <p>
+                        Remember that context fields (with the exception of the{' '}
+                        <code>properties</code> object) must be strings.
+                    </p>
+                    <p>
+                        Because we didn't take these properties into account
+                        during the feature flag evaluation, they will not appear
+                        in the results table.
+                    </p>
+                </StyledDetails>
+            </StyledAlert>
+        );
+    } else {
+        return null;
+    }
+};
+
+export const AdvancedPlayground: FC<{
     FormComponent?: typeof PlaygroundForm;
 }> = ({ FormComponent = PlaygroundForm }) => {
     const defaultSettings: {
         projects: string[];
         environments: string[];
         context?: string;
+        token?: string;
     } = { projects: [], environments: [] };
     const { value, setValue } = createLocalStorage(
         'AdvancedPlayground:v1',
-        defaultSettings
+        defaultSettings,
     );
+    const { trackEvent } = usePlausibleTracker();
 
     const { environments: availableEnvironments } = useEnvironments();
     const theme = useTheme();
@@ -46,17 +102,23 @@ export const AdvancedPlayground: VFC<{
 
     const [configurationError, setConfigurationError] = useState<string>();
     const [environments, setEnvironments] = useState<string[]>(
-        value.environments
+        value.environments,
     );
     const [projects, setProjects] = useState<string[]>(value.projects);
+    const [token, setToken] = useState<string | undefined>(value.token);
     const [context, setContext] = useState<string | undefined>(value.context);
     const [results, setResults] = useState<
         AdvancedPlaygroundResponseSchema | undefined
     >();
     const { setToastData } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
-    const searchParamsLength = Array.from(searchParams.entries()).length;
-    const { evaluateAdvancedPlayground, loading, errors } = usePlaygroundApi();
+    const [changeRequest, setChangeRequest] = useState<string>();
+    const {
+        evaluateAdvancedPlayground,
+        evaluateChangeRequestPlayground,
+        loading,
+        errors,
+    } = usePlaygroundApi();
     const [hasFormBeenSubmitted, setHasFormBeenSubmitted] = useState(false);
 
     useEffect(() => {
@@ -66,32 +128,30 @@ export const AdvancedPlayground: VFC<{
     }, [JSON.stringify(environments), JSON.stringify(availableEnvironments)]);
 
     useEffect(() => {
-        if (searchParamsLength > 0) {
-            loadInitialValuesFromUrl();
-        }
+        loadInitialValuesFromUrl();
     }, []);
 
-    const loadInitialValuesFromUrl = () => {
+    const loadInitialValuesFromUrl = async () => {
         try {
             const environments = resolveEnvironmentsFromUrl();
             const projects = resolveProjectsFromUrl();
             const context = resolveContextFromUrl();
-            const makePlaygroundRequest = async () => {
-                if (environments && context) {
-                    await evaluatePlaygroundContext(
-                        environments || [],
-                        projects || '*',
-                        context
-                    );
-                }
-            };
+            resolveTokenFromUrl();
+            resolveChangeRequestFromUrl();
+            // TODO: Add support for changeRequest
 
-            makePlaygroundRequest();
+            if (environments && context) {
+                await evaluatePlaygroundContext(
+                    environments || [],
+                    projects || '*',
+                    context,
+                );
+            }
         } catch (error) {
             setToastData({
                 type: 'error',
-                title: `Failed to parse URL parameters: ${formatUnknownError(
-                    error
+                text: `Failed to parse URL parameters: ${formatUnknownError(
+                    error,
                 )}`,
             });
         }
@@ -108,7 +168,7 @@ export const AdvancedPlayground: VFC<{
     };
     const resolveProjectsFromUrl = (): string[] | null => {
         let projectsArray: string[] | null = null;
-        let projectsFromUrl = searchParams.get('projects');
+        const projectsFromUrl = searchParams.get('projects');
         if (projectsFromUrl) {
             projectsArray = projectsFromUrl.split(',');
             setProjects(projectsArray);
@@ -124,23 +184,44 @@ export const AdvancedPlayground: VFC<{
         return contextFromUrl;
     };
 
+    const resolveTokenFromUrl = () => {
+        let tokenFromUrl = searchParams.get('token');
+        if (tokenFromUrl) {
+            tokenFromUrl = decodeURI(tokenFromUrl);
+            setToken(tokenFromUrl);
+        }
+        return tokenFromUrl;
+    };
+
+    const resolveChangeRequestFromUrl = () => {
+        const changeRequestFromUrl = searchParams.get('changeRequest');
+        if (changeRequestFromUrl) {
+            setChangeRequest(changeRequestFromUrl);
+        }
+    };
+
     const evaluatePlaygroundContext = async (
         environments: string[] | string,
         projects: string[] | string,
         context: string | undefined,
-        action?: () => void
+        action?: () => void,
     ) => {
         try {
             setConfigurationError(undefined);
-            const parsedContext = JSON.parse(context || '{}');
-            const response = await evaluateAdvancedPlayground({
-                environments: resolveEnvironments(environments),
-                projects: resolveProjects(projects),
-                context: {
-                    appName: 'playground',
-                    ...parsedContext,
-                },
-            });
+            const parsedContext = {
+                appName: 'playground',
+                ...JSON.parse(context || '{}'),
+            };
+
+            const response = changeRequest
+                ? await evaluateChangeRequestPlayground(changeRequest, {
+                      context: parsedContext,
+                  })
+                : await evaluateAdvancedPlayground({
+                      environments: resolveEnvironments(environments),
+                      projects: resolveProjects(projects),
+                      context: parsedContext,
+                  });
 
             if (action && typeof action === 'function') {
                 action();
@@ -152,32 +233,53 @@ export const AdvancedPlayground: VFC<{
             } else if (error instanceof SyntaxError) {
                 setToastData({
                     type: 'error',
-                    title: `Error parsing context: ${formatUnknownError(
-                        error
-                    )}`,
+                    text: `Error parsing context: ${formatUnknownError(error)}`,
                 });
             } else {
                 setToastData({
                     type: 'error',
-                    title: formatUnknownError(error),
+                    text: formatUnknownError(error),
                 });
             }
         }
     };
 
-    const onSubmit: FormEventHandler<HTMLFormElement> = async event => {
+    const trackTryConfiguration = () => {
+        let mode: 'default' | 'api_token' | 'change_request' = 'default';
+        if (token && token !== '') {
+            mode = 'api_token';
+        } else if (changeRequest) {
+            mode = 'change_request';
+        }
+        trackEvent('playground', {
+            props: {
+                eventType: 'try-configuration',
+                mode,
+            },
+        });
+    };
+
+    const onSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
         event.preventDefault();
 
         setHasFormBeenSubmitted(true);
 
+        trackTryConfiguration();
+
         await evaluatePlaygroundContext(environments, projects, context, () => {
             setURLParameters();
-            setValue({
-                environments,
-                projects,
-                context,
-            });
+            if (!changeRequest) {
+                setValue({
+                    environments,
+                    projects,
+                    context,
+                });
+            }
         });
+    };
+
+    const onClearChangeRequest = () => {
+        setChangeRequest(undefined);
     };
 
     const setURLParameters = () => {
@@ -200,6 +302,11 @@ export const AdvancedPlayground: VFC<{
         } else {
             searchParams.delete('projects');
         }
+        if (changeRequest) {
+            searchParams.set('changeRequest', changeRequest);
+        } else {
+            searchParams.delete('changeRequest');
+        }
         setSearchParams(searchParams);
     };
 
@@ -210,7 +317,7 @@ export const AdvancedPlayground: VFC<{
         <PageContent
             header={
                 <PageHeader
-                    title="Unleash playground"
+                    title='Unleash playground'
                     actions={<PlaygroundGuidancePopper />}
                 />
             }
@@ -227,6 +334,8 @@ export const AdvancedPlayground: VFC<{
                     sx={{
                         background: theme.palette.background.elevation2,
                         borderBottomLeftRadius: theme.shape.borderRadiusMedium,
+                        isolation: 'isolate',
+                        zIndex: 2,
                     }}
                 >
                     <Paper
@@ -249,22 +358,28 @@ export const AdvancedPlayground: VFC<{
                             availableEnvironments={availableEnvironments}
                             projects={projects}
                             environments={environments}
+                            token={token}
+                            setToken={setToken}
                             setProjects={setProjects}
                             setEnvironments={setEnvironments}
+                            changeRequest={changeRequest || undefined}
+                            onClearChangeRequest={onClearChangeRequest}
                         />
                     </Paper>
                 </Box>
                 <Box
-                    sx={theme => ({
+                    sx={(theme) => ({
                         width: resultsWidth,
                         transition: 'width 0.4s ease',
                         padding: theme.spacing(4, 4),
+                        isolation: 'isolate',
+                        zIndex: 1,
                     })}
                 >
                     <ConditionallyRender
                         condition={Boolean(configurationError)}
                         show={
-                            <StyledAlert severity="warning">
+                            <StyledAlert severity='warning'>
                                 {configurationError}
                             </StyledAlert>
                         }
@@ -280,17 +395,21 @@ export const AdvancedPlayground: VFC<{
                                         Object.values(errors).length === 0
                                     }
                                     show={
-                                        <AdvancedPlaygroundResultsTable
-                                            loading={loading}
-                                            features={results?.features}
-                                            input={results?.input}
-                                        />
+                                        <>
+                                            <GenerateWarningMessages
+                                                response={results}
+                                            />
+                                            <AdvancedPlaygroundResultsTable
+                                                loading={loading}
+                                                features={results?.features}
+                                                input={results?.input}
+                                            />
+                                        </>
                                     }
                                 />
                                 <ConditionallyRender
                                     condition={
-                                        !Boolean(results) &&
-                                        !hasFormBeenSubmitted
+                                        !results && !hasFormBeenSubmitted
                                     }
                                     show={<PlaygroundGuidance />}
                                 />

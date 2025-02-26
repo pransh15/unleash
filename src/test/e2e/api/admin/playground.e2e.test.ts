@@ -1,19 +1,22 @@
-import fc, { Arbitrary } from 'fast-check';
+import fc, { type Arbitrary } from 'fast-check';
 import { clientFeature, clientFeatures } from '../../../arbitraries.test';
 import { generate as generateRequest } from '../../../../lib/openapi/spec/playground-request-schema.test';
-import dbInit, { ITestDb } from '../../helpers/database-init';
-import { IUnleashTest, setupAppWithAuth } from '../../helpers/test-helper';
-import { FeatureToggle, WeightType } from '../../../../lib/types/model';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
+import {
+    type IUnleashTest,
+    setupAppWithCustomConfig,
+} from '../../helpers/test-helper';
+import { type FeatureToggle, WeightType } from '../../../../lib/types/model';
 import getLogger from '../../../fixtures/no-logger';
 import {
     ALL,
     ApiTokenType,
-    IApiToken,
+    type IApiToken,
 } from '../../../../lib/types/models/api-token';
-import { PlaygroundFeatureSchema } from 'lib/openapi/spec/playground-feature-schema';
-import { ClientFeatureSchema } from 'lib/openapi/spec/client-feature-schema';
-import { PlaygroundResponseSchema } from 'lib/openapi/spec/playground-response-schema';
-import { PlaygroundRequestSchema } from 'lib/openapi/spec/playground-request-schema';
+import type { PlaygroundFeatureSchema } from '../../../../lib/openapi/spec/playground-feature-schema';
+import type { ClientFeatureSchema } from '../../../../lib/openapi/spec/client-feature-schema';
+import type { PlaygroundResponseSchema } from '../../../../lib/openapi/spec/playground-response-schema';
+import type { PlaygroundRequestSchema } from '../../../../lib/openapi/spec/playground-request-schema';
 
 let app: IUnleashTest;
 let db: ITestDb;
@@ -21,7 +24,7 @@ let token: IApiToken;
 
 beforeAll(async () => {
     db = await dbInit('playground_api_serial', getLogger);
-    app = await setupAppWithAuth(db.stores);
+    app = await setupAppWithCustomConfig(db.stores, {}, db.rawDatabase);
     const { apiTokenService } = app.services;
     token = await apiTokenService.createApiTokenWithProjects({
         type: ApiTokenType.ADMIN,
@@ -142,7 +145,7 @@ describe('Playground API E2E', () => {
         );
     };
 
-    test('Returned features should be a subset of the provided toggles', async () => {
+    it('Returned features should be a subset of the provided flags', async () => {
         await fc.assert(
             fc
                 .asyncProperty(
@@ -171,7 +174,7 @@ describe('Playground API E2E', () => {
         );
     });
 
-    test('should filter the list according to the input parameters', async () => {
+    it('should filter the list according to the input parameters', async () => {
         await fc.assert(
             fc
                 .asyncProperty(
@@ -224,7 +227,7 @@ describe('Playground API E2E', () => {
         );
     });
 
-    test('should map project and name correctly', async () => {
+    it('should map project and name correctly', async () => {
         // note: we're not testing `isEnabled` and `variant` here, because
         // that's the SDK's responsibility and it's tested elsewhere.
         await fc.assert(
@@ -257,7 +260,7 @@ describe('Playground API E2E', () => {
 
                         if (features.length !== body.features.length) {
                             ctx.log(
-                                `I expected the number of mapped toggles (${body.features.length}) to be the same as the number of created toggles (${features.length}), but that was not the case.`,
+                                `I expected the number of mapped flags (${body.features.length}) to be the same as the number of created toggles (${features.length}), but that was not the case.`,
                             );
                             return false;
                         }
@@ -280,7 +283,7 @@ describe('Playground API E2E', () => {
         );
     });
 
-    test('isEnabledInCurrentEnvironment should always match feature.enabled', async () => {
+    it('isEnabledInCurrentEnvironment should always match feature.enabled', async () => {
         await fc.assert(
             fc
                 .asyncProperty(
@@ -346,7 +349,7 @@ describe('Playground API E2E', () => {
                                     .record({
                                         values: appName().map(toArray),
                                         inverted: fc.constant(false),
-                                        operator: fc.constant('IN' as 'IN'),
+                                        operator: fc.constant('IN' as const),
                                         contextName: fc.constant('appName'),
                                         caseInsensitive: fc.boolean(),
                                     })
@@ -416,17 +419,17 @@ describe('Playground API E2E', () => {
                     fc.record({
                         name: fc.constant('remoteAddress'),
                         value: fc.ipV4(),
-                        operator: fc.constant('IN' as 'IN'),
+                        operator: fc.constant('IN' as const),
                     }),
                     fc.record({
                         name: fc.constant('sessionId'),
                         value: fc.uuid(),
-                        operator: fc.constant('IN' as 'IN'),
+                        operator: fc.constant('IN' as const),
                     }),
                     fc.record({
                         name: fc.constant('userId'),
                         value: fc.emailAddress(),
-                        operator: fc.constant('IN' as 'IN'),
+                        operator: fc.constant('IN' as const),
                     }),
                 );
 
@@ -524,7 +527,7 @@ describe('Playground API E2E', () => {
                                     {
                                         values: [context.value],
                                         inverted: false,
-                                        operator: 'IN' as 'IN',
+                                        operator: 'IN' as const,
                                         contextName: context.name,
                                         caseInsensitive: false,
                                     },
@@ -634,7 +637,7 @@ describe('Playground API E2E', () => {
             );
         });
 
-        test('context is applied to variant checks', async () => {
+        it('context is applied to variant checks', async () => {
             const environment = 'development';
             const featureName = 'feature-name';
             const customContextFieldName = 'customField';
@@ -649,7 +652,7 @@ describe('Playground API E2E', () => {
                             constraints: [
                                 {
                                     contextName: customContextFieldName,
-                                    operator: 'IN' as 'IN',
+                                    operator: 'IN' as const,
                                     values: [customContextValue],
                                 },
                             ],

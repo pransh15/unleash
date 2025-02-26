@@ -1,5 +1,5 @@
 import { differenceInDays } from 'date-fns';
-import { ICreateEnabledDates } from '../../../types/stores/project-stats-store-type';
+import type { ICreateEnabledDates } from '../../../types/stores/project-stats-store-type';
 
 const calculateTimeToProdForFeatures = (
     items: ICreateEnabledDates[],
@@ -12,8 +12,9 @@ export const calculateAverageTimeToProd = (
     const timeToProdPerFeature = calculateTimeToProdForFeatures(items);
     if (timeToProdPerFeature.length) {
         const sum = timeToProdPerFeature.reduce((acc, curr) => acc + curr, 0);
+        const avg = sum / Object.keys(items).length;
 
-        return Number((sum / Object.keys(items).length).toFixed(1));
+        return Number(avg.toFixed(1)) || 0.1;
     }
 
     return 0;

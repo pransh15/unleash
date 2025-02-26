@@ -1,4 +1,4 @@
-import { OpenAPIV3 } from 'openapi-types';
+import type { OpenAPIV3 } from 'openapi-types';
 
 export const createResponseSchemas = (
     description: string,
@@ -13,7 +13,9 @@ export const createResponseSchemas = (
 export const schemaNamed = (schemaName: string): OpenAPIV3.MediaTypeObject => {
     return {
         schema: {
-            $ref: `#/components/schemas/${schemaName}`,
+            $ref: schemaName.startsWith('#')
+                ? schemaName
+                : `#/components/schemas/${schemaName}`,
         },
     };
 };
@@ -58,11 +60,13 @@ export const resourceCreatedResponseSchema = (
                 },
             },
         },
-        description: `The resource was successfully created.`,
+        description: 'The resource was successfully created.',
         content: {
             'application/json': {
                 schema: {
-                    $ref: `#/components/schemas/${schemaName}`,
+                    $ref: schemaName.startsWith('#')
+                        ? schemaName
+                        : `#/components/schemas/${schemaName}`,
                 },
             },
         },

@@ -1,4 +1,4 @@
-import { Cancel } from '@mui/icons-material';
+import Cancel from '@mui/icons-material/Cancel';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { styled } from '@mui/material';
 
@@ -62,7 +62,7 @@ export const ContextFormChip = ({
                 />
             </div>
             <StyledButton onClick={onRemove}>
-                <Cancel titleAccess="Remove" />
+                <Cancel titleAccess='Remove' />
             </StyledButton>
         </StyledContainer>
     );

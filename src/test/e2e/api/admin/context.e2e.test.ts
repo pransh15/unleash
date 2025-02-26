@@ -1,22 +1,28 @@
-import dbInit from '../../helpers/database-init';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
 import {
-    IUnleashTest,
+    type IUnleashTest,
     setupAppWithCustomConfig,
 } from '../../helpers/test-helper';
 import getLogger from '../../../fixtures/no-logger';
 
-let db;
+let db: ITestDb;
 let app: IUnleashTest;
 
 beforeAll(async () => {
-    db = await dbInit('context_api_serial', getLogger);
-    app = await setupAppWithCustomConfig(db.stores, {
-        experimental: {
-            flags: {
-                strictSchemaValidation: true,
+    db = await dbInit('context_api_serial', getLogger, {
+        dbInitMethod: 'legacy' as const,
+    });
+    app = await setupAppWithCustomConfig(
+        db.stores,
+        {
+            experimental: {
+                flags: {
+                    strictSchemaValidation: true,
+                },
             },
         },
-    });
+        db.rawDatabase,
+    );
 });
 
 afterAll(async () => {

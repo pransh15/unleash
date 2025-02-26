@@ -32,11 +32,11 @@ const BreadcrumbNav = () => {
     const { isAdmin } = useContext(AccessContext);
     const location = useLocation();
 
-    const paths = location.pathname
+    let paths = location.pathname
         .split('/')
-        .filter(item => item)
+        .filter((item) => item)
         .filter(
-            item =>
+            (item) =>
                 item !== 'create' &&
                 item !== 'edit' &&
                 item !== 'view' &&
@@ -46,10 +46,21 @@ const BreadcrumbNav = () => {
                 item !== 'copy' &&
                 item !== 'features' &&
                 item !== 'features2' &&
-                item !== 'create-toggle' &&
                 item !== 'settings' &&
-                item !== 'profile'
-        );
+                item !== 'profile' &&
+                item !== 'insights',
+        )
+        .map(decodeURI);
+
+    if (location.pathname === '/insights') {
+        // Because of sticky header in Insights
+        return null;
+    }
+
+    if (paths.length === 1 && paths[0] === 'projects-archive') {
+        // It's not possible to use `projects/archive`, because it's :projectId path
+        paths = ['projects', 'archive'];
+    }
 
     return (
         <StyledBreadcrumbContainer>
@@ -62,7 +73,7 @@ const BreadcrumbNav = () => {
                     <ConditionallyRender
                         condition={paths.length > 1}
                         show={
-                            <StyledBreadcrumbs aria-label="Breadcrumbs">
+                            <StyledBreadcrumbs aria-label='Breadcrumbs'>
                                 {paths.map((path, index) => {
                                     const lastItem = index === paths.length - 1;
                                     if (lastItem) {
@@ -77,7 +88,7 @@ const BreadcrumbNav = () => {
 
                                     paths.forEach((path, i) => {
                                         if (i !== index && i < index) {
-                                            link += path + '/';
+                                            link += `${path}/`;
                                         } else if (i === index) {
                                             link += path;
                                         }

@@ -1,7 +1,6 @@
 import { diff } from 'deep-diff';
-import { IEvent } from 'interfaces/event';
 import { useTheme } from '@mui/system';
-import { CSSProperties } from 'react';
+import type { JSX, CSSProperties } from 'react';
 
 const DIFF_PREFIXES: Record<string, string> = {
     A: ' ',
@@ -17,7 +16,7 @@ interface IEventDiffResult {
 }
 
 interface IEventDiffProps {
-    entry: Partial<IEvent>;
+    entry: { data?: unknown; preData?: unknown };
     sort?: (a: IEventDiffResult, b: IEventDiffResult) => number;
 }
 
@@ -40,7 +39,7 @@ const EventDiff = ({
             : undefined;
 
     const buildItemDiff = (diff: any, key: string) => {
-        let change;
+        let change: JSX.Element | undefined;
         if (diff.lhs !== undefined) {
             change = (
                 <div style={styles.D}>
@@ -59,7 +58,7 @@ const EventDiff = ({
     };
 
     const buildDiff = (diff: any, index: number): IEventDiffResult => {
-        let change;
+        let change: JSX.Element | undefined;
         const key = diff.path?.join('.') ?? diff.index;
 
         if (diff.item) {
@@ -83,8 +82,8 @@ const EventDiff = ({
                     {changeValue
                         ? `: ${changeValue}`
                         : diff.kind === 'D'
-                        ? ' (deleted)'
-                        : ''}
+                          ? ' (deleted)'
+                          : ''}
                 </div>
             );
         }
@@ -96,14 +95,14 @@ const EventDiff = ({
         };
     };
 
-    let changes;
+    let changes: any[] = [];
 
     if (diffs) {
         changes = diffs
             .map(buildDiff)
             .sort(sort)
             .map(({ value }) => value);
-    } else {
+    } else if (entry.data == null || entry.preData == null) {
         // Just show the data if there is no diff yet.
         const data = entry.data || entry.preData;
         changes = [
@@ -114,6 +113,7 @@ const EventDiff = ({
     }
 
     return (
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: <explanation>
         <pre style={{ overflowX: 'auto', overflowY: 'hidden' }} tabIndex={0}>
             <code>{changes.length === 0 ? '(no changes)' : changes}</code>
         </pre>

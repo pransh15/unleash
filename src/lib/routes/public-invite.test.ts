@@ -2,9 +2,11 @@ import createStores from '../../test/fixtures/store';
 import { createTestConfig } from '../../test/config/test-config';
 import { createServices } from '../services';
 import getApp from '../app';
-import supertest from 'supertest';
+import supertest, { type Test } from 'supertest';
 import permissions from '../../test/fixtures/permissions';
 import { RoleName, RoleType } from '../types/model';
+import type { IUnleashStores } from '../types';
+import type TestAgent from 'supertest/lib/agent';
 
 describe('Public Signup API', () => {
     async function getSetup() {
@@ -18,6 +20,13 @@ describe('Public Signup API', () => {
             ...stores.accessStore,
             addUserToRole: jest.fn(),
             removeRolesOfTypeForUser: jest.fn(),
+            getRolesForUserId: () => Promise.resolve([]),
+            getRootRoleForUser: () =>
+                Promise.resolve({
+                    id: -1,
+                    name: RoleName.VIEWER,
+                    type: RoleType.ROOT,
+                }),
         };
 
         const services = createServices(stores, config);
@@ -39,17 +48,11 @@ describe('Public Signup API', () => {
             request: supertest(app),
             stores,
             perms,
-            destroy: () => {
-                services.versionService.destroy();
-                services.clientInstanceService.destroy();
-                services.publicSignupTokenService.destroy();
-            },
         };
     }
 
-    let stores;
-    let request;
-    let destroy;
+    let stores: IUnleashStores;
+    let request: TestAgent<Test>;
 
     const user = {
         username: 'some-username',
@@ -62,14 +65,10 @@ describe('Public Signup API', () => {
         const setup = await getSetup();
         stores = setup.stores;
         request = setup.request;
-        destroy = setup.destroy;
     });
 
-    afterEach(() => {
-        destroy();
-    });
     const expireAt = (addDays: number = 7): Date => {
-        let now = new Date();
+        const now = new Date();
         now.setDate(now.getDate() + addDays);
         return now;
     };
@@ -84,6 +83,7 @@ describe('Public Signup API', () => {
         const appName = '123!23';
 
         stores.clientApplicationsStore.upsert({ appName });
+        // @ts-expect-error - This method is available on our fake store, but not our real store
         stores.publicSignupTokenStore.create({
             name: 'some-name',
             expiresAt: expireAt(),
@@ -106,6 +106,7 @@ describe('Public Signup API', () => {
         const appName = '123!23';
 
         stores.clientApplicationsStore.upsert({ appName });
+        // @ts-expect-error - We need more fields, but since this is a test. we get away with this call
         stores.publicSignupTokenStore.create({
             name: 'some-name',
             expiresAt: expireAt(),
@@ -132,14 +133,15 @@ describe('Public Signup API', () => {
     test('should not be able to send root role in signup request body', async () => {
         const appName = '123!23';
 
-        stores.clientApplicationsStore.upsert({ appName });
-        stores.publicSignupTokenStore.create({
+        await stores.clientApplicationsStore.upsert({ appName });
+        // @ts-expect-error - We need more fields, but since this is a test. we get away with this call
+        await stores.publicSignupTokenStore.insert({
             name: 'some-name',
             expiresAt: expireAt(),
         });
 
         const roles = await stores.roleStore.getAll();
-        const adminId = roles.find((role) => role.name === RoleName.ADMIN).id;
+        const adminId = roles.find((role) => role.name === RoleName.ADMIN)!.id;
 
         return request
             .post('/invite/some-secret/signup')
@@ -151,6 +153,7 @@ describe('Public Signup API', () => {
         const appName = '123!23';
 
         stores.clientApplicationsStore.upsert({ appName });
+        // @ts-expect-error - This method is available on our fake store, but not our real store
         stores.publicSignupTokenStore.create({
             name: 'some-name',
             expiresAt: expireAt(-1),
@@ -166,6 +169,7 @@ describe('Public Signup API', () => {
         const appName = '123!23';
 
         stores.clientApplicationsStore.upsert({ appName });
+        // @ts-expect-error - This method is available on our fake store, but not our real store
         stores.publicSignupTokenStore.create({
             name: 'some-name',
             expiresAt: expireAt(),

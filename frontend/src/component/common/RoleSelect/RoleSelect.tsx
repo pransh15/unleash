@@ -1,10 +1,10 @@
 import {
     Autocomplete,
-    AutocompleteProps,
+    type AutocompleteProps,
     TextField,
     styled,
 } from '@mui/material';
-import { IRole } from 'interfaces/role';
+import type { IRole } from 'interfaces/role';
 import { RoleDescription } from '../RoleDescription/RoleDescription';
 import { ConditionallyRender } from '../ConditionallyRender/ConditionallyRender';
 
@@ -23,6 +23,7 @@ interface IRoleSelectProps
     value: IRole | null;
     setValue: (role: IRole | null) => void;
     required?: boolean;
+    hideDescription?: boolean;
 }
 
 export const RoleSelect = ({
@@ -30,11 +31,12 @@ export const RoleSelect = ({
     value,
     setValue,
     required,
+    hideDescription,
     ...rest
 }: IRoleSelectProps) => {
     const renderRoleOption = (
         props: React.HTMLAttributes<HTMLLIElement>,
-        option: IRole
+        option: IRole,
     ) => (
         <li {...props}>
             <StyledRoleOption>
@@ -48,19 +50,19 @@ export const RoleSelect = ({
         <>
             <Autocomplete
                 openOnFocus
-                size="small"
+                size='small'
                 value={value}
                 onChange={(_, role) => setValue(role || null)}
                 options={roles}
                 renderOption={renderRoleOption}
-                getOptionLabel={option => option.name}
-                renderInput={params => (
-                    <TextField {...params} label="Role" required={required} />
+                getOptionLabel={(option) => option.name}
+                renderInput={(params) => (
+                    <TextField {...params} label='Role' required={required} />
                 )}
                 {...rest}
             />
             <ConditionallyRender
-                condition={Boolean(value)}
+                condition={Boolean(value) && !hideDescription}
                 show={() => (
                     <RoleDescription sx={{ marginTop: 1 }} roleId={value!.id} />
                 )}

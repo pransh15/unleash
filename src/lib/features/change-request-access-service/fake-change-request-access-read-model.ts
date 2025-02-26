@@ -1,4 +1,4 @@
-import { IChangeRequestAccessReadModel } from './change-request-access-read-model';
+import type { IChangeRequestAccessReadModel } from './change-request-access-read-model';
 
 export class FakeChangeRequestAccessReadModel
     implements IChangeRequestAccessReadModel
@@ -13,6 +13,10 @@ export class FakeChangeRequestAccessReadModel
     }
 
     public async canBypassChangeRequest(): Promise<boolean> {
+        return this.canBypass;
+    }
+
+    public async canBypassChangeRequestForProject(): Promise<boolean> {
         return this.canBypass;
     }
 

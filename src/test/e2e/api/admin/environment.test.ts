@@ -1,7 +1,7 @@
-import dbInit, { ITestDb } from '../../helpers/database-init';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
 import getLogger from '../../../fixtures/no-logger';
 import {
-    IUnleashTest,
+    type IUnleashTest,
     setupAppWithCustomConfig,
 } from '../../helpers/test-helper';
 import { DEFAULT_ENV } from '../../../../lib/util/constants';
@@ -10,14 +10,20 @@ let app: IUnleashTest;
 let db: ITestDb;
 
 beforeAll(async () => {
-    db = await dbInit('environment_api_serial', getLogger);
-    app = await setupAppWithCustomConfig(db.stores, {
-        experimental: {
-            flags: {
-                strictSchemaValidation: true,
+    db = await dbInit('environment_api_serial', getLogger, {
+        dbInitMethod: 'legacy' as const,
+    });
+    app = await setupAppWithCustomConfig(
+        db.stores,
+        {
+            experimental: {
+                flags: {
+                    strictSchemaValidation: true,
+                },
             },
         },
-    });
+        db.rawDatabase,
+    );
 });
 
 afterAll(async () => {
@@ -152,4 +158,13 @@ test('Getting a non existing environment yields 404', async () => {
     await app.request
         .get('/api/admin/environments/this-does-not-exist')
         .expect(404);
+});
+
+test('Can deprecate and undeprecate protected environments', async () => {
+    await app.request
+        .post(`/api/admin/environments/${DEFAULT_ENV}/off`)
+        .expect(204);
+    await app.request
+        .post(`/api/admin/environments/${DEFAULT_ENV}/on`)
+        .expect(204);
 });

@@ -4,9 +4,11 @@ import { Box, Button, Link, styled, Typography } from '@mui/material';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
 import { ConditionallyRender } from '../ConditionallyRender/ConditionallyRender';
 import { ThemeMode } from '../ThemeMode/ThemeMode';
+import { PageContent } from '../PageContent/PageContent';
+import { PageHeader } from '../PageHeader/PageHeader';
 
 const PremiumFeatureWrapper = styled(Box, {
-    shouldForwardProp: prop => prop !== 'tooltip',
+    shouldForwardProp: (prop) => prop !== 'tooltip',
 })<{ tooltip?: boolean }>(({ theme, tooltip }) => ({
     display: 'flex',
     flexDirection: 'column',
@@ -27,7 +29,7 @@ const StyledTitle = styled(Typography)(({ theme }) => ({
 }));
 
 const StyledBody = styled('div', {
-    shouldForwardProp: prop => prop !== 'tooltip',
+    shouldForwardProp: (prop) => prop !== 'tooltip',
 })<{ tooltip?: boolean }>(({ theme, tooltip }) => ({
     margin: tooltip ? theme.spacing(1, 0) : theme.spacing(3, 0, 5, 0),
 }));
@@ -36,8 +38,9 @@ const StyledTypography = styled(Typography)(({ theme }) => ({
     fontSize: theme.fontSizes.smallBody,
 }));
 
-const StyledButtonContainer = styled('div')(() => ({
+const StyledButtonContainer = styled('div')(({ theme }) => ({
     display: 'flex',
+    gap: theme.spacing(1.5),
 }));
 
 const StyledLink = styled(Link)(({ theme }) => ({
@@ -51,7 +54,7 @@ enum FeaturePlan {
 
 const PremiumFeatures = {
     'adding-new-projects': {
-        plan: FeaturePlan.PRO,
+        plan: FeaturePlan.ENTERPRISE,
         url: '',
         label: 'Adding new projects',
     },
@@ -65,35 +68,109 @@ const PremiumFeatures = {
         url: 'https://docs.getunleash.io/reference/change-requests',
         label: 'Change Requests',
     },
-    segments: {
+    'service-accounts': {
+        plan: FeaturePlan.ENTERPRISE,
+        url: 'https://docs.getunleash.io/reference/service-accounts',
+        label: 'Service Accounts',
+    },
+    'project-roles': {
+        plan: FeaturePlan.ENTERPRISE,
+        url: 'https://docs.getunleash.io/reference/rbac#custom-project-roles',
+        label: 'Project Roles',
+    },
+    'login-history': {
+        plan: FeaturePlan.ENTERPRISE,
+        url: 'https://docs.getunleash.io/reference/login-history',
+        label: 'Login history',
+    },
+    groups: {
+        plan: FeaturePlan.ENTERPRISE,
+        url: 'https://docs.getunleash.io/reference/rbac#user-groups',
+        label: 'User groups',
+    },
+    sso: {
+        plan: FeaturePlan.ENTERPRISE,
+        url: 'https://docs.getunleash.io/reference/rbac#user-group-sso-integration',
+        label: 'Single Sign-On',
+    },
+    'project-settings': {
         plan: FeaturePlan.PRO,
-        url: 'https://docs.getunleash.io/reference/segments',
-        label: 'Segments',
+        url: 'https://docs.getunleash.io/reference/projects',
+        label: 'Project settings',
+    },
+    banners: {
+        plan: FeaturePlan.ENTERPRISE,
+        url: 'https://docs.getunleash.io/reference/banners',
+        label: 'Banners',
+    },
+    signals: {
+        plan: FeaturePlan.ENTERPRISE,
+        url: 'https://docs.getunleash.io/reference/signals',
+        label: 'Signals',
+    },
+    actions: {
+        plan: FeaturePlan.ENTERPRISE,
+        url: 'https://docs.getunleash.io/reference/actions',
+        label: 'Actions',
+    },
+    dashboard: {
+        plan: FeaturePlan.ENTERPRISE,
+        url: '', // FIXME: url
+        label: 'Dashboard',
+    },
+    'inactive-users': {
+        plan: FeaturePlan.ENTERPRISE,
+        url: '',
+        label: 'Automatic clean-up of inactive users',
+    },
+    environments: {
+        plan: FeaturePlan.ENTERPRISE,
+        url: 'https://docs.getunleash.io/reference/environments',
+        label: 'Environments management',
+    },
+    releaseManagement: {
+        plan: FeaturePlan.ENTERPRISE,
+        url: '',
+        label: 'Release management',
     },
 };
 
 type PremiumFeatureType = keyof typeof PremiumFeatures;
 
-const UPGRADE_URL = 'https://www.getunleash.io/plans';
+const PLANS_URL = 'https://www.getunleash.io/plans';
+const UPGRADE_URL = 'https://www.getunleash.io/upgrade_unleash';
 
 export interface PremiumFeatureProps {
     feature: PremiumFeatureType;
     tooltip?: boolean;
+    page?: boolean;
+    mode?: 'plans' | 'upgrade';
 }
 
-export const PremiumFeature = ({ feature, tooltip }: PremiumFeatureProps) => {
+export const PremiumFeature = ({
+    feature,
+    tooltip,
+    page,
+    mode = 'plans',
+}: PremiumFeatureProps) => {
     const { url, plan, label } = PremiumFeatures[feature];
 
     const tracker = usePlausibleTracker();
 
-    const handleClick = () => {
+    const trackUpgradePlan = () => {
         tracker.trackEvent('upgrade_plan_clicked', {
             props: { feature: label },
         });
     };
 
-    const featureLabel = Boolean(url) ? (
-        <StyledLink href={url} target="_blank" rel="noreferrer">
+    const trackReadAbout = () => {
+        tracker.trackEvent('read_about', {
+            props: { feature: label },
+        });
+    };
+
+    const featureLabel = url ? (
+        <StyledLink href={url} target='_blank' rel='noreferrer'>
             {label}
         </StyledLink>
     ) : (
@@ -108,9 +185,10 @@ export const PremiumFeature = ({ feature, tooltip }: PremiumFeatureProps) => {
         </>
     );
 
-    const upgradeUrl = `${UPGRADE_URL}?feature=${feature}`;
+    const plansUrl = `${PLANS_URL}?feature=${feature}`;
+    const upgradeUrl = `${UPGRADE_URL}?utm_medium=feature&utm_content=${feature}`;
 
-    return (
+    const content = (
         <PremiumFeatureWrapper tooltip={tooltip}>
             <StyledTitle>
                 <ThemeMode
@@ -126,18 +204,27 @@ export const PremiumFeature = ({ feature, tooltip }: PremiumFeatureProps) => {
                         <StyledBody tooltip>
                             <StyledTypography>
                                 {featureMessage}. You need to upgrade your plan
-                                if you want to use it
+                                if you want to use it.
                             </StyledTypography>
                         </StyledBody>
                         <StyledButtonContainer>
-                            <StyledLink
-                                href={upgradeUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={handleClick}
-                            >
-                                Upgrade now
-                            </StyledLink>
+                            {mode === 'plans' ? (
+                                <StyledLink
+                                    href={plansUrl}
+                                    target='_blank'
+                                    onClick={trackUpgradePlan}
+                                >
+                                    Compare plans
+                                </StyledLink>
+                            ) : (
+                                <StyledLink
+                                    href={upgradeUrl}
+                                    target='_blank'
+                                    onClick={trackUpgradePlan}
+                                >
+                                    View our Enterprise offering
+                                </StyledLink>
+                            )}
                         </StyledButtonContainer>
                     </>
                 }
@@ -149,23 +236,54 @@ export const PremiumFeature = ({ feature, tooltip }: PremiumFeatureProps) => {
                             </StyledTypography>
                             <StyledTypography>
                                 You need to upgrade your plan if you want to use
-                                it
+                                it.
                             </StyledTypography>
                         </StyledBody>
                         <StyledButtonContainer>
-                            <Button
-                                variant="outlined"
-                                href={upgradeUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={handleClick}
-                            >
-                                Upgrade now
-                            </Button>
+                            {mode === 'plans' ? (
+                                <Button
+                                    variant='contained'
+                                    href={plansUrl}
+                                    target='_blank'
+                                    onClick={trackUpgradePlan}
+                                >
+                                    Compare plans
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant='contained'
+                                    href={upgradeUrl}
+                                    target='_blank'
+                                    onClick={trackUpgradePlan}
+                                >
+                                    View our Enterprise offering
+                                </Button>
+                            )}
+
+                            {url && (
+                                <Button
+                                    href={url}
+                                    target='_blank'
+                                    rel='noreferrer'
+                                    onClick={trackReadAbout}
+                                >
+                                    Read about {label}
+                                </Button>
+                            )}
                         </StyledButtonContainer>
                     </>
                 }
             />
         </PremiumFeatureWrapper>
     );
+
+    if (page) {
+        return (
+            <PageContent header={<PageHeader title={label} />}>
+                {content}
+            </PageContent>
+        );
+    }
+
+    return content;
 };

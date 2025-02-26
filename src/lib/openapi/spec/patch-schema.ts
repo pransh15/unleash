@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 
 export const patchSchema = {
     $id: '#/components/schemas/patchSchema',
@@ -28,7 +28,6 @@ export const patchSchema = {
             description:
                 'The value to add or replace, if performing one of those operations',
             example: 'kill-switch',
-            nullable: true,
         },
     },
     components: {},

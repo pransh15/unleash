@@ -1,4 +1,4 @@
-import Ajv, { Schema } from 'ajv';
+import Ajv, { type Schema } from 'ajv';
 import { schemas } from '.';
 
 const ajv = new Ajv();
@@ -8,7 +8,7 @@ type Rule = {
     name: string;
     match?: (
         schemaName: string,
-        schema: typeof schemas[SchemaNames],
+        schema: (typeof schemas)[SchemaNames],
     ) => boolean;
     metaSchema: Schema;
     knownExceptions?: string[];
@@ -35,7 +35,7 @@ const metaRules: Rule[] = [
         metaSchema: {
             type: 'object',
             properties: {
-                type: { type: 'string', enum: ['object', 'array'] },
+                type: { type: 'string', enum: ['object', 'array', 'boolean'] },
             },
             required: ['type'],
         },
@@ -56,10 +56,9 @@ const metaRules: Rule[] = [
     },
     {
         name: 'should have properties with descriptions',
-        match: (_, schema) => {
+        match: (_, schema) =>
             // only match schemas that have a properties field
-            return 'properties' in schema;
-        },
+            'properties' in schema,
         metaSchema: {
             type: 'object',
             // properties of the meta schema
@@ -88,6 +87,17 @@ const metaRules: Rule[] = [
                     },
                 },
             },
+        },
+        knownExceptions: [],
+    },
+    {
+        name: 'should either have oneOf or properties, instead extract them in commonProps',
+        match: (_, schema) =>
+            // only match schemas that have a properties field
+            'properties' in schema && 'oneOf' in schema,
+        metaSchema: {
+            type: 'object',
+            additionalProperties: false, // this is a shortcut to say: it should fail
         },
         knownExceptions: [],
     },

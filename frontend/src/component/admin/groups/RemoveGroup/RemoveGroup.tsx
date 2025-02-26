@@ -3,8 +3,8 @@ import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import { useGroupApi } from 'hooks/api/actions/useGroupApi/useGroupApi';
 import { useGroups } from 'hooks/api/getters/useGroups/useGroups';
 import useToast from 'hooks/useToast';
-import { IGroup } from 'interfaces/group';
-import { FC } from 'react';
+import type { IGroup } from 'interfaces/group';
+import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatUnknownError } from 'utils/formatUnknownError';
 
@@ -31,7 +31,7 @@ export const RemoveGroup: FC<IRemoveGroupProps> = ({
             setOpen(false);
             navigate('/admin/groups');
             setToastData({
-                title: 'Group removed successfully',
+                text: 'Group removed successfully',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -42,13 +42,13 @@ export const RemoveGroup: FC<IRemoveGroupProps> = ({
     return (
         <Dialogue
             open={open}
-            primaryButtonText="Delete group"
-            secondaryButtonText="Cancel"
+            primaryButtonText='Delete group'
+            secondaryButtonText='Cancel'
             onClick={onRemoveClick}
             onClose={() => {
                 setOpen(false);
             }}
-            title="Delete group?"
+            title='Delete group?'
         >
             <Typography>
                 Do you really want to delete <strong>{group.name}</strong>?

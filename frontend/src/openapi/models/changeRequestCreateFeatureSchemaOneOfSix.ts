@@ -12,5 +12,7 @@ import type { UpdateFeatureStrategySchema } from './updateFeatureStrategySchema'
 export type ChangeRequestCreateFeatureSchemaOneOfSix = {
     /** The name of this action. */
     action: ChangeRequestCreateFeatureSchemaOneOfSixAction;
+    /** The name of the feature that this change applies to. */
+    feature: string;
     payload: UpdateFeatureStrategySchema;
 };

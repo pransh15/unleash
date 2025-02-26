@@ -7,7 +7,6 @@ import {
     AUTH_PAGE_ID,
     SSO_LOGIN_BUTTON,
 } from 'utils/testIds';
-import React from 'react';
 import { render } from 'utils/testRenderer';
 import { testServerSetup, testServerRoute } from 'utils/testServer';
 
@@ -22,7 +21,7 @@ test('should render password auth', async () => {
         options: [],
     });
 
-    render(<Authentication redirect="/" />);
+    render(<Authentication redirect='/' />);
 
     await screen.findByTestId(AUTH_PAGE_ID);
     expect(screen.getByTestId(LOGIN_EMAIL_ID)).toBeInTheDocument();
@@ -39,7 +38,7 @@ test('should not render password auth if defaultHidden is true', async () => {
         options: [],
     });
 
-    render(<Authentication redirect="/" />);
+    render(<Authentication redirect='/' />);
 
     await screen.findByTestId(AUTH_PAGE_ID);
     expect(screen.queryByTestId(LOGIN_EMAIL_ID)).not.toBeInTheDocument();
@@ -56,7 +55,7 @@ test('should render demo auth', async () => {
         options: [],
     });
 
-    render(<Authentication redirect="/" />);
+    render(<Authentication redirect='/' />);
 
     await screen.findByTestId(AUTH_PAGE_ID);
     expect(screen.getByTestId(LOGIN_EMAIL_ID)).toBeInTheDocument();
@@ -73,7 +72,7 @@ test('should render email auth', async () => {
         options: [],
     });
 
-    render(<Authentication redirect="/" />);
+    render(<Authentication redirect='/' />);
 
     await screen.findByTestId(AUTH_PAGE_ID);
     expect(screen.getByTestId(LOGIN_EMAIL_ID)).toBeInTheDocument();
@@ -105,7 +104,7 @@ const testSSOAuthOption = async (authOption: string) => {
         type: 'password',
     });
 
-    render(<Authentication redirect="/" />);
+    render(<Authentication redirect='/' />);
 
     const ssoLink = await screen.findByTestId(testId);
     expect(ssoLink.getAttribute('href')).toEqual(path);

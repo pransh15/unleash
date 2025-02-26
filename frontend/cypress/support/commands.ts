@@ -8,12 +8,10 @@ import {
     createFeature_UI,
     createSegment_UI,
     deleteSegment_UI,
-    deleteVariant_UI,
     deleteFeatureStrategy_UI,
     addFlexibleRolloutStrategyToFeature_UI,
     addUserIdStrategyToFeature_UI,
     updateFlexibleRolloutStrategy_UI,
-    addVariantsToFeature_UI,
     //@ts-ignore
 } from './UI';
 import {
@@ -28,6 +26,10 @@ import {
     //@ts-ignore
 } from './API';
 
+Cypress.on('window:before:load', (window) => {
+    Object.defineProperty(window.navigator, 'language', { value: 'en' });
+    Object.defineProperty(window.navigator, 'languages', { value: ['en'] });
+});
 Cypress.Commands.add('runBefore', runBefore);
 Cypress.Commands.add('login_UI', login_UI);
 Cypress.Commands.add('createSegment_UI', createSegment_UI);
@@ -43,18 +45,26 @@ Cypress.Commands.add('updateUserPassword_API', updateUserPassword_API);
 Cypress.Commands.add('createFeature_UI', createFeature_UI);
 Cypress.Commands.add('deleteFeatureStrategy_UI', deleteFeatureStrategy_UI);
 Cypress.Commands.add('createFeature_API', createFeature_API);
-Cypress.Commands.add('deleteVariant_UI', deleteVariant_UI);
-Cypress.Commands.add('addVariantsToFeature_UI', addVariantsToFeature_UI);
 Cypress.Commands.add(
     'addUserIdStrategyToFeature_UI',
-    addUserIdStrategyToFeature_UI
+    addUserIdStrategyToFeature_UI,
 );
 Cypress.Commands.add(
     'addFlexibleRolloutStrategyToFeature_UI',
-    addFlexibleRolloutStrategyToFeature_UI
+    addFlexibleRolloutStrategyToFeature_UI,
 );
 Cypress.Commands.add(
     'updateFlexibleRolloutStrategy_UI',
-    updateFlexibleRolloutStrategy_UI
+    updateFlexibleRolloutStrategy_UI,
 );
 Cypress.Commands.add('createEnvironment_API', createEnvironment_API);
+Cypress.Commands.overwrite('visit', (originalFn, url, options = {}) => {
+    if (!options.headers) {
+        options.headers = {};
+    }
+
+    // Add the x-vercel-skip-toolbar header. See: https://vercel.com/docs/workflow-collaboration/vercel-toolbar/managing-toolbar#disable-toolbar-for-automation
+    options.headers['x-vercel-skip-toolbar'] = '1';
+
+    return originalFn(url, options);
+});

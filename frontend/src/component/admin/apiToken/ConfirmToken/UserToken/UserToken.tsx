@@ -14,18 +14,18 @@ export const UserToken = ({ token }: IUserTokenProps) => {
         if (copy(token)) {
             setToastData({
                 type: 'success',
-                title: 'Token copied to clipboard',
+                text: 'Token copied to clipboard',
             });
         } else
             setToastData({
                 type: 'error',
-                title: 'Could not copy token',
+                text: 'Could not copy token',
             });
     };
 
     return (
         <Box
-            sx={theme => ({
+            sx={(theme) => ({
                 backgroundColor: theme.palette.background.elevation2,
                 padding: theme.spacing(4),
                 borderRadius: `${theme.shape.borderRadius}px`,
@@ -37,8 +37,8 @@ export const UserToken = ({ token }: IUserTokenProps) => {
             })}
         >
             {token}
-            <Tooltip title="Copy token" arrow>
-                <IconButton onClick={copyToken} size="large">
+            <Tooltip title='Copy token' arrow>
+                <IconButton onClick={copyToken} size='large'>
                     <CopyIcon />
                 </IconButton>
             </Tooltip>

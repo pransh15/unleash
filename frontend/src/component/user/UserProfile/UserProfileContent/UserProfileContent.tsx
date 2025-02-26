@@ -1,10 +1,9 @@
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
-import { Button, Paper, Typography, styled, Link } from '@mui/material';
+import { Button, Link, Paper, styled } from '@mui/material';
 import { basePath } from 'utils/formatPath';
-import { IUser } from 'interfaces/user';
+import type { IUser } from 'interfaces/user';
 import OpenInNew from '@mui/icons-material/OpenInNew';
 import { Link as RouterLink } from 'react-router-dom';
-import { UserAvatar } from 'component/common/UserAvatar/UserAvatar';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     display: 'flex',
@@ -15,29 +14,13 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     boxShadow: theme.boxShadows.popup,
     position: 'absolute',
     zIndex: 5000,
-    minWidth: theme.spacing(37.5),
+    minWidth: theme.spacing(34),
     right: 0,
+    marginTop: theme.spacing(0.25),
     [theme.breakpoints.down('md')]: {
         width: '100%',
         padding: '1rem',
     },
-}));
-
-const StyledProfileInfo = styled('div')(({ theme }) => ({
-    alignSelf: 'flex-start',
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: theme.spacing(2),
-}));
-
-const StyledUserAvatar = styled(UserAvatar)(({ theme }) => ({
-    width: theme.spacing(4.75),
-    height: theme.spacing(4.75),
-    marginRight: theme.spacing(1.5),
-}));
-
-const StyledSubtitle = styled(Typography)(({ theme }) => ({
-    color: theme.palette.text.secondary,
 }));
 
 const StyledLink = styled(Link<typeof RouterLink | 'a'>)(({ theme }) => ({
@@ -53,10 +36,6 @@ const StyledLink = styled(Link<typeof RouterLink | 'a'>)(({ theme }) => ({
     '& svg': {
         fontSize: theme.spacing(2.25),
     },
-}));
-
-const StyledLinkPrivacy = styled(StyledLink)(({ theme }) => ({
-    alignSelf: 'flex-start',
 }));
 
 const StyledLogoutButton = styled(Button)(({ theme }) => ({
@@ -87,23 +66,11 @@ export const UserProfileContent = ({
     <ConditionallyRender
         condition={showProfile}
         show={
-            <StyledPaper className="dropdown-outline" id={id}>
-                <StyledProfileInfo>
-                    <StyledUserAvatar user={profile} />
-                    <div>
-                        <Typography>
-                            {profile.name || profile.username}
-                        </Typography>
-                        <StyledSubtitle variant="body2">
-                            {profile.email}
-                        </StyledSubtitle>
-                    </div>
-                </StyledProfileInfo>
-
+            <StyledPaper className='dropdown-outline' id={id}>
                 <StyledLink
                     component={RouterLink}
-                    to="/profile"
-                    underline="hover"
+                    to='/profile'
+                    underline='hover'
                     onClick={() => setShowProfile(false)}
                 >
                     View profile settings
@@ -111,23 +78,23 @@ export const UserProfileContent = ({
 
                 <StyledDivider />
 
-                <StyledLinkPrivacy
-                    component="a"
-                    href="https://www.getunleash.io/privacy-policy"
-                    underline="hover"
-                    rel="noopener noreferrer"
-                    target="_blank"
+                <StyledLink
+                    component='a'
+                    href='https://www.getunleash.io/privacy-policy'
+                    underline='hover'
+                    rel='noopener noreferrer'
+                    target='_blank'
                 >
                     Privacy Policy <OpenInNew />
-                </StyledLinkPrivacy>
+                </StyledLink>
 
                 <StyledDivider />
 
-                <form method="POST" action={`${basePath}/logout`}>
+                <form method='POST' action={`${basePath}/logout`}>
                     <StyledLogoutButton
-                        type="submit"
-                        variant="outlined"
-                        color="primary"
+                        type='submit'
+                        variant='outlined'
+                        color='primary'
                     >
                         Log out
                     </StyledLogoutButton>

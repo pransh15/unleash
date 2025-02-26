@@ -1,9 +1,13 @@
-import { CloudCircle } from '@mui/icons-material';
+import CloudCircle from '@mui/icons-material/CloudCircle';
 import { styled, Link } from '@mui/material';
-import { IFeatureEnvironment } from 'interfaces/featureToggle';
+import type { IFeatureEnvironment } from 'interfaces/featureToggle';
 import { EnvironmentVariantsTable } from './EnvironmentVariantsTable/EnvironmentVariantsTable';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { Badge } from 'component/common/Badge/Badge';
+import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
+import { useVariantsFromScheduledRequests } from './useVariantsFromScheduledRequests';
+import { ChangesScheduledBadge } from 'component/changeRequest/ModifiedInChangeRequestStatusBadge/ChangesScheduledBadge';
+import { Box } from '@mui/system';
 
 const StyledCard = styled('div')(({ theme }) => ({
     padding: theme.spacing(3),
@@ -25,7 +29,7 @@ const StyledHeader = styled('div')({
 });
 
 const StyledCloudCircle = styled(CloudCircle, {
-    shouldForwardProp: prop => prop !== 'deprecated',
+    shouldForwardProp: (prop) => prop !== 'deprecated',
 })<{ deprecated?: boolean }>(({ theme, deprecated }) => ({
     color: deprecated
         ? theme.palette.neutral.border
@@ -33,7 +37,7 @@ const StyledCloudCircle = styled(CloudCircle, {
 }));
 
 const StyledName = styled('span', {
-    shouldForwardProp: prop => prop !== 'deprecated',
+    shouldForwardProp: (prop) => prop !== 'deprecated',
 })<{ deprecated?: boolean }>(({ theme, deprecated }) => ({
     color: deprecated
         ? theme.palette.text.secondary
@@ -70,6 +74,13 @@ export const EnvironmentVariantsCard = ({
     searchValue,
     children,
 }: IEnvironmentVariantsCardProps) => {
+    const projectId = useRequiredPathParam('projectId');
+    const featureId = useRequiredPathParam('featureId');
+    const scheduledRequestIds = useVariantsFromScheduledRequests(
+        projectId,
+        featureId,
+        environment.name,
+    );
     const variants = environment.variants ?? [];
     const stickiness = variants[0]?.stickiness || 'default';
 
@@ -81,6 +92,18 @@ export const EnvironmentVariantsCard = ({
                     <StyledName deprecated={!environment.enabled}>
                         {environment.name}
                     </StyledName>
+                    <ConditionallyRender
+                        condition={scheduledRequestIds.length > 0}
+                        show={
+                            <Box sx={{ ml: 2 }}>
+                                <ChangesScheduledBadge
+                                    scheduledChangeRequestIds={
+                                        scheduledRequestIds
+                                    }
+                                />
+                            </Box>
+                        }
+                    />
                 </div>
                 {children}
             </StyledHeader>
@@ -108,9 +131,9 @@ export const EnvironmentVariantsCard = ({
                                         ensure consistent traffic allocation
                                         across variants.{' '}
                                         <Link
-                                            href="https://docs.getunleash.io/reference/feature-toggle-variants"
-                                            target="_blank"
-                                            rel="noreferrer"
+                                            href='https://docs.getunleash.io/reference/feature-toggle-variants'
+                                            target='_blank'
+                                            rel='noreferrer'
                                         >
                                             Read more
                                         </Link>

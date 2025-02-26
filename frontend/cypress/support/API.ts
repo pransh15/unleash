@@ -2,12 +2,13 @@
 
 import Chainable = Cypress.Chainable;
 const baseUrl = Cypress.config().baseUrl;
-const password = Cypress.env(`AUTH_PASSWORD`) + '_A';
+const password = `${Cypress.env(`AUTH_PASSWORD`)}_A`;
 const PROJECT_MEMBER = 5;
+
 export const createFeature_API = (
     featureName: string,
     projectName?: string,
-    options?: Partial<Cypress.RequestOptions>
+    options?: Partial<Cypress.RequestOptions>,
 ): Chainable<any> => {
     const project = projectName || 'default';
     return cy.request({
@@ -23,10 +24,14 @@ export const createFeature_API = (
     });
 };
 
-export const deleteFeature_API = (name: string): Chainable<any> => {
+export const deleteFeature_API = (
+    name: string,
+    projectName?: string,
+): Chainable<any> => {
+    const project = projectName || 'default';
     cy.request({
         method: 'DELETE',
-        url: `${baseUrl}/api/admin/projects/default/features/${name}`,
+        url: `${baseUrl}/api/admin/projects/${project}/features/${name}`,
     });
     return cy.request({
         method: 'DELETE',
@@ -36,7 +41,7 @@ export const deleteFeature_API = (name: string): Chainable<any> => {
 
 export const createProject_API = (
     project: string,
-    options?: Partial<Cypress.RequestOptions>
+    options?: Partial<Cypress.RequestOptions>,
 ): Chainable<any> => {
     return cy.request({
         url: `${baseUrl}/api/admin/projects`,
@@ -71,10 +76,10 @@ export const createUser_API = (userName: string, role: number) => {
         rootRole: role,
     })
         .as(name)
-        .then(response => {
+        .then((response) => {
             const id = response.body.id;
             updateUserPassword_API(id).then(() => {
-                addUserToProject_API(id, PROJECT_MEMBER).then(value => {
+                addUserToProject_API(id, PROJECT_MEMBER).then((value) => {
                     userIds.push(id);
                     userCredentials.push({ email, password });
                 });
@@ -89,13 +94,13 @@ export const updateUserPassword_API = (id: number, pass?: string): Chainable =>
         `${baseUrl}/api/admin/user-admin/${id}/change-password`,
         {
             password: pass || password,
-        }
+        },
     );
 
 export const addUserToProject_API = (
     id: number,
     role: number,
-    projectName?: string
+    projectName?: string,
 ): Chainable => {
     const project = projectName || 'default';
     return cy.request(
@@ -104,7 +109,7 @@ export const addUserToProject_API = (
         {
             groups: [],
             users: [{ id }],
-        }
+        },
     );
 };
 
@@ -115,7 +120,7 @@ interface IEnvironment {
 
 export const createEnvironment_API = (
     environment: IEnvironment,
-    options?: Partial<Cypress.RequestOptions>
+    options?: Partial<Cypress.RequestOptions>,
 ): Chainable<any> => {
     return cy.request({
         url: `${baseUrl}/api/admin/environments`,

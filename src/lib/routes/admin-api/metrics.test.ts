@@ -1,9 +1,11 @@
-import supertest from 'supertest';
+import supertest, { type Test } from 'supertest';
 import createStores from '../../../test/fixtures/store';
 import permissions from '../../../test/fixtures/permissions';
 import getApp from '../../app';
 import { createTestConfig } from '../../../test/config/test-config';
 import { createServices } from '../../services';
+import type { IUnleashStores } from '../../types';
+import type TestAgent from 'supertest/lib/agent';
 
 async function getSetup() {
     const stores = createStores();
@@ -19,26 +21,16 @@ async function getSetup() {
         stores,
         perms,
         config,
-        destroy: () => {
-            services.versionService.destroy();
-            services.clientInstanceService.destroy();
-        },
     };
 }
 
-let stores;
-let request;
-let destroy;
+let stores: IUnleashStores;
+let request: TestAgent<Test>;
 
 beforeEach(async () => {
     const setup = await getSetup();
     stores = setup.stores;
     request = setup.request;
-    destroy = setup.destroy;
-});
-
-afterEach(() => {
-    destroy();
 });
 
 test('/api/admin/metrics/seen-toggles is deprecated', () => {

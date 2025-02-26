@@ -12,7 +12,7 @@ import {
     Avatar,
     Typography,
 } from '@mui/material';
-import { Apps } from '@mui/icons-material';
+import Apps from '@mui/icons-material/Apps';
 
 import styles from './common.module.scss';
 import { ConditionallyRender } from './ConditionallyRender/ConditionallyRender';
@@ -39,7 +39,7 @@ export const AppsLinkList = ({ apps }) => (
                         primary={
                             <Link
                                 to={`/applications/${encodeURIComponent(
-                                    appName
+                                    appName,
                                 )}`}
                                 className={[
                                     styles.listLink,
@@ -63,7 +63,7 @@ AppsLinkList.propTypes = {
 export const DataTableHeader = ({ title, actions }) => (
     <div className={styles.dataTableHeader}>
         <div className={styles.title}>
-            <Typography variant="h2" className={styles.titleText}>
+            <Typography variant='h2' className={styles.titleText}>
                 {title}
             </Typography>
         </div>
@@ -83,14 +83,14 @@ export const FormButtons = ({
     <div>
         <Button
             data-testid={primaryButtonTestId}
-            type="submit"
-            color="primary"
-            variant="contained"
+            type='submit'
+            color='primary'
+            variant='contained'
         >
             {submitText}
         </Button>
         &nbsp;
-        <Button type="cancel" onClick={onCancel}>
+        <Button type='cancel' onClick={onCancel}>
             Cancel
         </Button>
     </div>
@@ -104,9 +104,9 @@ FormButtons.propTypes = {
 export const IconLink = ({ url, icon: IconComponent }) => (
     <a
         href={url}
-        target="_blank"
-        rel="noreferrer"
-        className="mdl-color-text--grey-600"
+        target='_blank'
+        rel='noreferrer'
+        className='mdl-color-text--grey-600'
     >
         <IconComponent />
     </a>
@@ -126,7 +126,7 @@ export const MenuItemWithIcon = React.forwardRef(
             <IconComponent />
             {label}
         </MenuItem>
-    )
+    ),
 );
 MenuItemWithIcon.propTypes = {
     icon: PropTypes.object,
@@ -134,7 +134,11 @@ MenuItemWithIcon.propTypes = {
     disabled: PropTypes.bool,
 };
 
-const badNumbers = [NaN, Infinity, -Infinity];
+const badNumbers = [
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+];
 export function calc(value, total, decimal) {
     if (
         typeof value !== 'number' ||
@@ -148,7 +152,7 @@ export function calc(value, total, decimal) {
         return 0;
     }
 
-    badNumbers.forEach(number => {
+    badNumbers.forEach((number) => {
         if ([value, total, decimal].indexOf(number) > -1) {
             return number;
         }
@@ -158,7 +162,7 @@ export function calc(value, total, decimal) {
 }
 
 export const selectStyles = {
-    control: provided => ({
+    control: (provided) => ({
         ...provided,
         border: '1px solid #607d8b',
         boxShadow: '0',

@@ -1,6 +1,7 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { versionSchema } from './version-schema';
 import { variantFlagSchema } from './variant-flag-schema';
+import { resourceLimitsSchema } from './resource-limits-schema';
 
 export const uiConfigSchema = {
     $id: '#/components/schemas/uiConfigSchema',
@@ -13,7 +14,7 @@ export const uiConfigSchema = {
         slogan: {
             type: 'string',
             description: 'The slogan to display in the UI footer.',
-            example: 'The enterprise-ready feature toggle service.',
+            example: 'The enterprise-ready feature flag service.',
         },
         name: {
             type: 'string',
@@ -32,6 +33,12 @@ export const uiConfigSchema = {
                 'What kind of Unleash instance it is: Enterprise, Pro, or Open source',
             example: 'Enterprise',
         },
+        billing: {
+            type: 'string',
+            description: 'The billing model in use for this Unleash instance.',
+            example: 'subscription',
+            enum: ['subscription', 'pay-as-you-go'],
+        },
         unleashUrl: {
             type: 'string',
             description: 'The URL of the Unleash instance.',
@@ -42,6 +49,12 @@ export const uiConfigSchema = {
             description:
                 'The base URI path at which this Unleash instance is listening.',
             example: '/enterprise',
+        },
+        feedbackUriPath: {
+            type: 'string',
+            description:
+                'The URI path at which the feedback endpoint is listening.',
+            example: '/feedback',
         },
         disablePasswordAuth: {
             type: 'boolean',
@@ -64,16 +77,31 @@ export const uiConfigSchema = {
             description:
                 'The maximum number of values that can be used in a single segment.',
             example: 1000,
+            deprecated: true,
         },
         strategySegmentsLimit: {
             type: 'number',
             description:
                 'The maximum number of segments that can be applied to a single strategy.',
             example: 5,
+            deprecated: true,
         },
-        networkViewEnabled: {
+        resourceLimits: {
+            $ref: resourceLimitsSchema.$id,
+            description: resourceLimitsSchema.description,
+            example: {
+                ...Object.entries(resourceLimitsSchema.properties).reduce(
+                    (acc, [prop, { example }]) => ({
+                        ...acc,
+                        [prop]: example,
+                    }),
+                    {},
+                ),
+            },
+        },
+        prometheusAPIAvailable: {
             type: 'boolean',
-            description: 'Whether to enable the Unleash network view or not.',
+            description: 'Whether a Prometheus API is available.',
             example: true,
         },
         frontendApiOrigins: {
@@ -146,11 +174,29 @@ export const uiConfigSchema = {
         versionInfo: {
             $ref: '#/components/schemas/versionSchema',
         },
+        oidcConfiguredThroughEnv: {
+            type: 'boolean',
+            description:
+                'Whether the OIDC configuration is set through environment variables or not.',
+            example: false,
+        },
+        samlConfiguredThroughEnv: {
+            type: 'boolean',
+            description:
+                'Whether the SAML configuration is set through environment variables or not.',
+            example: false,
+        },
+        maxSessionsCount: {
+            type: 'number',
+            description: 'The maximum number of sessions that a user has.',
+            example: 10,
+        },
     },
     components: {
         schemas: {
             versionSchema,
             variantFlagSchema,
+            resourceLimitsSchema,
         },
     },
 } as const;

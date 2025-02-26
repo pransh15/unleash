@@ -3,7 +3,7 @@ import express from 'express';
 import { createTestConfig } from '../../test/config/test-config';
 
 import LogoutController from './logout';
-import { IAuthRequest } from './unleash-types';
+import type { IAuthRequest } from './unleash-types';
 import SessionService from '../services/session-service';
 import FakeSessionStore from '../../test/fixtures/fake-session-store';
 import noLogger from '../../test/fixtures/no-logger';
@@ -279,10 +279,10 @@ test('Should destroy sessions for user', async () => {
         },
         expired: addDays(new Date(), 2),
     });
-    let activeSessionsBeforeLogout = await sessionStore.getSessionsForUser(1);
+    const activeSessionsBeforeLogout = await sessionStore.getSessionsForUser(1);
     expect(activeSessionsBeforeLogout).toHaveLength(2);
     app.use('/logout', new LogoutController(config, { sessionService }).router);
     await supertest(app).post('/logout').expect(302);
-    let activeSessions = await sessionStore.getSessionsForUser(1);
+    const activeSessions = await sessionStore.getSessionsForUser(1);
     expect(activeSessions).toHaveLength(0);
 });

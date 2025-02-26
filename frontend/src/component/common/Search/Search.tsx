@@ -1,16 +1,33 @@
-import React, { useRef, useState } from 'react';
+import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAsyncDebounce } from 'react-table';
-import { Box, IconButton, InputBase, styled, Tooltip } from '@mui/material';
-import { Search as SearchIcon, Close } from '@mui/icons-material';
+import {
+    Box,
+    IconButton,
+    InputBase,
+    Paper,
+    styled,
+    Tooltip,
+} from '@mui/material';
+import Close from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { SearchSuggestions } from './SearchSuggestions/SearchSuggestions';
-import { IGetSearchContextOutput } from 'hooks/useSearch';
+import type { IGetSearchContextOutput } from 'hooks/useSearch';
 import { useKeyboardShortcut } from 'hooks/useKeyboardShortcut';
 import { SEARCH_INPUT } from 'utils/testIds';
+import { useOnClickOutside } from 'hooks/useOnClickOutside';
+import { useSavedQuery } from './useSavedQuery';
+import { useOnBlur } from 'hooks/useOnBlur';
+import { SearchHistory } from './SearchSuggestions/SearchHistory';
+import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
 
 interface ISearchProps {
+    id?: string;
     initialValue?: string;
     onChange: (value: string) => void;
+    onFocus?: () => void;
+    onBlur?: () => void;
     className?: string;
     placeholder?: string;
     hasFilters?: boolean;
@@ -18,15 +35,35 @@ interface ISearchProps {
     getSearchContext?: () => IGetSearchContextOutput;
     containerStyles?: React.CSSProperties;
     debounceTime?: number;
+    expandable?: boolean;
 }
 
-const StyledContainer = styled('div')(({ theme }) => ({
+export const SearchPaper = styled(Paper)(({ theme }) => ({
+    position: 'absolute',
+    width: '100%',
+    left: 0,
+    top: '20px',
+    zIndex: 2,
+    padding: theme.spacing(4, 1.5, 1.5),
+    borderBottomLeftRadius: theme.spacing(1),
+    borderBottomRightRadius: theme.spacing(1),
+    boxShadow: '0px 8px 20px rgba(33, 33, 33, 0.15)',
+    fontSize: theme.fontSizes.smallBody,
+    color: theme.palette.text.secondary,
+    wordBreak: 'break-word',
+}));
+
+const StyledContainer = styled('div', {
+    shouldForwardProp: (prop) => prop !== 'active',
+})<{
+    active: boolean | undefined;
+}>(({ theme, active }) => ({
     display: 'flex',
     flexGrow: 1,
     alignItems: 'center',
     position: 'relative',
     backgroundColor: theme.palette.background.paper,
-    maxWidth: '400px',
+    maxWidth: active ? '100%' : '400px',
     [theme.breakpoints.down('md')]: {
         marginTop: theme.spacing(1),
         maxWidth: '100%',
@@ -60,77 +97,137 @@ const StyledClose = styled(Close)(({ theme }) => ({
 
 export const Search = ({
     initialValue = '',
+    id,
     onChange,
+    onFocus,
+    onBlur,
     className,
     placeholder: customPlaceholder,
     hasFilters,
     disabled,
     getSearchContext,
     containerStyles,
+    expandable = false,
     debounceTime = 200,
+    ...rest
 }: ISearchProps) => {
-    const ref = useRef<HTMLInputElement>();
+    const { trackEvent } = usePlausibleTracker();
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const searchContainerRef = useRef<HTMLInputElement>(null);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [usedHotkey, setUsedHotkey] = useState(false);
+    const hideSuggestions = () => {
+        setShowSuggestions(false);
+        onBlur?.();
+    };
 
-    const [value, setValue] = useState(initialValue);
+    const { savedQuery, setSavedQuery } = useSavedQuery(id);
+
+    const [value, setValue] = useState<string>(initialValue);
     const debouncedOnChange = useAsyncDebounce(onChange, debounceTime);
 
     const onSearchChange = (value: string) => {
         debouncedOnChange(value);
         setValue(value);
+        setSavedQuery(value);
     };
 
     const hotkey = useKeyboardShortcut(
-        { modifiers: ['ctrl'], key: 'k', preventDefault: true },
+        {
+            modifiers: ['ctrl', 'shift'],
+            key: 'K',
+            preventDefault: true,
+        },
         () => {
-            if (document.activeElement === ref.current) {
-                ref.current?.blur();
+            setUsedHotkey(true);
+            if (document.activeElement === searchInputRef.current) {
+                searchInputRef.current?.blur();
             } else {
-                ref.current?.focus();
+                searchInputRef.current?.focus();
             }
-        }
+        },
     );
+
+    useEffect(() => {
+        if (!showSuggestions) {
+            return;
+        }
+        if (usedHotkey) {
+            trackEvent('search-opened', {
+                props: {
+                    eventType: 'hotkey',
+                },
+            });
+        } else {
+            trackEvent('search-opened', {
+                props: {
+                    eventType: 'manual',
+                },
+            });
+        }
+        setUsedHotkey(false);
+    }, [showSuggestions]);
+
     useKeyboardShortcut({ key: 'Escape' }, () => {
-        if (document.activeElement === ref.current) {
-            ref.current?.blur();
+        if (searchContainerRef.current?.contains(document.activeElement)) {
+            searchInputRef.current?.blur();
         }
     });
     const placeholder = `${customPlaceholder ?? 'Search'} (${hotkey})`;
 
+    useOnClickOutside([searchContainerRef], hideSuggestions);
+    useOnBlur(searchContainerRef, hideSuggestions);
+
+    useEffect(() => {
+        setValue(initialValue);
+    }, [initialValue]);
+
+    const historyEnabled = showSuggestions && id;
+
     return (
-        <StyledContainer style={containerStyles}>
+        <StyledContainer
+            ref={searchContainerRef}
+            style={containerStyles}
+            active={expandable && showSuggestions}
+            {...rest}
+        >
             <StyledSearch className={className}>
                 <SearchIcon
                     sx={{
                         mr: 1,
-                        color: theme => theme.palette.action.disabled,
+                        color: (theme) => theme.palette.action.disabled,
                     }}
                 />
                 <StyledInputBase
-                    inputRef={ref}
+                    inputRef={searchInputRef}
                     placeholder={placeholder}
                     inputProps={{
                         'aria-label': placeholder,
                         'data-testid': SEARCH_INPUT,
                     }}
                     value={value}
-                    onChange={e => onSearchChange(e.target.value)}
-                    onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => setShowSuggestions(false)}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    onFocus={() => {
+                        setShowSuggestions(true);
+                        onFocus?.();
+                    }}
                     disabled={disabled}
                 />
-                <Box sx={{ width: theme => theme.spacing(4) }}>
+                <Box sx={{ width: (theme) => theme.spacing(4) }}>
                     <ConditionallyRender
                         condition={Boolean(value)}
                         show={
-                            <Tooltip title="Clear search query" arrow>
+                            <Tooltip title='Clear search query' arrow>
                                 <IconButton
-                                    size="small"
-                                    onClick={() => {
+                                    size='small'
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // prevent outside click from the lazily added element
                                         onSearchChange('');
-                                        ref.current?.focus();
+                                        searchInputRef.current?.focus();
                                     }}
-                                    sx={{ padding: theme => theme.spacing(1) }}
+                                    sx={{
+                                        padding: (theme) => theme.spacing(1),
+                                    }}
                                 >
                                     <StyledClose />
                                 </IconButton>
@@ -139,10 +236,30 @@ export const Search = ({
                     />
                 </Box>
             </StyledSearch>
+
             <ConditionallyRender
-                condition={Boolean(hasFilters) && showSuggestions}
+                condition={
+                    Boolean(hasFilters && getSearchContext) && showSuggestions
+                }
                 show={
-                    <SearchSuggestions getSearchContext={getSearchContext!} />
+                    <SearchSuggestions
+                        onSuggestion={(suggestion) => {
+                            onSearchChange(suggestion);
+                            searchInputRef.current?.focus();
+                        }}
+                        savedQuery={savedQuery}
+                        getSearchContext={getSearchContext!}
+                    />
+                }
+                elseShow={
+                    historyEnabled && (
+                        <SearchPaper className='dropdown-outline'>
+                            <SearchHistory
+                                onSuggestion={onSearchChange}
+                                savedQuery={savedQuery}
+                            />
+                        </SearchPaper>
+                    )
                 }
             />
         </StyledContainer>

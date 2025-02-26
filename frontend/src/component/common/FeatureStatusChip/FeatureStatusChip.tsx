@@ -14,12 +14,12 @@ export const FeatureStatusChip = ({
     }
 
     const title = stale
-        ? 'Feature toggle is deprecated.'
-        : 'Feature toggle is active.';
+        ? 'Feature flag is deprecated.'
+        : 'Feature flag is active.';
     const value = stale ? 'Stale' : 'Active';
 
     return (
-        <div data-loading style={{ marginLeft: '8px' }}>
+        <div data-loading>
             <Badge color={stale ? 'error' : 'success'} title={title}>
                 {value}
             </Badge>

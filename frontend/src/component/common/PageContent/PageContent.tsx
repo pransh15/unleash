@@ -1,7 +1,8 @@
-import React, { FC, ReactNode } from 'react';
+import type React from 'react';
+import type { FC, ReactNode } from 'react';
 import classnames from 'classnames';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
-import { Paper, PaperProps, styled } from '@mui/material';
+import { Paper, type PaperProps, styled } from '@mui/material';
 import { useStyles } from './PageContent.styles';
 import useLoading from 'hooks/useLoading';
 import { ConditionallyRender } from '../ConditionallyRender/ConditionallyRender';
@@ -20,6 +21,7 @@ interface IPageContentProps extends PaperProps {
     disableLoading?: boolean;
     bodyClass?: string;
     headerClass?: string;
+    withTabs?: boolean;
 }
 
 const StyledHeader = styled('div')(({ theme }) => ({
@@ -36,14 +38,14 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     boxShadow: 'none',
 }));
 
-const PageContentLoading: FC<{ isLoading: boolean }> = ({
-    children,
-    isLoading,
-}) => {
+const PageContentLoading: FC<{
+    isLoading: boolean;
+    children?: React.ReactNode;
+}> = ({ children, isLoading }) => {
     const ref = useLoading(isLoading);
 
     return (
-        <div ref={ref} aria-busy={isLoading} aria-live="polite">
+        <div ref={ref} aria-busy={isLoading} aria-live='polite'>
             {children}
         </div>
     );
@@ -59,6 +61,7 @@ export const PageContent: FC<IPageContentProps> = ({
     isLoading = false,
     disableLoading = false,
     className,
+    withTabs,
     ...rest
 }) => {
     const { classes: styles } = useStyles();
@@ -69,7 +72,8 @@ export const PageContent: FC<IPageContentProps> = ({
         {
             [styles.paddingDisabled]: disablePadding,
             [styles.borderDisabled]: disableBorder,
-        }
+            [styles.withTabs]: withTabs,
+        },
     );
 
     const bodyClasses = classnames(
@@ -78,7 +82,7 @@ export const PageContent: FC<IPageContentProps> = ({
         {
             [styles.paddingDisabled]: disablePadding,
             [styles.borderDisabled]: disableBorder,
-        }
+        },
     );
 
     const paperProps = disableBorder ? { elevation: 0 } : {};
@@ -106,7 +110,7 @@ export const PageContent: FC<IPageContentProps> = ({
     );
 
     if (disableLoading) {
-        return content;
+        return <div>{content}</div>;
     }
 
     return (

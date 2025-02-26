@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { variantSchema } from './variant-schema';
 import { constraintSchema } from './constraint-schema';
 import { overrideSchema } from './override-schema';
@@ -13,7 +13,7 @@ export const featureSchema = {
     type: 'object',
     additionalProperties: false,
     required: ['name'],
-    description: 'A feature toggle definition',
+    description: 'A feature flag definition',
     properties: {
         name: {
             type: 'string',
@@ -24,7 +24,7 @@ export const featureSchema = {
             type: 'string',
             example: 'kill-switch',
             description:
-                'Type of the toggle e.g. experiment, kill-switch, release, operational, permission',
+                'Type of the flag e.g. experiment, kill-switch, release, operational, permission',
         },
         description: {
             type: 'string',
@@ -73,6 +73,29 @@ export const featureSchema = {
             example: '2023-01-28T15:21:39.975Z',
             description: 'The date the feature was created',
         },
+        createdBy: {
+            type: 'object',
+            description: 'User who created the feature flag',
+            additionalProperties: false,
+            required: ['id', 'name', 'imageUrl'],
+            properties: {
+                id: {
+                    description: 'The user id',
+                    type: 'integer',
+                    example: 123,
+                },
+                name: {
+                    description: 'Name of the user',
+                    type: 'string',
+                    example: 'User',
+                },
+                imageUrl: {
+                    description: `URL used for the user profile image`,
+                    type: 'string',
+                    example: 'https://example.com/242x200.png',
+                },
+            },
+        },
         archivedAt: {
             type: 'string',
             format: 'date-time',
@@ -87,7 +110,7 @@ export const featureSchema = {
             deprecated: true,
             example: '2023-01-28T16:21:39.975Z',
             description:
-                'The date when metrics where last collected for the feature. This field is deprecated, use the one in featureEnvironmentSchema',
+                'The date when metrics where last collected for the feature. This field was deprecated in v5, use the one in featureEnvironmentSchema',
         },
         environments: {
             type: 'array',
@@ -110,7 +133,8 @@ export const featureSchema = {
             items: {
                 type: 'object',
             },
-            description: 'This is a legacy field that will be deprecated',
+            description:
+                'This was deprecated in v5 and will be removed in a future major version',
             deprecated: true,
         },
         tags: {
@@ -120,6 +144,109 @@ export const featureSchema = {
             },
             nullable: true,
             description: 'The list of feature tags',
+        },
+        children: {
+            type: 'array',
+            description:
+                'The list of child feature names. This is an experimental field and may change.',
+            items: {
+                type: 'string',
+                example: 'some-feature',
+            },
+        },
+        lifecycle: {
+            type: 'object',
+            description: 'Current lifecycle stage of the feature',
+            additionalProperties: false,
+            required: ['stage', 'enteredStageAt'],
+            properties: {
+                stage: {
+                    description: 'The name of the current lifecycle stage',
+                    type: 'string',
+                    enum: [
+                        'initial',
+                        'pre-live',
+                        'live',
+                        'completed',
+                        'archived',
+                    ],
+                    example: 'initial',
+                },
+                enteredStageAt: {
+                    description: 'When the feature entered this stage',
+                    type: 'string',
+                    format: 'date-time',
+                    example: '2023-01-28T15:21:39.975Z',
+                },
+            },
+        },
+        dependencies: {
+            type: 'array',
+            items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['feature'],
+                properties: {
+                    feature: {
+                        description: 'The name of the parent feature',
+                        type: 'string',
+                        example: 'some-feature',
+                    },
+                    enabled: {
+                        description:
+                            'Whether the parent feature is enabled or not',
+                        type: 'boolean',
+                        example: true,
+                    },
+                    variants: {
+                        description:
+                            'The list of variants the parent feature should resolve to. Only valid when feature is enabled.',
+                        type: 'array',
+                        items: {
+                            example: 'some-feature-blue-variant',
+                            type: 'string',
+                        },
+                    },
+                },
+            },
+            description:
+                'The list of parent dependencies. This is an experimental field and may change.',
+        },
+        collaborators: {
+            type: 'object',
+            required: ['users'],
+            description:
+                'Information related to users who have made changes to this feature flage.',
+            properties: {
+                users: {
+                    description:
+                        'Users who have made any changes to this feature flags. The list is sorted in reverse chronological order (most recent changes first)',
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        required: ['id', 'name', 'imageUrl'],
+                        description: 'A simple representation of a user.',
+                        properties: {
+                            id: {
+                                description: "The user's id",
+                                type: 'integer',
+                                example: 123,
+                            },
+                            name: {
+                                description:
+                                    "The user's name, username, or email (prioritized in that order). If none of those are present, this property will be set to the string `unknown`",
+                                type: 'string',
+                                example: 'User',
+                            },
+                            imageUrl: {
+                                description: `The URL to the user's profile image`,
+                                type: 'string',
+                                example: 'https://example.com/242x200.png',
+                            },
+                        },
+                    },
+                },
+            },
         },
     },
     components: {

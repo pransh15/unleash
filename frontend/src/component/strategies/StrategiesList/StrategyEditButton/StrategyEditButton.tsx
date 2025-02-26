@@ -1,10 +1,10 @@
-import { VFC } from 'react';
+import type { VFC } from 'react';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import PermissionIconButton from 'component/common/PermissionIconButton/PermissionIconButton';
-import { Edit } from '@mui/icons-material';
+import Edit from '@mui/icons-material/Edit';
 import { IconButton, Tooltip } from '@mui/material';
 import { UPDATE_STRATEGY } from 'component/providers/AccessProvider/permissions';
-import { IStrategy } from 'interfaces/strategy';
+import type { IStrategy } from 'interfaces/strategy';
 import { useId } from 'hooks/useId';
 
 interface IStrategyEditButtonProps {
@@ -31,9 +31,9 @@ export const StrategyEditButton: VFC<IStrategyEditButtonProps> = ({
                 </PermissionIconButton>
             }
             elseShow={
-                <Tooltip title="You cannot edit a built-in strategy" arrow>
+                <Tooltip title='You cannot edit a built-in strategy' arrow>
                     <div id={id}>
-                        <IconButton disabled size="large">
+                        <IconButton disabled size='large'>
                             <Edit aria-labelledby={id} />
                         </IconButton>
                     </div>

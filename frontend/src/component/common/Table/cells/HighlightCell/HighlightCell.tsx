@@ -1,13 +1,16 @@
-import { VFC } from 'react';
+import type React from 'react';
+import type { FC } from 'react';
 import { Highlighter } from 'component/common/Highlighter/Highlighter';
 import { useSearchHighlightContext } from 'component/common/Table/SearchHighlightContext/SearchHighlightContext';
 import { Box, styled } from '@mui/material';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
+import { HtmlTooltip } from 'component/common/HtmlTooltip/HtmlTooltip';
 
 interface IHighlightCellProps {
     value: string;
     subtitle?: string;
     afterTitle?: React.ReactNode;
+    subtitleTooltip?: boolean;
 }
 
 const StyledContainer = styled(Box)(({ theme }) => ({
@@ -38,19 +41,42 @@ const StyledSubtitle = styled('span')(({ theme }) => ({
     WebkitBoxOrient: 'vertical',
 }));
 
-export const HighlightCell: VFC<IHighlightCellProps> = ({
+export const HighlightCell: FC<IHighlightCellProps> = ({
     value,
     subtitle,
     afterTitle,
+    subtitleTooltip,
 }) => {
     const { searchQuery } = useSearchHighlightContext();
+
+    const renderSubtitle = (
+        <ConditionallyRender
+            condition={Boolean(
+                subtitle && (subtitle.length > 40 || subtitleTooltip),
+            )}
+            show={
+                <HtmlTooltip title={subtitle} placement='bottom-start' arrow>
+                    <StyledSubtitle data-loading>
+                        <Highlighter search={searchQuery}>
+                            {subtitle}
+                        </Highlighter>
+                    </StyledSubtitle>
+                </HtmlTooltip>
+            }
+            elseShow={
+                <StyledSubtitle data-loading>
+                    <Highlighter search={searchQuery}>{subtitle}</Highlighter>
+                </StyledSubtitle>
+            }
+        />
+    );
 
     return (
         <StyledContainer>
             <StyledTitle
                 style={{
-                    WebkitLineClamp: Boolean(subtitle) ? 1 : 2,
-                    lineClamp: Boolean(subtitle) ? 1 : 2,
+                    WebkitLineClamp: subtitle ? 1 : 2,
+                    lineClamp: subtitle ? 1 : 2,
                 }}
                 data-loading
             >
@@ -59,13 +85,7 @@ export const HighlightCell: VFC<IHighlightCellProps> = ({
             </StyledTitle>
             <ConditionallyRender
                 condition={Boolean(subtitle)}
-                show={() => (
-                    <StyledSubtitle data-loading>
-                        <Highlighter search={searchQuery}>
-                            {subtitle}
-                        </Highlighter>
-                    </StyledSubtitle>
-                )}
+                show={renderSubtitle}
             />
         </StyledContainer>
     );

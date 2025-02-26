@@ -1,29 +1,27 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
+import { TAG_MAX_LENGTH, TAG_MIN_LENGTH } from '../../util';
 
-export const TAG_MIN_LENGTH = 2;
-export const TAG_MAX_LENGTH = 50;
 export const tagSchema = {
     $id: '#/components/schemas/tagSchema',
     type: 'object',
     description:
-        'Representation of a [tag](https://docs.getunleash.io/reference/tags)',
+        'Representation of a [tag](https://docs.getunleash.io/reference/feature-toggles#tags)',
     additionalProperties: false,
     required: ['value', 'type'],
     properties: {
         value: {
             type: 'string',
+            description: `The value of the tag.`,
             minLength: TAG_MIN_LENGTH,
             maxLength: TAG_MAX_LENGTH,
-            description: 'The value of the tag',
             example: 'a-tag-value',
         },
         type: {
             type: 'string',
             minLength: TAG_MIN_LENGTH,
             maxLength: TAG_MAX_LENGTH,
-            default: 'simple',
             description:
-                'The [type](https://docs.getunleash.io/reference/tags#tag-types) of the tag',
+                'The [type](https://docs.getunleash.io/reference/feature-toggles#tags) of the tag',
             example: 'simple',
         },
     },

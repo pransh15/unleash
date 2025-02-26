@@ -1,24 +1,46 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import Controller from '../controller';
 import { NONE, UPDATE_APPLICATION } from '../../types/permissions';
-import { IUnleashConfig } from '../../types/option';
-import { IUnleashServices } from '../../types/services';
-import { Logger } from '../../logger';
-import ClientInstanceService from '../../services/client-metrics/instance-service';
+import type { IUnleashConfig } from '../../types/option';
+import type { IUnleashServices } from '../../types/services';
+import type { Logger } from '../../logger';
+import type ClientInstanceService from '../../features/metrics/instance/instance-service';
 import { createRequestSchema } from '../../openapi/util/create-request-schema';
 import { createResponseSchema } from '../../openapi/util/create-response-schema';
-import { ApplicationSchema } from '../../openapi/spec/application-schema';
-import { ApplicationsSchema } from '../../openapi/spec/applications-schema';
+import type { ApplicationSchema } from '../../openapi/spec/application-schema';
+import type { ApplicationsSchema } from '../../openapi/spec/applications-schema';
 import {
     emptyResponse,
     getStandardResponses,
 } from '../../openapi/util/standard-responses';
-import { CreateApplicationSchema } from '../../openapi/spec/create-application-schema';
+import type { CreateApplicationSchema } from '../../openapi/spec/create-application-schema';
+import type { IAuthRequest } from '../unleash-types';
+import { extractUserIdFromUser } from '../../util';
+import { type IFlagResolver, serializeDates } from '../../types';
+import {
+    type ApplicationOverviewSchema,
+    applicationOverviewSchema,
+} from '../../openapi/spec/application-overview-schema';
+import type { OpenApiService } from '../../services';
+import { applicationsQueryParameters } from '../../openapi/spec/applications-query-parameters';
+import { normalizeQueryParams } from '../../features/feature-search/search-utils';
+import {
+    applicationEnvironmentInstancesSchema,
+    type ApplicationEnvironmentInstancesSchema,
+} from '../../openapi/spec/application-environment-instances-schema';
+import {
+    outdatedSdksSchema,
+    type OutdatedSdksSchema,
+} from '../../openapi/spec/outdated-sdks-schema';
 
 class MetricsController extends Controller {
     private logger: Logger;
 
     private clientInstanceService: ClientInstanceService;
+
+    private flagResolver: IFlagResolver;
+
+    private openApiService: OpenApiService;
 
     constructor(
         config: IUnleashConfig,
@@ -31,6 +53,8 @@ class MetricsController extends Controller {
         this.logger = config.getLogger('/admin-api/metrics.ts');
 
         this.clientInstanceService = clientInstanceService;
+        this.openApiService = openApiService;
+        this.flagResolver = config.flagResolver;
 
         // deprecated routes
         this.get('/seen-toggles', this.deprecated);
@@ -89,6 +113,7 @@ class MetricsController extends Controller {
                     summary: 'Get all applications',
                     description:
                         'Returns all applications registered with Unleash. Applications can be created via metrics reporting or manual creation',
+                    parameters: [...applicationsQueryParameters],
                     operationId: 'getApplications',
                     responses: {
                         200: createResponseSchema('applicationsSchema'),
@@ -115,6 +140,65 @@ class MetricsController extends Controller {
                 }),
             ],
         });
+        this.route({
+            method: 'get',
+            path: '/applications/:appName/overview',
+            handler: this.getApplicationOverview,
+            permission: NONE,
+            middleware: [
+                openApiService.validPath({
+                    tags: ['Metrics'],
+                    operationId: 'getApplicationOverview',
+                    summary: 'Get application overview',
+                    description:
+                        'Returns an overview of the specified application (`appName`).',
+                    responses: {
+                        200: createResponseSchema('applicationOverviewSchema'),
+                        ...getStandardResponses(404),
+                    },
+                }),
+            ],
+        });
+        this.route({
+            method: 'get',
+            path: '/instances/:appName/environment/:environment',
+            handler: this.getApplicationEnvironmentInstances,
+            permission: NONE,
+            middleware: [
+                openApiService.validPath({
+                    tags: ['Metrics'],
+                    operationId: 'getApplicationEnvironmentInstances',
+                    summary: 'Get application environment instances',
+                    description:
+                        'Returns an overview of the instances for the given `appName` and `environment` that receive traffic.',
+                    responses: {
+                        200: createResponseSchema(
+                            'applicationEnvironmentInstancesSchema',
+                        ),
+                        ...getStandardResponses(404),
+                    },
+                }),
+            ],
+        });
+        this.route({
+            method: 'get',
+            path: '/sdks/outdated',
+            handler: this.getOutdatedSdks,
+            permission: NONE,
+            middleware: [
+                openApiService.validPath({
+                    tags: ['Metrics'],
+                    operationId: 'getOutdatedSdks',
+                    summary: 'Get outdated SDKs',
+                    description:
+                        'Returns a list of the outdated SDKS with the applications using them.',
+                    responses: {
+                        200: createResponseSchema('outdatedSdksSchema'),
+                        ...getStandardResponses(404),
+                    },
+                }),
+            ],
+        });
     }
 
     async deprecated(req: Request, res: Response): Promise<void> {
@@ -126,7 +210,9 @@ class MetricsController extends Controller {
     }
 
     async deleteApplication(
-        req: Request<{ appName: string }>,
+        req: Request<{
+            appName: string;
+        }>,
         res: Response,
     ): Promise<void> {
         const { appName } = req.params;
@@ -136,7 +222,13 @@ class MetricsController extends Controller {
     }
 
     async createApplication(
-        req: Request<{ appName: string }, unknown, CreateApplicationSchema>,
+        req: Request<
+            {
+                appName: string;
+            },
+            unknown,
+            CreateApplicationSchema
+        >,
         res: Response,
     ): Promise<void> {
         const input = {
@@ -148,28 +240,93 @@ class MetricsController extends Controller {
     }
 
     async getApplications(
-        req: Request,
+        req: IAuthRequest,
         res: Response<ApplicationsSchema>,
     ): Promise<void> {
-        const query = req.query.strategyName
-            ? { strategyName: req.query.strategyName as string }
-            : {};
+        const { user } = req;
+        const {
+            normalizedQuery,
+            normalizedSortOrder,
+            normalizedOffset,
+            normalizedLimit,
+        } = normalizeQueryParams(req.query, {
+            limitDefault: 1000,
+            maxLimit: 1000,
+        });
+
         const applications = await this.clientInstanceService.getApplications(
-            query,
+            {
+                searchParams: normalizedQuery,
+                offset: normalizedOffset,
+                limit: normalizedLimit,
+                sortBy: req.query.sortBy,
+                sortOrder: normalizedSortOrder,
+            },
+            extractUserIdFromUser(user),
         );
-        res.json({ applications });
+        res.json(applications);
     }
 
     async getApplication(
-        req: Request,
+        req: Request<{ appName: string }>,
         res: Response<ApplicationSchema>,
     ): Promise<void> {
         const { appName } = req.params;
 
-        const appDetails = await this.clientInstanceService.getApplication(
-            appName,
-        );
+        const appDetails =
+            await this.clientInstanceService.getApplication(appName);
         res.json(appDetails);
     }
+
+    async getApplicationOverview(
+        req: IAuthRequest<{ appName: string }>,
+        res: Response<ApplicationOverviewSchema>,
+    ): Promise<void> {
+        const { appName } = req.params;
+        const { user } = req;
+        const overview =
+            await this.clientInstanceService.getApplicationOverview(
+                appName,
+                extractUserIdFromUser(user),
+            );
+
+        this.openApiService.respondWithValidation(
+            200,
+            res,
+            applicationOverviewSchema.$id,
+            serializeDates(overview),
+        );
+    }
+
+    async getOutdatedSdks(req: Request, res: Response<OutdatedSdksSchema>) {
+        const outdatedSdks = await this.clientInstanceService.getOutdatedSdks();
+
+        this.openApiService.respondWithValidation(
+            200,
+            res,
+            outdatedSdksSchema.$id,
+            { sdks: outdatedSdks },
+        );
+    }
+
+    async getApplicationEnvironmentInstances(
+        req: Request<{ appName: string; environment: string }>,
+        res: Response<ApplicationEnvironmentInstancesSchema>,
+    ): Promise<void> {
+        const { appName, environment } = req.params;
+        const instances =
+            await this.clientInstanceService.getApplicationEnvironmentInstances(
+                appName,
+                environment,
+            );
+
+        this.openApiService.respondWithValidation(
+            200,
+            res,
+            applicationEnvironmentInstancesSchema.$id,
+            serializeDates({ instances }),
+        );
+    }
 }
+
 export default MetricsController;

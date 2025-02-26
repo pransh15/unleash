@@ -1,10 +1,11 @@
-import React from 'react';
+import type React from 'react';
 
 interface IGradientProps {
     from: string;
     to: string;
     style?: object;
     className?: string;
+    children?: React.ReactNode;
 }
 
 const Gradient: React.FC<IGradientProps> = ({

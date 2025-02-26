@@ -7,25 +7,22 @@ import {
     Tooltip,
     useTheme,
 } from '@mui/material';
-import { Add, RadioButtonChecked } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import RadioButtonChecked from '@mui/icons-material/RadioButtonChecked';
 import { AppsLinkList } from 'component/common';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import styles from '../../strategies.module.scss';
-import { TogglesLinkList } from 'component/strategies/TogglesLinkList/TogglesLinkList';
-import { IStrategy, IStrategyParameter } from 'interfaces/strategy';
-import { IApplication } from 'interfaces/application';
-import { FeatureSchema } from 'openapi';
+import type { IStrategy, IStrategyParameter } from 'interfaces/strategy';
+import type { ApplicationSchema } from 'openapi';
 
 interface IStrategyDetailsProps {
     strategy: IStrategy;
-    applications: IApplication[];
-    toggles: FeatureSchema[];
+    applications: ApplicationSchema[];
 }
 
 export const StrategyDetails = ({
     strategy,
     applications,
-    toggles,
 }: IStrategyDetailsProps) => {
     const theme = useTheme();
     const { parameters = [] } = strategy;
@@ -37,14 +34,14 @@ export const StrategyDetails = ({
                         condition={required}
                         show={
                             <ListItemAvatar>
-                                <Tooltip title="Required parameter" arrow>
+                                <Tooltip title='Required parameter' arrow>
                                     <Add aria-hidden={false} />
                                 </Tooltip>
                             </ListItemAvatar>
                         }
                         elseShow={
                             <ListItemAvatar>
-                                <Tooltip title="Optional parameter" arrow>
+                                <Tooltip title='Optional parameter' arrow>
                                     <RadioButtonChecked aria-hidden={false} />
                                 </Tooltip>
                             </ListItemAvatar>
@@ -84,22 +81,14 @@ export const StrategyDetails = ({
                     <List>{renderParameters(parameters)}</List>
                 </Grid>
 
-                <Grid item sm={12} md={toggles.length > 0 ? 6 : 12}>
-                    <h6>Applications using this strategy</h6>
+                <Grid item sm={12} md={12}>
+                    <h6>
+                        Applications using this strategy{' '}
+                        {applications.length >= 1000 && '(Capped at 1000)'}
+                    </h6>
                     <hr />
                     <AppsLinkList apps={applications} />
                 </Grid>
-
-                <ConditionallyRender
-                    condition={toggles.length > 0}
-                    show={() => (
-                        <Grid item sm={12} md={6}>
-                            <h6>Toggles using this strategy</h6>
-                            <hr />
-                            <TogglesLinkList toggles={toggles} />
-                        </Grid>
-                    )}
-                />
             </Grid>
         </div>
     );

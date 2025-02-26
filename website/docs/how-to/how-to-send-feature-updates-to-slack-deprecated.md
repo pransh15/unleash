@@ -1,16 +1,16 @@
 ---
-title: Feature Updates To slack
+title: Feature Updates To Slack
 ---
 
 :::caution
 
-This guide is deprecated. If you're looking for ways to integrate with Slack, you should refer to [the Slack add-on guide](../reference/addons/slack.md) instead.
+This guide is deprecated. If you're looking for ways to integrate with Slack, you should refer to [the Slack integration guide](../reference/integrations/slack.md) instead.
 
 Event hook option is removed in Unleash v5
 
 :::
 
-## Create a custom Slack WebHook url: {#create-a-custom-slack-webhook-url}
+## Create a custom Slack WebHook URL: {#create-a-custom-slack-webhook-url}
 
 1. Go to [https://slack.com/apps/manage/custom-integrations](https://slack.com/apps/manage/custom-integrations)
 1. Click Incoming WebHooks

@@ -1,28 +1,42 @@
+import { log } from 'db-migrate-shared';
 import { migrateDb } from '../../../migrator';
 import { createStores } from '../../../lib/db';
 import { createDb } from '../../../lib/db/db-pool';
 import { getDbConfig } from './database-config';
 import { createTestConfig } from '../../config/test-config';
 import dbState from './database.json';
-import { LogProvider } from '../../../lib/logger';
+import type { LogProvider } from '../../../lib/logger';
 import noLoggerProvider from '../../fixtures/no-logger';
-import EnvironmentStore from '../../../lib/db/environment-store';
-import { IUnleashStores } from '../../../lib/types';
-import { IFeatureEnvironmentStore } from '../../../lib/types/stores/feature-environment-store';
+import type EnvironmentStore from '../../../lib/features/project-environments/environment-store';
+import type { IUnleashStores } from '../../../lib/types';
+import type { IFeatureEnvironmentStore } from '../../../lib/types/stores/feature-environment-store';
 import { DEFAULT_ENV } from '../../../lib/util/constants';
-import { IUnleashOptions, Knex } from 'lib/server-impl';
+import type {
+    IUnleashConfig,
+    IUnleashOptions,
+    Knex,
+} from '../../../lib/server-impl';
+import { Client } from 'pg';
+import { v4 as uuidv4 } from 'uuid';
 
 // require('db-migrate-shared').log.silence(false);
-
-// because of migrator bug
-delete process.env.DATABASE_URL;
 
 // because of db-migrate bug (https://github.com/Unleash/unleash/issues/171)
 process.setMaxListeners(0);
 
+async function getDefaultEnvRolePermissions(knex) {
+    return knex.table('role_permission').whereIn('environment', ['default']);
+}
+
+async function restoreRolePermissions(knex, rolePermissions) {
+    await knex.table('role_permission').insert(rolePermissions);
+}
+
 async function resetDatabase(knex) {
     return Promise.all([
-        knex.table('environments').del(),
+        knex
+            .table('environments')
+            .del(), // deletes role permissions transitively
         knex.table('strategies').del(),
         knex.table('features').del(),
         knex.table('client_applications').del(),
@@ -34,7 +48,11 @@ async function resetDatabase(knex) {
         knex.table('tag_types').del(),
         knex.table('addons').del(),
         knex.table('users').del(),
-        knex.table('reset_tokens').del(),
+        knex.table('api_tokens').del(),
+        knex.table('api_token_project').del(),
+        knex
+            .table('reset_tokens')
+            .del(),
         // knex.table('settings').del(),
     ]);
 }
@@ -73,51 +91,91 @@ async function setupDatabase(stores) {
 }
 
 export interface ITestDb {
+    config: IUnleashConfig;
     stores: IUnleashStores;
     reset: () => Promise<void>;
     destroy: () => Promise<void>;
     rawDatabase: Knex;
 }
 
+type DBTestOptions = {
+    dbInitMethod?: 'legacy' | 'template';
+    stopMigrationAt?: string; // filename where migration should stop
+};
+
 export default async function init(
-    databaseSchema: string = 'test',
+    databaseSchema = 'test',
     getLogger: LogProvider = noLoggerProvider,
-    configOverride: Partial<IUnleashOptions> = {},
+    configOverride: Partial<IUnleashOptions & DBTestOptions> = {},
 ): Promise<ITestDb> {
+    const testDbName = `unleashtestdb_${uuidv4().replace(/-/g, '')}`;
+    const useDbTemplate =
+        (configOverride.dbInitMethod ?? 'template') === 'template';
+    const testDBTemplateName = process.env.TEST_DB_TEMPLATE_NAME;
     const config = createTestConfig({
         db: {
             ...getDbConfig(),
             pool: { min: 1, max: 4 },
-            schema: databaseSchema,
+            ...(useDbTemplate
+                ? { database: testDbName }
+                : { schema: databaseSchema }),
             ssl: false,
         },
         ...configOverride,
         getLogger,
     });
 
-    const db = createDb(config);
+    log.setLogLevel('error');
 
-    await db.raw(`DROP SCHEMA IF EXISTS ${config.db.schema} CASCADE`);
-    await db.raw(`CREATE SCHEMA IF NOT EXISTS ${config.db.schema}`);
-    await migrateDb(config);
-    await db.destroy();
+    if (useDbTemplate) {
+        if (!testDBTemplateName) {
+            throw new Error(
+                'TEST_DB_TEMPLATE_NAME environment variable is not set',
+            );
+        }
+        const client = new Client(getDbConfig());
+        await client.connect();
+
+        await client.query(
+            `CREATE DATABASE ${testDbName} TEMPLATE ${testDBTemplateName}`,
+        );
+        await client.end();
+    } else {
+        const db = createDb(config);
+
+        await db.raw(`DROP SCHEMA IF EXISTS ${config.db.schema} CASCADE`);
+        await db.raw(`CREATE SCHEMA IF NOT EXISTS ${config.db.schema}`);
+        await migrateDb(config, configOverride.stopMigrationAt);
+        await db.destroy();
+    }
+
     const testDb = createDb(config);
-    const stores = await createStores(config, testDb);
+    const stores = createStores(config, testDb);
     stores.eventStore.setMaxListeners(0);
-    await resetDatabase(testDb);
-    await setupDatabase(stores);
+
+    if (!useDbTemplate) {
+        const defaultRolePermissions =
+            await getDefaultEnvRolePermissions(testDb);
+        await resetDatabase(testDb);
+        await setupDatabase(stores);
+        await restoreRolePermissions(testDb, defaultRolePermissions);
+    }
 
     return {
+        config,
         rawDatabase: testDb,
         stores,
         reset: async () => {
-            await resetDatabase(testDb);
-            await setupDatabase(stores);
+            if (!useDbTemplate) {
+                const defaultRolePermissions =
+                    await getDefaultEnvRolePermissions(testDb);
+                await resetDatabase(testDb);
+                await setupDatabase(stores);
+                await restoreRolePermissions(testDb, defaultRolePermissions);
+            }
         },
         destroy: async () => {
-            const { clientInstanceStore } = stores;
             return new Promise<void>((resolve, reject) => {
-                clientInstanceStore.destroy();
                 testDb.destroy((error) => (error ? reject(error) : resolve()));
             });
         },

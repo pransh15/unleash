@@ -1,8 +1,9 @@
-import { IconButton, IconButtonProps } from '@mui/material';
-import React, { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { IconButton, type IconButtonProps } from '@mui/material';
+import type React from 'react';
+import type { ReactNode } from 'react';
+import type { Link } from 'react-router-dom';
 import {
-    ITooltipResolverProps,
+    type ITooltipResolverProps,
     TooltipResolver,
 } from 'component/common/TooltipResolver/TooltipResolver';
 import { formatAccessText } from 'utils/formatAccessText';
@@ -24,7 +25,7 @@ interface IPermissionIconButtonProps {
     edge?: IconButtonProps['edge'];
     tooltipProps?: Omit<ITooltipResolverProps, 'children'>;
     sx?: IconButtonProps['sx'];
-    size?: string;
+    size?: 'small' | 'medium' | 'large';
 }
 
 interface IButtonProps extends IPermissionIconButtonProps {
@@ -41,7 +42,7 @@ const RootPermissionIconButton = (props: IButtonProps | ILinkProps) => {
     const access = useHasRootAccess(
         props.permission,
         props.projectId,
-        props.environmentId
+        props.environmentId,
     );
 
     return <BasePermissionIconButton {...props} access={access} />;
@@ -51,12 +52,12 @@ const ProjectEnvironmentPermissionIconButton = (
     props: (IButtonProps | ILinkProps) & {
         environmentId: string;
         projectId: string;
-    }
+    },
 ) => {
     const access = useHasProjectEnvironmentAccess(
         props.permission,
         props.projectId,
-        props.environmentId
+        props.environmentId,
     );
 
     return <BasePermissionIconButton {...props} access={access} />;
@@ -79,14 +80,14 @@ const BasePermissionIconButton = ({
             {...tooltipProps}
             title={formatAccessText(access, tooltipProps?.title)}
             arrow
-            onClick={e => e.preventDefault()}
+            onClick={(e) => e.preventDefault()}
         >
             <div id={id}>
                 <IconButton
                     {...rest}
                     disabled={!access || disabled}
                     aria-labelledby={id}
-                    size="large"
+                    size={rest.size || 'large'}
                 >
                     {children}
                 </IconButton>

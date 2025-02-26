@@ -1,11 +1,17 @@
 import { useInstanceStatus } from 'hooks/api/getters/useInstanceStatus/useInstanceStatus';
-import React, { FC, VFC, useEffect, useState, useContext } from 'react';
+import React, {
+    type FC,
+    type VFC,
+    useEffect,
+    useState,
+    useContext,
+} from 'react';
 import { InstanceStatusBar } from 'component/common/InstanceStatus/InstanceStatusBar';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import { Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { IInstanceStatus, InstancePlan } from 'interfaces/instance';
+import { type IInstanceStatus, InstancePlan } from 'interfaces/instance';
 import { ADMIN } from 'component/providers/AccessProvider/permissions';
 import AccessContext from 'contexts/AccessContext';
 import useInstanceStatusApi from 'hooks/api/actions/useInstanceStatusApi/useInstanceStatusApi';
@@ -48,7 +54,7 @@ const TrialDialog: VFC<ITrialDialogProps> = ({
         return (
             <Dialogue
                 open={dialogOpen}
-                secondaryButtonText="Remind me later"
+                secondaryButtonText='Remind me later'
                 onClose={() => {
                     setDialogOpen(false);
                 }}
@@ -66,7 +72,7 @@ const TrialDialog: VFC<ITrialDialogProps> = ({
         return (
             <Dialogue
                 open={dialogOpen}
-                primaryButtonText="Upgrade trial"
+                primaryButtonText='Upgrade trial'
                 secondaryButtonText={
                     canExtendTrial(instanceStatus)
                         ? 'Extend trial (5 days)'
@@ -90,7 +96,7 @@ const TrialDialog: VFC<ITrialDialogProps> = ({
     return (
         <Dialogue
             open={dialogOpen}
-            secondaryButtonText="Remind me later"
+            secondaryButtonText='Remind me later'
             onClose={() => {
                 setDialogOpen(false);
             }}
@@ -104,7 +110,9 @@ const TrialDialog: VFC<ITrialDialogProps> = ({
     );
 };
 
-export const InstanceStatus: FC = ({ children }) => {
+export const InstanceStatus: FC<{ children?: React.ReactNode }> = ({
+    children,
+}) => {
     const { instanceStatus, refetchInstanceStatus } = useInstanceStatus();
     const { extendTrial } = useInstanceStatusApi();
     const { setToastApiError } = useToast();

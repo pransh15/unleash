@@ -1,15 +1,16 @@
 import { Grid } from '@mui/material';
-import { FC } from 'react';
+import type React from 'react';
+import type { FC } from 'react';
 
-export const GridCol: FC<{ vertical?: boolean }> = ({
-    children,
-    vertical = false,
-}) => {
+export const GridCol: FC<{
+    vertical?: boolean;
+    children?: React.ReactNode;
+}> = ({ children, vertical = false }) => {
     return (
         <Grid
             container={vertical}
             item
-            display="flex"
+            display='flex'
             alignItems={vertical ? 'start' : 'center'}
             direction={vertical ? 'column' : undefined}
         >

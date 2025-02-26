@@ -1,4 +1,4 @@
-import { FromQueryParams } from '../util/from-query-params';
+import type { FromQueryParams } from '../util/from-query-params';
 
 export const exportQueryParameters = [
     {
@@ -70,7 +70,7 @@ export const exportQueryParameters = [
             default: true,
         },
         description:
-            'Whether feature toggles should be included in the exported data.',
+            'Whether feature flags should be included in the exported data.',
         in: 'query',
     },
     {

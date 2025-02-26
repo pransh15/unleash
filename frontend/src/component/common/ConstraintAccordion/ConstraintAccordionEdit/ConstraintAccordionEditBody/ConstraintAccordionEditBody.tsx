@@ -1,12 +1,8 @@
 import { Button, styled } from '@mui/material';
-import { IConstraint } from 'interfaces/strategy';
+import type { IConstraint } from 'interfaces/strategy';
 import { CANCEL } from '../ConstraintAccordionEdit';
 
-import React from 'react';
-import { newOperators } from 'constants/operators';
-import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
-import { oneOf } from 'utils/oneOf';
-import { OperatorUpgradeAlert } from 'component/common/OperatorUpgradeAlert/OperatorUpgradeAlert';
+import type React from 'react';
 
 interface IConstraintAccordionBody {
     localConstraint: IConstraint;
@@ -15,6 +11,7 @@ interface IConstraintAccordionBody {
     setValue: (value: string) => void;
     setAction: React.Dispatch<React.SetStateAction<string>>;
     onSubmit: () => void;
+    children?: React.ReactNode;
 }
 
 const StyledInputContainer = styled('div')(({ theme }) => ({
@@ -49,23 +46,17 @@ export const ConstraintAccordionEditBody: React.FC<
 > = ({ localConstraint, children, triggerTransition, setAction, onSubmit }) => {
     return (
         <>
-            <StyledInputContainer>
-                <ConditionallyRender
-                    condition={oneOf(newOperators, localConstraint.operator)}
-                    show={<OperatorUpgradeAlert />}
-                />
-                {children}
-            </StyledInputContainer>
+            <StyledInputContainer>{children}</StyledInputContainer>
             <StyledButtonContainer>
                 <StyledInputButtonContainer>
                     <StyledLeftButton
-                        type="button"
+                        type='button'
                         onClick={onSubmit}
-                        variant="contained"
-                        color="primary"
-                        data-testid="CONSTRAINT_SAVE_BUTTON"
+                        variant='outlined'
+                        color='primary'
+                        data-testid='CONSTRAINT_SAVE_BUTTON'
                     >
-                        Save
+                        Done
                     </StyledLeftButton>
                     <StyledRightButton
                         onClick={() => {

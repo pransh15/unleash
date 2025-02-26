@@ -1,21 +1,21 @@
 import { Parser } from 'json2csv';
-import { Response } from 'express';
-import { AuthedRequest } from '../../types/core';
-import { IUnleashServices } from '../../types/services';
-import { IUnleashConfig } from '../../types/option';
+import type { Response } from 'express';
+import type { AuthedRequest } from '../../types/core';
+import type { IUnleashServices } from '../../types/services';
+import type { IUnleashConfig } from '../../types/option';
 import Controller from '../controller';
 import { NONE } from '../../types/permissions';
-import { UiConfigSchema } from '../../openapi/spec/ui-config-schema';
-import {
-    InstanceStats,
+import type {
     InstanceStatsService,
     InstanceStatsSigned,
-} from '../../services/instance-stats-service';
-import { OpenApiService } from '../../services/openapi-service';
+} from '../../features/instance-stats/instance-stats-service';
+import type { OpenApiService } from '../../services/openapi-service';
 import {
     createCsvResponseSchema,
     createResponseSchema,
 } from '../../openapi/util/create-response-schema';
+import type { InstanceAdminStatsSchema } from '../../openapi';
+import { serializeDates } from '../../types';
 
 class InstanceAdminController extends Controller {
     private instanceStatsService: InstanceStatsService;
@@ -85,6 +85,8 @@ class InstanceAdminController extends Controller {
         return {
             OIDCenabled: true,
             SAMLenabled: false,
+            passwordAuthEnabled: true,
+            SCIMenabled: false,
             clientApps: [
                 { range: 'allTime', count: 15 },
                 { range: '30d', count: 9 },
@@ -95,31 +97,67 @@ class InstanceAdminController extends Controller {
             featureExports: 0,
             featureImports: 0,
             featureToggles: 29,
+            archivedFeatureToggles: 10,
             groups: 3,
             instanceId: 'ed3861ae-78f9-4e8c-8e57-b57efc15f82b',
-            projects: 1,
+            projects: 4,
             roles: 5,
+            customRootRoles: 2,
+            customRootRolesInUse: 1,
             segments: 2,
             strategies: 8,
             sum: 'some-sha256-hash',
             timestamp: new Date(2023, 6, 12, 10, 0, 0, 0),
             users: 10,
+            licensedUsers: 12,
+            serviceAccounts: 2,
+            apiTokens: new Map([]),
             versionEnterprise: '5.1.7',
             versionOSS: '5.1.7',
+            activeUsers: {
+                last90: 15,
+                last60: 12,
+                last30: 10,
+                last7: 5,
+            },
+            productionChanges: {
+                last30: 100,
+                last60: 200,
+                last90: 200,
+            },
+            previousDayMetricsBucketsCount: {
+                variantCount: 100,
+                enabledCount: 200,
+            },
+            maxEnvironmentStrategies: 20,
+            maxConstraints: 17,
+            maxConstraintValues: 123,
         };
     }
 
+    private serializeStats(
+        instanceStats: InstanceStatsSigned,
+    ): InstanceAdminStatsSchema {
+        const apiTokensObj = Object.fromEntries(
+            instanceStats.apiTokens.entries(),
+        );
+        return serializeDates({
+            ...instanceStats,
+            apiTokens: apiTokensObj,
+        });
+    }
+
     async getStatistics(
-        req: AuthedRequest,
-        res: Response<InstanceStats>,
+        _: AuthedRequest,
+        res: Response<InstanceAdminStatsSchema>,
     ): Promise<void> {
         const instanceStats = await this.instanceStatsService.getSignedStats();
-        res.json(instanceStats);
+        res.json(this.serializeStats(instanceStats));
     }
 
     async getStatisticsCSV(
-        req: AuthedRequest,
-        res: Response<UiConfigSchema>,
+        _: AuthedRequest,
+        res: Response<InstanceAdminStatsSchema>,
     ): Promise<void> {
         const instanceStats = await this.instanceStatsService.getSignedStats();
         const fileName = `unleash-${
@@ -127,7 +165,7 @@ class InstanceAdminController extends Controller {
         }-${Date.now()}.csv`;
 
         const json2csvParser = new Parser();
-        const csv = json2csvParser.parse(instanceStats);
+        const csv = json2csvParser.parse(this.serializeStats(instanceStats));
 
         res.contentType('csv');
         res.attachment(fileName);

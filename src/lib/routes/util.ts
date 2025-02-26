@@ -1,6 +1,6 @@
 import joi from 'joi';
-import { Response } from 'express';
-import { Logger } from '../logger';
+import type { Response } from 'express';
+import type { Logger } from '../logger';
 import { UnleashError } from '../error/unleash-error';
 import { fromLegacyError } from '../error/from-legacy-error';
 import createError from 'http-errors';
@@ -13,7 +13,11 @@ export const customJoi = joi.extend((j) => ({
     },
     validate(value, helpers) {
         // Base validation regardless of the rules applied
-        if (encodeURIComponent(value) !== value) {
+        if (
+            encodeURIComponent(value) !== value ||
+            value === '..' ||
+            value === '.'
+        ) {
             // Generate an error, state and options need to be passed
             return { value, errors: helpers.error('isUrlFriendly.base') };
         }
@@ -29,14 +33,12 @@ export const handleErrors: (
     error: Error,
 ) => void = (res, logger, error) => {
     if (createError.isHttpError(error)) {
-        return (
-            res
-                // @ts-expect-error http errors all have statuses, but there are no
-                // types provided
-                .status(error.status ?? 400)
-                .json({ message: error.message })
-                .end()
-        );
+        return res
+            .status(
+                // @ts-expect-error - The error object here is not guaranteed to contain status
+                error.status ?? 400,
+            )
+            .json({ message: error.message });
     }
 
     const finalError =

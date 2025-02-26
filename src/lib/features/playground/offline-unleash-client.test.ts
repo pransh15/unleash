@@ -1,5 +1,5 @@
 import {
-    ClientInitOptions,
+    type ClientInitOptions,
     mapFeaturesForClient,
     mapSegmentsForClient,
     offlineUnleashClient,
@@ -27,7 +27,7 @@ export const offlineUnleashClientNode = async ({
         storageProvider: new InMemStorageProviderNode(),
         bootstrap: {
             data: mapFeaturesForClient(features),
-            segments: mapSegmentsForClient(segments),
+            segments: mapSegmentsForClient(segments || []),
         },
     });
 
@@ -262,7 +262,7 @@ describe('offline client', () => {
                                 {
                                     values: ['my-app-name'],
                                     inverted: false,
-                                    operator: 'IN' as 'IN',
+                                    operator: 'IN' as const,
                                     contextName: 'appName',
                                     caseInsensitive: false,
                                 },
@@ -282,7 +282,7 @@ describe('offline client', () => {
                                 {
                                     values: ['client-test'],
                                     inverted: false,
-                                    operator: 'IN' as 'IN',
+                                    operator: 'IN' as const,
                                     contextName: 'appName',
                                     caseInsensitive: false,
                                 },
@@ -409,7 +409,7 @@ describe('offline client', () => {
                     {
                         values: ['my-app-name'],
                         inverted: false,
-                        operator: 'IN' as 'IN',
+                        operator: 'IN' as const,
                         contextName: 'appName',
                         caseInsensitive: false,
                     },

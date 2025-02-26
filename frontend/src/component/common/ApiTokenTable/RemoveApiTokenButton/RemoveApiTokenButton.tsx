@@ -1,6 +1,6 @@
-import { Delete } from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
 import { styled } from '@mui/material';
-import { IApiToken } from 'hooks/api/getters/useApiTokens/useApiTokens';
+import type { IApiToken } from 'hooks/api/getters/useApiTokens/useApiTokens';
 import { useState } from 'react';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import useToast from 'hooks/useToast';
@@ -34,7 +34,7 @@ export const RemoveApiTokenButton = ({
 
             setToastData({
                 type: 'success',
-                title: 'API token removed',
+                text: 'API token removed',
             });
         } catch (error: unknown) {
             setToastApiError(formatUnknownError(error));
@@ -48,7 +48,7 @@ export const RemoveApiTokenButton = ({
                 projectId={project}
                 tooltipProps={{ title: 'Delete token', arrow: true }}
                 onClick={() => setOpen(true)}
-                size="large"
+                size='large'
             >
                 <Delete />
             </PermissionIconButton>
@@ -56,7 +56,7 @@ export const RemoveApiTokenButton = ({
                 open={open}
                 onClick={onRemoveToken}
                 onClose={() => setOpen(false)}
-                title="Confirm deletion"
+                title='Confirm deletion'
             >
                 <div>
                     Are you sure you want to delete the following API token?
@@ -68,6 +68,10 @@ export const RemoveApiTokenButton = ({
                         </li>
                         <li>
                             <strong>type</strong>: <code>{token.type}</code>
+                        </li>
+                        <li>
+                            <strong>environment</strong>:{' '}
+                            <code>{token.environment}</code>
                         </li>
                     </StyledUl>
                 </div>

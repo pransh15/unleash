@@ -1,13 +1,14 @@
-import { IFeatureToggle } from 'interfaces/featureToggle';
+import type { IFeatureToggle } from 'interfaces/featureToggle';
 import { useContext, useState } from 'react';
 import { Button, Chip, Divider, styled } from '@mui/material';
 import useFeatureTags from 'hooks/api/getters/useFeatureTags/useFeatureTags';
-import { Add, Cancel } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import Cancel from '@mui/icons-material/Cancel';
 import { ManageTagsDialog } from 'component/feature/FeatureView/FeatureOverview/ManageTagsDialog/ManageTagsDialog';
 import { UPDATE_FEATURE } from 'component/providers/AccessProvider/permissions';
 import AccessContext from 'contexts/AccessContext';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
-import { ITag } from 'interfaces/tags';
+import type { ITag } from 'interfaces/tags';
 import useFeatureApi from 'hooks/api/actions/useFeatureApi/useFeatureApi';
 import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
@@ -65,13 +66,12 @@ export const FeatureOverviewSidePanelTags = ({
             await deleteTagFromFeature(
                 feature.name,
                 selectedTag.type,
-                selectedTag.value
+                selectedTag.value,
             );
             refetch();
             setToastData({
                 type: 'success',
-                title: 'Tag deleted',
-                text: 'Successfully deleted tag',
+                text: 'Tag deleted',
             });
         } catch (error: unknown) {
             setToastApiError(formatUnknownError(error));
@@ -82,13 +82,13 @@ export const FeatureOverviewSidePanelTags = ({
         <StyledContainer>
             {header}
             <StyledTagContainer>
-                {tags.map(tag => {
+                {tags.map((tag) => {
                     const tagLabel = `${tag.type}:${tag.value}`;
                     return (
                         <StyledChip
                             key={tagLabel}
                             label={tagLabel}
-                            deleteIcon={<Cancel titleAccess="Remove" />}
+                            deleteIcon={<Cancel titleAccess='Remove' />}
                             onDelete={
                                 canUpdateTags
                                     ? () => {
@@ -111,7 +111,7 @@ export const FeatureOverviewSidePanelTags = ({
                         />
                         <StyledButton
                             data-loading
-                            variant="outlined"
+                            variant='outlined'
                             startIcon={<Add />}
                             onClick={() => setOpenTagDialog(true)}
                         >
@@ -123,8 +123,8 @@ export const FeatureOverviewSidePanelTags = ({
             <ManageTagsDialog open={openTagDialog} setOpen={setOpenTagDialog} />
             <Dialogue
                 open={showDelDialog}
-                primaryButtonText="Delete tag"
-                secondaryButtonText="Cancel"
+                primaryButtonText='Delete tag'
+                secondaryButtonText='Cancel'
                 onClose={() => {
                     setShowDelDialog(false);
                     setSelectedTag(undefined);
@@ -134,7 +134,7 @@ export const FeatureOverviewSidePanelTags = ({
                     handleDelete();
                     setSelectedTag(undefined);
                 }}
-                title="Delete tag?"
+                title='Delete tag?'
             >
                 You are about to delete tag:{' '}
                 <strong>

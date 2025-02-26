@@ -2,22 +2,40 @@ import { mutate } from 'swr';
 import { useCallback } from 'react';
 import { formatApiPath } from 'utils/formatPath';
 import handleErrorResponses from '../httpErrorResponseHandler';
-import { IFeatureStrategy } from 'interfaces/strategy';
+import type { IFeatureStrategy } from 'interfaces/strategy';
 import { useConditionalSWR } from '../useConditionalSWR/useConditionalSWR';
+
+export type ChangeRequestInfo = { id: number; title: string | null };
+export type ChangeRequestNewStrategy = {
+    projectId: string;
+    featureName: string;
+    strategyName: string;
+    environment: string;
+    changeRequest: ChangeRequestInfo;
+};
+
+export type ChangeRequestUpdatedStrategy = ChangeRequestNewStrategy & {
+    id: string;
+};
+
+export type ChangeRequestStrategy =
+    | ChangeRequestNewStrategy
+    | ChangeRequestUpdatedStrategy;
 
 export interface IUseStrategiesBySegmentOutput {
     strategies: IFeatureStrategy[];
+    changeRequestStrategies: ChangeRequestStrategy[];
     refetchUsedSegments: () => void;
     loading: boolean;
     error?: Error;
 }
 
 export const useStrategiesBySegment = (
-    id?: string | number
+    id?: string | number,
 ): IUseStrategiesBySegmentOutput => {
     const path = formatApiPath(`api/admin/segments/${id}/strategies`);
     const { data, error } = useConditionalSWR(id, [], path, () =>
-        fetchUsedSegment(path)
+        fetchUsedSegment(path),
     );
 
     const refetchUsedSegments = useCallback(() => {
@@ -26,6 +44,7 @@ export const useStrategiesBySegment = (
 
     return {
         strategies: data?.strategies || [],
+        changeRequestStrategies: data?.changeRequestStrategies || [],
         refetchUsedSegments,
         loading: !error && !data,
         error,
@@ -35,5 +54,5 @@ export const useStrategiesBySegment = (
 const fetchUsedSegment = (path: string) => {
     return fetch(path, { method: 'GET' })
         .then(handleErrorResponses('Strategies by segment'))
-        .then(res => res.json());
+        .then((res) => res.json());
 };

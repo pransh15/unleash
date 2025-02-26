@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import {
     Button,
     FormControlLabel,
@@ -7,7 +8,6 @@ import {
     TextField,
 } from '@mui/material';
 import { Alert } from '@mui/material';
-import { PageContent } from 'component/common/PageContent/PageContent';
 import { AutoCreateForm } from '../AutoCreateForm/AutoCreateForm';
 import useToast from 'hooks/useToast';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
@@ -16,11 +16,14 @@ import useAuthSettingsApi from 'hooks/api/actions/useAuthSettingsApi/useAuthSett
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { removeEmptyStringFields } from 'utils/removeEmptyStringFields';
 import { SsoGroupSettings } from '../SsoGroupSettings';
+import type { IRole } from 'interfaces/role';
+import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 
 const initialState = {
     enabled: false,
     autoCreate: false,
     enableGroupSyncing: false,
+    addGroupsScope: false,
     unleashHostname: location.hostname,
     entityId: '',
     signOnUrl: '',
@@ -30,10 +33,16 @@ const initialState = {
     groupJsonPath: '',
 };
 
+type State = typeof initialState & {
+    defaultRootRole?: string;
+    defaultRootRoleId?: number;
+};
+
 export const SamlAuth = () => {
     const { setToastData, setToastApiError } = useToast();
     const { uiConfig } = useUiConfig();
-    const [data, setData] = useState(initialState);
+    const { samlConfiguredThroughEnv } = uiConfig;
+    const [data, setData] = useState<State>(initialState);
     const { config } = useAuthSettings('saml');
     const { updateSettings, errors, loading } = useAuthSettingsApi('saml');
 
@@ -47,14 +56,29 @@ export const SamlAuth = () => {
         setValue(event.target.name, event.target.value);
     };
 
+    const trimAndUpdateField = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setValue(event.target.name, event.target.value.trim());
+    };
+
     const updateEnabled = () => {
         setData({ ...data, enabled: !data.enabled });
     };
 
-    const setValue = (name: string, value: string | boolean) => {
+    const setValue = (
+        name: string,
+        value: string | boolean | number | undefined,
+    ) => {
         setData({
             ...data,
             [name]: value,
+        });
+    };
+
+    const onUpdateRole = (role: IRole | null) => {
+        setData({
+            ...data,
+            defaultRootRole: undefined,
+            defaultRootRoleId: role?.id,
         });
     };
 
@@ -64,7 +88,7 @@ export const SamlAuth = () => {
         try {
             await updateSettings(removeEmptyStringFields(data));
             setToastData({
-                title: 'Settings stored',
+                text: 'Settings stored',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -73,20 +97,39 @@ export const SamlAuth = () => {
     };
 
     return (
-        <PageContent>
+        <>
             <Grid container sx={{ mb: 3 }}>
                 <Grid item md={12}>
-                    <Alert severity="info">
+                    <ConditionallyRender
+                        condition={Boolean(samlConfiguredThroughEnv)}
+                        show={
+                            <Alert sx={{ mb: 2 }} severity='warning'>
+                                SAML is currently configured via environment
+                                variables. Please refer to the{' '}
+                                <a
+                                    href='https://www.unleash-hosted.com/docs/enterprise-authentication'
+                                    target='_blank'
+                                    rel='noreferrer'
+                                >
+                                    documentation
+                                </a>{' '}
+                                for detailed instructions on how to set up SAML
+                                using these variables.
+                            </Alert>
+                        }
+                    />
+                    <Alert severity='info'>
                         Please read the{' '}
                         <a
-                            href="https://www.unleash-hosted.com/docs/enterprise-authentication"
-                            target="_blank"
-                            rel="noreferrer"
+                            href='https://www.unleash-hosted.com/docs/enterprise-authentication'
+                            target='_blank'
+                            rel='noreferrer'
                         >
                             documentation
                         </a>{' '}
                         to learn how to integrate with specific SAML 2.0
-                        providers (Okta, Keycloak, etc). <br />
+                        providers (such as Okta, Keycloak, and Microsoft Entra
+                        ID). <br />
                         Callback URL:{' '}
                         <code>{uiConfig.unleashUrl}/auth/saml/callback</code>
                     </Alert>
@@ -104,8 +147,9 @@ export const SamlAuth = () => {
                                 <Switch
                                     onChange={updateEnabled}
                                     value={data.enabled}
-                                    name="enabled"
+                                    name='enabled'
                                     checked={data.enabled}
+                                    disabled={samlConfiguredThroughEnv}
                                 />
                             }
                             label={data.enabled ? 'Enabled' : 'Disabled'}
@@ -119,14 +163,14 @@ export const SamlAuth = () => {
                     </Grid>
                     <Grid item md={6}>
                         <TextField
-                            onChange={updateField}
-                            label="Entity ID"
-                            name="entityId"
+                            onChange={trimAndUpdateField}
+                            label='Entity ID'
+                            name='entityId'
                             value={data.entityId}
-                            disabled={!data.enabled}
+                            disabled={!data.enabled || samlConfiguredThroughEnv}
                             style={{ width: '400px' }}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                             required
                         />
                     </Grid>
@@ -141,14 +185,14 @@ export const SamlAuth = () => {
                     </Grid>
                     <Grid item md={6}>
                         <TextField
-                            onChange={updateField}
-                            label="Single Sign-On URL"
-                            name="signOnUrl"
+                            onChange={trimAndUpdateField}
+                            label='Single Sign-On URL'
+                            name='signOnUrl'
                             value={data.signOnUrl}
-                            disabled={!data.enabled}
+                            disabled={!data.enabled || samlConfiguredThroughEnv}
                             style={{ width: '400px' }}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                             required
                         />
                     </Grid>
@@ -164,10 +208,10 @@ export const SamlAuth = () => {
                     <Grid item md={7}>
                         <TextField
                             onChange={updateField}
-                            label="X.509 Certificate"
-                            name="certificate"
+                            label='X.509 Certificate'
+                            name='certificate'
                             value={data.certificate}
-                            disabled={!data.enabled}
+                            disabled={!data.enabled || samlConfiguredThroughEnv}
                             style={{ width: '100%' }}
                             InputProps={{
                                 style: {
@@ -178,8 +222,8 @@ export const SamlAuth = () => {
                             multiline
                             rows={14}
                             maxRows={14}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                             required
                         />
                     </Grid>
@@ -195,14 +239,14 @@ export const SamlAuth = () => {
                     </Grid>
                     <Grid item md={6}>
                         <TextField
-                            onChange={updateField}
-                            label="Single Sign-out URL"
-                            name="signOutUrl"
+                            onChange={trimAndUpdateField}
+                            label='Single Sign-out URL'
+                            name='signOutUrl'
                             value={data.signOutUrl}
-                            disabled={!data.enabled}
+                            disabled={!data.enabled || samlConfiguredThroughEnv}
                             style={{ width: '400px' }}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                         />
                     </Grid>
                 </Grid>
@@ -219,10 +263,10 @@ export const SamlAuth = () => {
                     <Grid item md={7}>
                         <TextField
                             onChange={updateField}
-                            label="X.509 Certificate"
-                            name="spCertificate"
+                            label='X.509 Certificate'
+                            name='spCertificate'
                             value={data.spCertificate}
-                            disabled={!data.enabled}
+                            disabled={!data.enabled || samlConfiguredThroughEnv}
                             style={{ width: '100%' }}
                             InputProps={{
                                 style: {
@@ -233,26 +277,32 @@ export const SamlAuth = () => {
                             multiline
                             rows={14}
                             maxRows={14}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                         />
                     </Grid>
                 </Grid>
 
                 <SsoGroupSettings
-                    ssoType="SAML"
+                    ssoType='SAML'
                     data={data}
                     setValue={setValue}
+                    disabled={samlConfiguredThroughEnv}
                 />
 
-                <AutoCreateForm data={data} setValue={setValue} />
+                <AutoCreateForm
+                    data={data}
+                    setValue={setValue}
+                    onUpdateRole={onUpdateRole}
+                    disabled={samlConfiguredThroughEnv}
+                />
                 <Grid container spacing={3}>
                     <Grid item md={5}>
                         <Button
-                            variant="contained"
-                            color="primary"
-                            type="submit"
-                            disabled={loading}
+                            variant='contained'
+                            color='primary'
+                            type='submit'
+                            disabled={loading || samlConfiguredThroughEnv}
                         >
                             Save
                         </Button>{' '}
@@ -264,6 +314,6 @@ export const SamlAuth = () => {
                     </Grid>
                 </Grid>
             </form>
-        </PageContent>
+        </>
     );
 };

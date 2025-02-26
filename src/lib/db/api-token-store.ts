@@ -1,17 +1,19 @@
-import { EventEmitter } from 'events';
+import type { EventEmitter } from 'events';
 import metricsHelper from '../util/metrics-helper';
 import { DB_TIME } from '../metric-events';
-import { Logger, LogProvider } from '../logger';
+import type { Logger, LogProvider } from '../logger';
 import NotFoundError from '../error/notfound-error';
-import { IApiTokenStore } from '../types/stores/api-token-store';
+import type { IApiTokenStore } from '../types/stores/api-token-store';
 import {
     ApiTokenType,
-    IApiToken,
-    IApiTokenCreate,
+    type IApiToken,
+    type IApiTokenCreate,
     isAllProjects,
 } from '../types/models/api-token';
 import { ALL_PROJECTS } from '../util/constants';
-import { Db } from './db';
+import type { Db } from './db';
+import { inTransaction } from './transaction';
+import type { IFlagResolver } from '../types';
 
 const TABLE = 'api_tokens';
 const API_LINK_TABLE = 'api_token_project';
@@ -85,7 +87,14 @@ export class ApiTokenStore implements IApiTokenStore {
 
     private db: Db;
 
-    constructor(db: Db, eventBus: EventEmitter, getLogger: LogProvider) {
+    private readonly flagResolver: IFlagResolver;
+
+    constructor(
+        db: Db,
+        eventBus: EventEmitter,
+        getLogger: LogProvider,
+        flagResolver: IFlagResolver,
+    ) {
         this.db = db;
         this.logger = getLogger('api-tokens.js');
         this.timer = (action: string) =>
@@ -93,12 +102,37 @@ export class ApiTokenStore implements IApiTokenStore {
                 store: 'api-tokens',
                 action,
             });
+        this.flagResolver = flagResolver;
     }
 
-    count(): Promise<number> {
+    // helper function that we can move to utils
+    async withTimer<T>(timerName: string, fn: () => Promise<T>): Promise<T> {
+        const stopTimer = this.timer(timerName);
+        try {
+            return await fn();
+        } finally {
+            stopTimer();
+        }
+    }
+
+    async count(): Promise<number> {
         return this.db(TABLE)
             .count('*')
             .then((res) => Number(res[0].count));
+    }
+
+    async countByType(): Promise<Map<string, number>> {
+        return this.db(TABLE)
+            .select('type')
+            .count('*')
+            .groupBy('type')
+            .then((res) => {
+                const map = new Map<string, number>();
+                res.forEach((row) => {
+                    map.set(row.type.toString(), Number(row.count));
+                });
+                return map;
+            });
     }
 
     async getAll(): Promise<IApiToken[]> {
@@ -139,7 +173,7 @@ export class ApiTokenStore implements IApiTokenStore {
     }
 
     async insert(newToken: IApiTokenCreate): Promise<IApiToken> {
-        const response = await this.db.transaction(async (tx) => {
+        const response = await inTransaction(this.db, async (tx) => {
             const [row] = await tx<ITokenInsert>(TABLE).insert(
                 toRow(newToken),
                 ['created_at'],
@@ -179,10 +213,12 @@ export class ApiTokenStore implements IApiTokenStore {
     }
 
     async get(key: string): Promise<IApiToken> {
+        const stopTimer = this.timer('get-by-secret');
         const row = await this.makeTokenProjectQuery().where(
             'tokens.secret',
             key,
         );
+        stopTimer();
         return toTokens(row)[0];
     }
 
@@ -214,5 +250,88 @@ export class ApiTokenStore implements IApiTokenStore {
         } catch (err) {
             this.logger.error('Could not update lastSeen, error: ', err);
         }
+    }
+
+    async countDeprecatedTokens(): Promise<{
+        orphanedTokens: number;
+        activeOrphanedTokens: number;
+        legacyTokens: number;
+        activeLegacyTokens: number;
+    }> {
+        const allLegacyCount = this.withTimer('allLegacyCount', () =>
+            this.db<ITokenRow>(`${TABLE} as tokens`)
+                .where('tokens.secret', 'NOT LIKE', '%:%')
+                .count()
+                .first()
+                .then((res) => Number(res?.count) || 0),
+        );
+
+        const activeLegacyCount = this.withTimer('activeLegacyCount', () =>
+            this.db<ITokenRow>(`${TABLE} as tokens`)
+                .where('tokens.secret', 'NOT LIKE', '%:%')
+                .andWhereRaw("tokens.seen_at > NOW() - INTERVAL '3 MONTH'")
+                .count()
+                .first()
+                .then((res) => Number(res?.count) || 0),
+        );
+
+        const orphanedTokensQuery = this.db<ITokenRow>(`${TABLE} as tokens`)
+            .leftJoin(
+                `${API_LINK_TABLE} as token_project_link`,
+                'tokens.secret',
+                'token_project_link.secret',
+            )
+            .whereNull('token_project_link.project')
+            .andWhere('tokens.secret', 'NOT LIKE', '*:%') // Exclude intentionally wildcard tokens
+            .andWhere('tokens.secret', 'LIKE', '%:%') // Exclude legacy tokens
+            .andWhere((builder) => {
+                builder
+                    .where('tokens.type', ApiTokenType.CLIENT)
+                    .orWhere('tokens.type', ApiTokenType.FRONTEND);
+            });
+
+        const allOrphanedCount = this.withTimer('allOrphanedCount', () =>
+            orphanedTokensQuery
+                .clone()
+                .count()
+                .first()
+                .then((res) => Number(res?.count) || 0),
+        );
+
+        const activeOrphanedCount = this.withTimer('activeOrphanedCount', () =>
+            orphanedTokensQuery
+                .clone()
+                .andWhereRaw("tokens.seen_at > NOW() - INTERVAL '3 MONTH'")
+                .count()
+                .first()
+                .then((res) => Number(res?.count) || 0),
+        );
+
+        const [
+            orphanedTokens,
+            activeOrphanedTokens,
+            legacyTokens,
+            activeLegacyTokens,
+        ] = await Promise.all([
+            allOrphanedCount,
+            activeOrphanedCount,
+            allLegacyCount,
+            activeLegacyCount,
+        ]);
+
+        return {
+            orphanedTokens,
+            activeOrphanedTokens,
+            legacyTokens,
+            activeLegacyTokens,
+        };
+    }
+
+    async countProjectTokens(projectId: string): Promise<number> {
+        const count = await this.db(API_LINK_TABLE)
+            .where({ project: projectId })
+            .count()
+            .first();
+        return Number(count?.count ?? 0);
     }
 }

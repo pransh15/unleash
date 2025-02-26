@@ -8,10 +8,13 @@
  * User feedback information to be updated.
  */
 export interface FeedbackUpdateSchema {
-    /** The ID of the user that gave the feedback. */
-    userId?: number;
+    /**
+     * When this feedback was given
+     * @nullable
+     */
+    given?: string | null;
     /** `true` if the user has asked never to see this feedback questionnaire again. */
     neverShow?: boolean;
-    /** When this feedback was given */
-    given?: string | null;
+    /** The ID of the user that gave the feedback. */
+    userId?: number;
 }

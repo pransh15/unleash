@@ -1,6 +1,6 @@
 import { Box, styled, Tooltip } from '@mui/material';
-import { HelpOutline } from '@mui/icons-material';
-import { FC } from 'react';
+import HelpOutline from '@mui/icons-material/HelpOutline';
+import type { FC } from 'react';
 import { PageHeader } from '../../../common/PageHeader/PageHeader';
 
 const StyledHelpOutline = styled(HelpOutline)(({ theme }) => ({
@@ -27,7 +27,7 @@ export const ReviewChangesHeader: FC = () => (
                 >
                     Review your changes
                     <Tooltip
-                        title="Here you can see all the changes that you are suggesting and you can send them for review. You can still discard the changes after you sent them for review or even cancel the entire review if you need it"
+                        title='Here you can see all the changes that you are suggesting and you can send them for review. You can still discard the changes after you sent them for review or even cancel the entire review if you need it'
                         arrow
                     >
                         <StyledHelpOutline />

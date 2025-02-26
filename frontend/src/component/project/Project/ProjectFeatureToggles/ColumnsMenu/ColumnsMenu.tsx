@@ -1,4 +1,4 @@
-import { useEffect, useState, VFC } from 'react';
+import { useEffect, useState, type VFC } from 'react';
 import {
     IconButton,
     ListItemIcon,
@@ -34,11 +34,8 @@ interface IColumnsMenuProps {
     dividerBefore?: string[];
     dividerAfter?: string[];
     isCustomized?: boolean;
-    setHiddenColumns: (
-        hiddenColumns:
-            | string[]
-            | ((previousHiddenColumns: string[]) => string[])
-    ) => void;
+    setHiddenColumns: (hiddenColumns: string[]) => void;
+    onCustomize?: () => void;
 }
 
 const columnNameMap: Record<string, string> = {
@@ -51,6 +48,7 @@ export const ColumnsMenu: VFC<IColumnsMenuProps> = ({
     dividerBefore = [],
     dividerAfter = [],
     isCustomized = false,
+    onCustomize,
     setHiddenColumns,
 }) => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -66,17 +64,17 @@ export const ColumnsMenu: VFC<IColumnsMenuProps> = ({
 
         const setVisibleColumns = (
             columns: string[],
-            environmentsToShow: number = 0
+            environmentsToShow: number = 0,
         ) => {
             const visibleEnvColumns = allColumns
-                .filter(({ id }) => id.startsWith('environments.') !== false)
+                .filter(({ id }) => id.startsWith('environment:') !== false)
                 .map(({ id }) => id)
                 .slice(0, environmentsToShow);
             const hiddenColumns = allColumns
                 .map(({ id }) => id)
-                .filter(id => !columns.includes(id))
-                .filter(id => !staticColumns.includes(id))
-                .filter(id => !visibleEnvColumns.includes(id));
+                .filter((id) => !columns.includes(id))
+                .filter((id) => !staticColumns.includes(id))
+                .filter((id) => !visibleEnvColumns.includes(id));
             setHiddenColumns(hiddenColumns);
         };
 
@@ -107,15 +105,15 @@ export const ColumnsMenu: VFC<IColumnsMenuProps> = ({
 
     return (
         <StyledBoxContainer>
-            <Tooltip title="Select columns" arrow describeChild>
+            <Tooltip title='Select columns' arrow describeChild>
                 <StyledIconButton
                     id={id}
                     aria-controls={isOpen ? menuId : undefined}
-                    aria-haspopup="true"
+                    aria-haspopup='true'
                     aria-expanded={isOpen ? 'true' : undefined}
                     onClick={handleClick}
-                    type="button"
-                    size="large"
+                    type='button'
+                    size='large'
                     data-loading
                 >
                     <ColumnIcon />
@@ -137,14 +135,14 @@ export const ColumnsMenu: VFC<IColumnsMenuProps> = ({
                 }}
                 disableScrollLock={true}
                 PaperProps={{
-                    sx: theme => ({
+                    sx: (theme) => ({
                         borderRadius: theme.shape.borderRadius,
                         paddingBottom: theme.spacing(2),
                     }),
                 }}
             >
                 <StyledBoxMenuHeader>
-                    <Typography variant="body2">
+                    <Typography variant='body2'>
                         <strong>Columns</strong>
                     </Typography>
                     <IconButton onClick={handleClose}>
@@ -154,45 +152,49 @@ export const ColumnsMenu: VFC<IColumnsMenuProps> = ({
                 <MenuList>
                     {allColumns
                         .filter(({ hideInMenu }) => !hideInMenu)
-                        .map(column => [
+                        .map((column) => [
                             <ConditionallyRender
                                 condition={dividerBefore.includes(column.id)}
                                 show={<StyledDivider />}
                             />,
                             <StyledMenuItem
-                                onClick={() =>
-                                    column.toggleHidden(column.isVisible)
-                                }
+                                onClick={() => {
+                                    column.toggleHidden(column.isVisible);
+                                    onCustomize?.();
+                                }}
                                 disabled={staticColumns.includes(column.id)}
                             >
                                 <ListItemIcon>
                                     <StyledCheckbox
-                                        edge="start"
+                                        edge='start'
                                         checked={column.isVisible}
                                         disableRipple
                                         inputProps={{
                                             'aria-labelledby': column.id,
                                         }}
-                                        size="medium"
+                                        size='medium'
                                     />
                                 </ListItemIcon>
                                 <ListItemText
                                     id={column.id}
                                     primary={
-                                        <Typography variant="body2">
+                                        <Typography variant='body2'>
                                             <ConditionallyRender
                                                 condition={Boolean(
                                                     typeof column.Header ===
                                                         'string' &&
-                                                        column.Header
+                                                        column.Header,
                                                 )}
                                                 show={() => (
                                                     <>{column.Header}</>
                                                 )}
-                                                elseShow={() =>
-                                                    columnNameMap[column.id] ||
-                                                    column.id
-                                                }
+                                                elseShow={() => (
+                                                    <>
+                                                        {columnNameMap[
+                                                            column.id
+                                                        ] || column.id}
+                                                    </>
+                                                )}
                                             />
                                         </Typography>
                                     }

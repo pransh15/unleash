@@ -1,4 +1,4 @@
-import { useState, VFC } from 'react';
+import { useState, type VFC } from 'react';
 import {
     Box,
     IconButton,
@@ -14,6 +14,8 @@ import {
 import { Link as RouterLink } from 'react-router-dom';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import FileCopyIcon from '@mui/icons-material/FileCopy';
+import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
+import CheckIcon from '@mui/icons-material/Check';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import WatchLaterIcon from '@mui/icons-material/WatchLater';
 import { PermissionHOC } from 'component/common/PermissionHOC/PermissionHOC';
@@ -23,6 +25,8 @@ import {
     UPDATE_FEATURE,
 } from 'component/providers/AccessProvider/permissions';
 import { defaultBorderRadius } from 'themes/themeStyles';
+import copy from 'copy-to-clipboard';
+import useToast from 'hooks/useToast';
 
 const StyledBoxCell = styled(Box)(({ theme }) => ({
     display: 'flex',
@@ -49,6 +53,8 @@ export const ActionsCell: VFC<IActionsCellProps> = ({
     onOpenStaleDialog,
 }) => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [isFeatureNameCopied, setIsFeatureNameCopied] = useState(false);
+    const { setToastData } = useToast();
     const {
         original: { name: featureId, stale },
     } = row;
@@ -63,16 +69,34 @@ export const ActionsCell: VFC<IActionsCellProps> = ({
     const id = `feature-${featureId}-actions`;
     const menuId = `${id}-menu`;
 
+    const handleCopyToClipboard = () => {
+        try {
+            copy(featureId);
+            setIsFeatureNameCopied(true);
+
+            setTimeout(() => {
+                handleClose();
+                setIsFeatureNameCopied(false);
+            }, 1000);
+        } catch (error: unknown) {
+            setToastData({
+                type: 'error',
+                text: 'Could not copy feature name',
+            });
+        }
+    };
+
     return (
         <StyledBoxCell>
-            <Tooltip title="Feature toggle actions" arrow describeChild>
+            <Tooltip title='Feature flag actions' arrow describeChild>
                 <IconButton
                     id={id}
+                    data-loading
                     aria-controls={open ? menuId : undefined}
-                    aria-haspopup="true"
+                    aria-haspopup='true'
                     aria-expanded={open ? 'true' : undefined}
                     onClick={handleClick}
-                    type="button"
+                    type='button'
                 >
                     <MoreVertIcon />
                 </IconButton>
@@ -86,13 +110,30 @@ export const ActionsCell: VFC<IActionsCellProps> = ({
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 disableScrollLock={true}
                 PaperProps={{
-                    sx: theme => ({
+                    sx: (theme) => ({
                         borderRadius: `${theme.shape.borderRadius}px`,
                         padding: theme.spacing(1, 1.5),
                     }),
                 }}
             >
                 <MenuList aria-labelledby={id}>
+                    <MenuItem
+                        sx={defaultBorderRadius}
+                        onClick={handleCopyToClipboard}
+                    >
+                        <ListItemIcon>
+                            {isFeatureNameCopied ? (
+                                <CheckIcon />
+                            ) : (
+                                <FileCopyIcon />
+                            )}
+                        </ListItemIcon>
+                        <ListItemText>
+                            <Typography variant='body2'>
+                                {isFeatureNameCopied ? 'Copied!' : 'Copy Name'}
+                            </Typography>
+                        </ListItemText>
+                    </MenuItem>
                     <PermissionHOC
                         projectId={projectId}
                         permission={CREATE_FEATURE}
@@ -103,14 +144,14 @@ export const ActionsCell: VFC<IActionsCellProps> = ({
                                 onClick={handleClose}
                                 disabled={!hasAccess}
                                 component={RouterLink}
-                                to={`/projects/${projectId}/features/${featureId}/strategies/copy`}
+                                to={`/projects/${projectId}/features/${featureId}/copy`}
                             >
                                 <ListItemIcon>
-                                    <FileCopyIcon />
+                                    <LibraryAddIcon />
                                 </ListItemIcon>
                                 <ListItemText>
-                                    <Typography variant="body2">
-                                        Copy
+                                    <Typography variant='body2'>
+                                        Clone
                                     </Typography>
                                 </ListItemText>
                             </MenuItem>
@@ -133,7 +174,7 @@ export const ActionsCell: VFC<IActionsCellProps> = ({
                                     <ArchiveIcon />
                                 </ListItemIcon>
                                 <ListItemText>
-                                    <Typography variant="body2">
+                                    <Typography variant='body2'>
                                         Archive
                                     </Typography>
                                 </ListItemText>
@@ -160,7 +201,7 @@ export const ActionsCell: VFC<IActionsCellProps> = ({
                                     <WatchLaterIcon />
                                 </ListItemIcon>
                                 <ListItemText>
-                                    <Typography variant="body2">
+                                    <Typography variant='body2'>
                                         {stale ? 'Un-mark' : 'Mark'} as stale
                                     </Typography>
                                 </ListItemText>

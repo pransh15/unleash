@@ -10,12 +10,20 @@ import type { PlaygroundFeatureSchemaVariantPayload } from './playgroundFeatureS
                           variant_. If a feature is disabled or doesn't have any
                           variants, you would get the _disabled variant_.
                           Otherwise, you'll get one of thefeature's defined variants.
+ * @nullable
  */
 export type PlaygroundFeatureSchemaVariant = {
-    /** The variant's name. If there is no variant or if the toggle is disabled, this will be `disabled` */
-    name: string;
     /** Whether the variant is enabled or not. If the feature is disabled or if it doesn't have variants, this property will be `false` */
     enabled: boolean;
+    /** Use `featureEnabled` instead. */
+    feature_enabled?: boolean;
+    /**
+     * Whether the feature is enabled or not.
+     * @deprecated
+     */
+    featureEnabled?: boolean;
+    /** The variant's name. If there is no variant or if the flag is disabled, this will be `disabled` */
+    name: string;
     /** An optional payload attached to the variant. */
     payload?: PlaygroundFeatureSchemaVariantPayload;
 } | null;

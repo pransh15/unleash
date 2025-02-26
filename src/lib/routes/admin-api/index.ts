@@ -1,26 +1,25 @@
 import Controller from '../controller';
-import { IUnleashServices, IUnleashConfig } from '../../types';
-import FeatureController from './feature';
+import type { IUnleashServices, IUnleashConfig } from '../../types';
+import FeatureController from '../../features/feature-toggle/legacy/feature-toggle-legacy-controller';
 import { FeatureTypeController } from './feature-type';
-import ArchiveController from './archive';
+import ArchiveController from '../../features/feature-toggle/archive-feature-toggle-controller';
 import StrategyController from './strategy';
 import EventController from './event';
 import PlaygroundController from '../../features/playground/playground';
 import MetricsController from './metrics';
 import UserController from './user/user';
 import ConfigController from './config';
-import { ContextController } from './context';
-import ClientMetricsController from './client-metrics';
-import StateController from './state';
+import { ContextController } from '../../features/context/context';
+import ClientMetricsController from '../../features/metrics/client-metrics/client-metrics';
 import TagController from './tag';
-import TagTypeController from './tag-type';
+import TagTypeController from '../../features/tag-type/tag-type';
 import AddonController from './addon';
 import { ApiTokenController } from './api-token';
 import UserAdminController from './user-admin';
 import EmailController from './email';
 import UserFeedbackController from './user-feedback';
 import UserSplashController from './user-splash';
-import ProjectApi from './project';
+import ProjectController from '../../features/project/project-controller';
 import { EnvironmentsController } from './environments';
 import ConstraintsController from './constraints';
 import PatController from './user/pat';
@@ -28,12 +27,17 @@ import { PublicSignupController } from './public-signup';
 import InstanceAdminController from './instance-admin';
 import TelemetryController from './telemetry';
 import FavoritesController from './favorites';
-import MaintenanceController from './maintenance';
+import MaintenanceController from '../../features/maintenance/maintenance-controller';
 import { createKnexTransactionStarter } from '../../db/transaction';
-import { Db } from '../../db/db';
+import type { Db } from '../../db/db';
 import ExportImportController from '../../features/export-import-toggles/export-import-controller';
+import { SegmentsController } from '../../features/segment/segment-controller';
+import { InactiveUsersController } from '../../users/inactive/inactive-users-controller';
+import { UiObservabilityController } from '../../features/ui-observability-controller/ui-observability-controller';
+import { SearchApi } from './search';
+import PersonalDashboardController from '../../features/personal-dashboard/personal-dashboard-controller';
 
-class AdminApi extends Controller {
+export class AdminApi extends Controller {
     constructor(config: IUnleashConfig, services: IUnleashServices, db: Db) {
         super(config);
 
@@ -48,13 +52,17 @@ class AdminApi extends Controller {
         );
         this.app.use(
             '/archive',
-            new ArchiveController(config, services).router,
+            new ArchiveController(
+                config,
+                services,
+                createKnexTransactionStarter(db),
+            ).router,
         );
         this.app.use(
             '/strategies',
             new StrategyController(config, services).router,
         );
-        this.app.use('/events', new EventController(config, services).router);
+        this.app.use('', new EventController(config, services).router);
         this.app.use(
             '/playground',
             new PlaygroundController(config, services).router,
@@ -72,6 +80,7 @@ class AdminApi extends Controller {
             '/user/tokens',
             new PatController(config, services).router,
         );
+
         this.app.use(
             '/ui-config',
             new ConfigController(config, services).router,
@@ -80,14 +89,9 @@ class AdminApi extends Controller {
             '/context',
             new ContextController(config, services).router,
         );
-        this.app.use('/state', new StateController(config, services).router);
         this.app.use(
             '/features-batch',
-            new ExportImportController(
-                config,
-                services,
-                createKnexTransactionStarter(db),
-            ).router,
+            new ExportImportController(config, services).router,
         );
         this.app.use('/tags', new TagController(config, services).router);
         this.app.use(
@@ -101,14 +105,26 @@ class AdminApi extends Controller {
         );
         this.app.use('/email', new EmailController(config, services).router);
         this.app.use(
+            '/user-admin/inactive',
+            new InactiveUsersController(config, services).router,
+        ); // Needs to load first, so that /api/admin/user-admin/{id} doesn't hit first
+        this.app.use(
             '/user-admin',
             new UserAdminController(config, services).router,
         );
+
         this.app.use(
             '/feedback',
             new UserFeedbackController(config, services).router,
         );
-        this.app.use('/projects', new ProjectApi(config, services, db).router);
+        this.app.use(
+            '/projects',
+            new ProjectController(config, services, db).router,
+        );
+        this.app.use(
+            '/personal-dashboard',
+            new PersonalDashboardController(config, services).router,
+        );
         this.app.use(
             '/environments',
             new EnvironmentsController(config, services).router,
@@ -133,7 +149,10 @@ class AdminApi extends Controller {
             `/projects`,
             new FavoritesController(config, services).router,
         );
-
+        this.app.use(
+            `/segments`,
+            new SegmentsController(config, services).router,
+        );
         this.app.use(
             '/maintenance',
             new MaintenanceController(config, services).router,
@@ -143,7 +162,12 @@ class AdminApi extends Controller {
             '/telemetry',
             new TelemetryController(config, services).router,
         );
+
+        this.app.use('/search', new SearchApi(config, services, db).router);
+
+        this.app.use(
+            '/record-ui-error',
+            new UiObservabilityController(config, services).router,
+        );
     }
 }
-
-module.exports = AdminApi;

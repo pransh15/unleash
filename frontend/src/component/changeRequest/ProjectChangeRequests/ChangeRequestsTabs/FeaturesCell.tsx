@@ -1,8 +1,10 @@
 import { Box, styled } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { VFC } from 'react';
-import { ConditionallyRender } from '../../../common/ConditionallyRender/ConditionallyRender';
-import { TooltipLink } from '../../../common/TooltipLink/TooltipLink';
+import type { VFC } from 'react';
+import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
+import { TooltipLink } from 'component/common/TooltipLink/TooltipLink';
+import { useSearchHighlightContext } from 'component/common/Table/SearchHighlightContext/SearchHighlightContext';
+import { Highlighter } from 'component/common/Highlighter/Highlighter';
 
 const StyledBox = styled(Box)(({ theme }) => ({
     display: 'flex',
@@ -42,6 +44,7 @@ interface FeaturesCellProps {
 }
 
 export const FeaturesCell: VFC<FeaturesCellProps> = ({ value, project }) => {
+    const { searchQuery } = useSearchHighlightContext();
     const featureNames = value?.map((feature: any) => feature.name);
     return (
         <StyledBox>
@@ -49,10 +52,13 @@ export const FeaturesCell: VFC<FeaturesCellProps> = ({ value, project }) => {
                 condition={featureNames?.length < 3}
                 show={featureNames?.map((featureName: string) => (
                     <StyledLink
+                        key={featureName}
                         title={featureName}
                         to={`/projects/${project}/features/${featureName}`}
                     >
-                        {featureName}
+                        <Highlighter search={searchQuery}>
+                            {featureName}
+                        </Highlighter>
                     </StyledLink>
                 ))}
                 elseShow={
@@ -62,10 +68,13 @@ export const FeaturesCell: VFC<FeaturesCellProps> = ({ value, project }) => {
                             <StyledTooltipContainer>
                                 {featureNames?.map((featureName: string) => (
                                     <StyledTooltipLink
+                                        key={featureName}
                                         title={featureName}
                                         to={`/projects/${project}/features/${featureName}`}
                                     >
-                                        {featureName}
+                                        <Highlighter search={searchQuery}>
+                                            {featureName}
+                                        </Highlighter>
                                     </StyledTooltipLink>
                                 ))}
                             </StyledTooltipContainer>

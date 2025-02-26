@@ -1,14 +1,15 @@
-import { ILocationSettings } from 'hooks/useLocationSettings';
+import type { ILocationSettings } from 'hooks/useLocationSettings';
 import 'chartjs-adapter-date-fns';
-import { ChartOptions, defaults } from 'chart.js';
-import { IFeatureMetricsRaw } from 'interfaces/featureToggle';
-import { formatDateHM } from 'utils/formatDate';
-import { Theme } from '@mui/material/styles/createTheme';
-import { IPoint } from './createChartData';
+import { type ChartOptions, defaults } from 'chart.js';
+import type { IFeatureMetricsRaw } from 'interfaces/featureToggle';
+import { formatDateHM, formatDateYMD, formatDateYMDHM } from 'utils/formatDate';
+import type { Theme } from '@mui/material/styles/createTheme';
+import type { IPoint } from './createChartData';
+import { daysOrHours } from '../daysOrHours';
 
 const formatVariantEntry = (
     variant: [string, number],
-    totalExposure: number
+    totalExposure: number,
 ) => {
     if (totalExposure === 0) return '';
     const [key, value] = variant;
@@ -20,7 +21,7 @@ export const createChartOptions = (
     theme: Theme,
     metrics: IFeatureMetricsRaw[],
     hoursBack: number,
-    locationSettings: ILocationSettings
+    locationSettings: ILocationSettings,
 ): ChartOptions<'line'> => {
     return {
         locale: locationSettings.locale,
@@ -48,10 +49,10 @@ export const createChartOptions = (
                     return aIndex - bIndex;
                 },
                 callbacks: {
-                    label: item => {
+                    label: (item) => {
                         return `${item.formattedValue} - ${item.dataset.label}`;
                     },
-                    afterLabel: item => {
+                    afterLabel: (item) => {
                         const data = item.dataset.data[
                             item.dataIndex
                         ] as unknown as IPoint;
@@ -64,14 +65,22 @@ export const createChartOptions = (
                         }
                         const { disabled, ...actualVariants } = data.variants;
                         return Object.entries(actualVariants)
-                            .map(entry => formatVariantEntry(entry, data.y))
+                            .map((entry) => formatVariantEntry(entry, data.y))
                             .join('\n');
                     },
-                    title: items =>
-                        `Time: ${formatDateHM(
-                            items[0].parsed.x,
-                            locationSettings.locale
-                        )}`,
+                    title: (items) =>
+                        `Time: ${
+                            hoursBack > 48
+                                ? formatDateYMDHM(
+                                      items[0].parsed.x,
+                                      locationSettings.locale,
+                                      'UTC',
+                                  )
+                                : formatDateHM(
+                                      items[0].parsed.x,
+                                      locationSettings.locale,
+                                  )
+                        }`,
                 },
             },
             legend: {
@@ -113,11 +122,20 @@ export const createChartOptions = (
             },
             x: {
                 type: 'time',
-                time: { unit: 'hour' },
+                time: { unit: hoursBack > 48 ? 'day' : 'hour' },
                 grid: { display: false },
                 ticks: {
                     callback: (_, i, data) =>
-                        formatDateHM(data[i].value, locationSettings.locale),
+                        hoursBack > 48
+                            ? formatDateYMD(
+                                  data[i].value,
+                                  locationSettings.locale,
+                                  'UTC',
+                              )
+                            : formatDateHM(
+                                  data[i].value,
+                                  locationSettings.locale,
+                              ),
                     color: theme.palette.text.secondary,
                 },
             },
@@ -128,7 +146,7 @@ export const createChartOptions = (
 const formatChartLabel = (hoursBack: number): string => {
     return hoursBack === 1
         ? 'Requests in the last hour'
-        : `Requests in the last ${hoursBack} hours`;
+        : `Requests in the last ${daysOrHours(hoursBack)}`;
 };
 
 // Set the default font for ticks, legends, tooltips, etc.

@@ -1,5 +1,5 @@
-import { IUnleashContextDefinition } from 'interfaces/context';
-import { IFeatureToggle } from 'interfaces/featureToggle';
+import type { IUnleashContextDefinition } from 'interfaces/context';
+import type { IFeatureToggle } from 'interfaces/featureToggle';
 import { formatApiPath } from 'utils/formatPath';
 
 const PROJECT = 'demo-app';
@@ -7,8 +7,8 @@ const ENVIRONMENT = 'dev';
 
 const ensureUserIdContextExists = async () => {
     const contextFields: IUnleashContextDefinition[] =
-        (await fetch(formatApiPath('api/admin/context')).then(res =>
-            res.json()
+        (await fetch(formatApiPath('api/admin/context')).then((res) =>
+            res.json(),
         )) || [];
 
     if (!contextFields.find(({ name }) => name === 'userId')) {
@@ -28,17 +28,19 @@ const ensureUserIdContextExists = async () => {
 };
 
 export const specificUser = async () => {
+    await deleteOldStrategies('demoApp.step2');
     await ensureUserIdContextExists();
 };
 
 export const gradualRollout = async () => {
+    await deleteOldStrategies('demoApp.step3');
     const featureId = 'demoApp.step3';
 
     const { environments }: IFeatureToggle = await fetch(
         formatApiPath(
-            `api/admin/projects/${PROJECT}/features/${featureId}?variantEnvironments=true`
-        )
-    ).then(res => res.json());
+            `api/admin/projects/${PROJECT}/features/${featureId}?variantEnvironments=true`,
+        ),
+    ).then((res) => res.json());
 
     const strategies =
         environments.find(({ name }) => name === ENVIRONMENT)?.strategies || [];
@@ -46,7 +48,7 @@ export const gradualRollout = async () => {
     if (!strategies.find(({ name }) => name === 'flexibleRollout')) {
         await fetch(
             formatApiPath(
-                `api/admin/projects/${PROJECT}/features/${featureId}/environments/${ENVIRONMENT}/strategies`
+                `api/admin/projects/${PROJECT}/features/${featureId}/environments/${ENVIRONMENT}/strategies`,
             ),
             {
                 method: 'POST',
@@ -62,26 +64,63 @@ export const gradualRollout = async () => {
                         groupId: featureId,
                     },
                 }),
-            }
+            },
         );
     }
 };
 
-export const variants = async () => {
-    const featureId = 'demoApp.step4';
+const deleteStrategy = (featureId: string, strategyId: string) =>
+    fetch(
+        formatApiPath(
+            `api/admin/projects/${PROJECT}/features/${featureId}/environments/${ENVIRONMENT}/strategies/${strategyId}`,
+        ),
+        { method: 'DELETE' },
+    );
 
-    await ensureUserIdContextExists();
+const deleteOldStrategies = async (featureId: string) => {
+    const results = await fetch(
+        formatApiPath(
+            `api/admin/projects/${PROJECT}/features/${featureId}/environments/${ENVIRONMENT}/strategies`,
+        ),
+    ).then((res) => res.json());
 
+    const tooGenericStrategies = results.filter(
+        (strategy: { constraints: Array<unknown>; segments: Array<unknown> }) =>
+            strategy.constraints.length === 0 && strategy.segments.length === 0,
+    );
+    const constrainedStrategies = results.filter(
+        (strategy: { constraints: Array<unknown>; segments: Array<unknown> }) =>
+            strategy.constraints.length > 0 || strategy.segments.length > 0,
+    );
+    await Promise.all(
+        tooGenericStrategies.map((result: { id: string }) =>
+            deleteStrategy(featureId, result.id),
+        ),
+    );
+
+    const strategyLimit = 25;
+    if (constrainedStrategies.length >= strategyLimit) {
+        await Promise.all(
+            constrainedStrategies
+                .slice(0, strategyLimit - 1)
+                .map((result: { id: string }) =>
+                    deleteStrategy(featureId, result.id),
+                ),
+        );
+    }
+};
+
+const ensureDefaultVariants = async (featureId: string) => {
     const { variants }: IFeatureToggle = await fetch(
         formatApiPath(
-            `api/admin/projects/${PROJECT}/features/${featureId}?variantEnvironments=true`
-        )
-    ).then(res => res.json());
+            `api/admin/projects/${PROJECT}/features/${featureId}?variantEnvironments=true`,
+        ),
+    ).then((res) => res.json());
 
     if (!variants.length) {
         await fetch(
             formatApiPath(
-                `api/admin/projects/${PROJECT}/features/${featureId}/environments/${ENVIRONMENT}/variants`
+                `api/admin/projects/${PROJECT}/features/${featureId}/environments/${ENVIRONMENT}/variants`,
             ),
             {
                 method: 'PATCH',
@@ -135,7 +174,13 @@ export const variants = async () => {
                         },
                     },
                 ]),
-            }
+            },
         );
     }
+};
+
+export const variants = async () => {
+    await deleteOldStrategies('demoApp.step4');
+    await ensureDefaultVariants('demoApp.step4');
+    await ensureUserIdContextExists();
 };

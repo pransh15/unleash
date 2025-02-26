@@ -1,19 +1,15 @@
 import { Box, styled, Typography } from '@mui/material';
-import { ProjectStatsSchema } from 'openapi/models';
+import type { ProjectStatsSchema } from 'openapi/models';
 import { HelpPopper } from './HelpPopper';
 import { StatusBox } from './StatusBox';
 
 const StyledBox = styled(Box)(({ theme }) => ({
-    padding: theme.spacing(0, 0, 2, 2),
     display: 'grid',
     gap: theme.spacing(2),
     gridTemplateColumns: 'repeat(4, 1fr)',
     flexWrap: 'wrap',
     [theme.breakpoints.down('lg')]: {
         gridTemplateColumns: 'repeat(2, 1fr)',
-    },
-    [theme.breakpoints.down('md')]: {
-        padding: theme.spacing(0, 0, 2),
     },
     [theme.breakpoints.down('sm')]: {
         flexDirection: 'column',
@@ -64,13 +60,13 @@ export const ProjectStats = ({ stats }: IProjectStatsProps) => {
         <StyledBox>
             <StyledWidget>
                 <StatusBox
-                    title="Total changes"
+                    title='Total changes'
                     boxText={String(projectActivityCurrentWindow)}
                     change={
                         projectActivityCurrentWindow - projectActivityPastWindow
                     }
                 >
-                    <HelpPopper id="total-changes">
+                    <HelpPopper id='total-changes'>
                         Sum of all configuration and state modifications in the
                         project.
                     </HelpPopper>
@@ -78,17 +74,17 @@ export const ProjectStats = ({ stats }: IProjectStatsProps) => {
             </StyledWidget>
             <StyledWidget>
                 <StatusBox
-                    title="Avg. time to production"
+                    title='Avg. time to production'
                     boxText={
                         <Box
                             sx={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: theme => theme.spacing(1),
+                                gap: (theme) => theme.spacing(1),
                             }}
                         >
                             {avgTimeToProdCurrentWindow}{' '}
-                            <Typography component="span">days</Typography>
+                            <Typography component='span'>days</Typography>
                         </Box>
                     }
                     customChangeElement={
@@ -98,24 +94,24 @@ export const ProjectStats = ({ stats }: IProjectStatsProps) => {
                     }
                     percentage
                 >
-                    <HelpPopper id="avg-time-to-prod">
-                        How long did it take on average from a feature toggle
-                        was created until it was enabled in an environment of
-                        type production. This is calculated only from feature
-                        toggles with the type of "release".
+                    <HelpPopper id='avg-time-to-prod'>
+                        How long did it take on average from a feature flag was
+                        created until it was enabled in an environment of type
+                        production. This is calculated only from feature flags
+                        with the type of "release".
                     </HelpPopper>
                 </StatusBox>
             </StyledWidget>
             <StyledWidget>
                 <StatusBox
-                    title="Features created"
+                    title='Features created'
                     boxText={String(createdCurrentWindow)}
                     change={createdCurrentWindow - createdPastWindow}
                 />
             </StyledWidget>
             <StyledWidget>
                 <StatusBox
-                    title="Features archived"
+                    title='Features archived'
                     boxText={String(archivedCurrentWindow)}
                     change={archivedCurrentWindow - archivedPastWindow}
                 />

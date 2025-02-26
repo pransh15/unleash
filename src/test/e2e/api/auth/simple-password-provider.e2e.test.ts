@@ -1,10 +1,14 @@
 import { createTestConfig } from '../../../config/test-config';
-import { IUnleashConfig } from '../../../../lib/types';
+import {
+    type IUnleashConfig,
+    type IUnleashStores,
+    TEST_AUDIT_USER,
+} from '../../../../lib/types';
 import UserService from '../../../../lib/services/user-service';
 import { AccessService } from '../../../../lib/services/access-service';
-import { IUser } from '../../../../lib/types/user';
-import { setupApp } from '../../helpers/test-helper';
-import dbInit from '../../helpers/database-init';
+import type { IUser } from '../../../../lib/types/user';
+import { type IUnleashTest, setupApp } from '../../helpers/test-helper';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
 import getLogger from '../../../fixtures/no-logger';
 import { EmailService } from '../../../../lib/services/email-service';
 import SessionService from '../../../../lib/services/session-service';
@@ -12,10 +16,11 @@ import { RoleName } from '../../../../lib/types/model';
 import SettingService from '../../../../lib/services/setting-service';
 import { GroupService } from '../../../../lib/services/group-service';
 import ResetTokenService from '../../../../lib/services/reset-token-service';
+import { createEventsService } from '../../../../lib/features';
 
-let app;
-let stores;
-let db;
+let app: IUnleashTest;
+let stores: IUnleashStores;
+let db: ITestDb;
 const config: IUnleashConfig = createTestConfig({
     getLogger,
     server: {
@@ -30,36 +35,52 @@ const password = 'DtUYwi&l5I1KX4@Le';
 let userService: UserService;
 let adminUser: IUser;
 
-beforeEach(async () => {
+beforeAll(async () => {
     db = await dbInit('simple_password_provider_api_serial', getLogger);
     stores = db.stores;
     app = await setupApp(stores);
-    const groupService = new GroupService(stores, config);
-    const accessService = new AccessService(stores, config, groupService);
+    const eventService = createEventsService(db.rawDatabase, config);
+    const groupService = new GroupService(stores, config, eventService);
+    const accessService = new AccessService(
+        stores,
+        config,
+        groupService,
+        eventService,
+    );
     const resetTokenService = new ResetTokenService(stores, config);
-    // @ts-ignore
-    const emailService = new EmailService(undefined, config.getLogger);
+    const emailService = new EmailService(config);
     const sessionService = new SessionService(stores, config);
-    const settingService = new SettingService(stores, config);
+    const settingService = new SettingService(stores, config, eventService);
 
     userService = new UserService(stores, config, {
         accessService,
         resetTokenService,
         emailService,
+        eventService,
         sessionService,
         settingService,
     });
-    const adminRole = await accessService.getRootRole(RoleName.ADMIN);
-    adminUser = await userService.createUser({
-        username: 'admin@test.com',
-        email: 'admin@test.com',
-        rootRole: adminRole!.id,
-        password: password,
-    });
+    const adminRole = await accessService.getPredefinedRole(RoleName.ADMIN);
+    adminUser = await userService.createUser(
+        {
+            username: 'admin@test.com',
+            email: 'admin@test.com',
+            rootRole: adminRole!.id,
+            password: password,
+        },
+        TEST_AUDIT_USER,
+    );
+});
+
+beforeEach(async () => {
+    app = await setupApp(stores);
+});
+
+afterEach(async () => {
+    await app.destroy();
 });
 
 afterAll(async () => {
-    await app.destroy();
     await db.destroy();
 });
 
@@ -74,7 +95,7 @@ test('Can log in', async () => {
 });
 
 test('Gets rate limited after 10 tries', async () => {
-    for (let statusCode of [...Array(10).fill(200), 429]) {
+    for (const statusCode of [...Array(10).fill(200), 429]) {
         await app.request
             .post('/auth/simple/login')
             .send({

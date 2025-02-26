@@ -1,9 +1,9 @@
-import { ReactNode } from 'react';
-import { Tooltip, TooltipProps } from '@mui/material';
+import type { ReactNode } from 'react';
+import { Tooltip, type TooltipProps } from '@mui/material';
 import { HtmlTooltip } from '../HtmlTooltip/HtmlTooltip';
 
 export interface ITooltipResolverProps extends Omit<TooltipProps, 'title'> {
-    title?: string;
+    title?: string | null;
     titleComponent?: ReactNode;
     variant?: 'default' | 'custom';
 }
@@ -18,7 +18,6 @@ export const TooltipResolver = ({
     if (!title && !titleComponent) {
         return children;
     }
-
     if (variant === 'custom') {
         return (
             <HtmlTooltip {...rest} title={title || titleComponent} arrow>

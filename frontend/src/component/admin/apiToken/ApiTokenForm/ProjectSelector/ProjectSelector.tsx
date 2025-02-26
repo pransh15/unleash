@@ -1,10 +1,10 @@
 import { SelectProjectInput } from './SelectProjectInput/SelectProjectInput';
 import { TokenType } from '../../../../../interfaces/token';
-import React from 'react';
+import type React from 'react';
 import { StyledInputDescription } from '../ApiTokenForm.styles';
-import useProjects from '../../../../../hooks/api/getters/useProjects/useProjects';
-import { ApiTokenFormErrorType } from '../useApiTokenForm';
-import { useOptionalPathParam } from '../../../../../hooks/useOptionalPathParam';
+import useProjects from 'hooks/api/getters/useProjects/useProjects';
+import type { ApiTokenFormErrorType } from '../useApiTokenForm';
+import { useOptionalPathParam } from 'hooks/useOptionalPathParam';
 
 interface IProjectSelectorProps {
     type: string;
@@ -23,7 +23,7 @@ export const ProjectSelector = ({
     const projectId = useOptionalPathParam('projectId');
     const { projects: availableProjects } = useProjects();
 
-    const selectableProjects = availableProjects.map(project => ({
+    const selectableProjects = availableProjects.map((project) => ({
         value: project.id,
         label: project.name,
     }));

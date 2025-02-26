@@ -1,13 +1,13 @@
 import { Typography, styled, useTheme } from '@mui/material';
 import { Table, TableBody, TableCell, TableRow } from 'component/common/Table';
-import { useMemo, VFC } from 'react';
-import { IFeatureVariant } from 'interfaces/featureToggle';
+import { useMemo, type VFC } from 'react';
+import type { IFeatureVariant } from 'interfaces/featureToggle';
 import { calculateVariantWeight } from 'component/common/util';
 import { useGlobalFilter, useSortBy, useTable } from 'react-table';
 import { sortTypes } from 'utils/sortTypes';
 import { TextCell } from 'component/common/Table/cells/TextCell/TextCell';
 import { SortableTableHeader } from 'component/common/Table';
-import { CheckCircleOutlined } from '@mui/icons-material';
+import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { IconCell } from 'component/common/Table/cells/IconCell/IconCell';
 
@@ -35,7 +35,7 @@ export const VariantInformation: VFC<IVariantInformationProps> = ({
 }) => {
     const theme = useTheme();
     const data = useMemo(() => {
-        return variants.map(variant => {
+        return variants.map((variant) => {
             return {
                 name: variant.name,
                 weight: `${calculateVariantWeight(variant.weight)}%`,
@@ -48,7 +48,7 @@ export const VariantInformation: VFC<IVariantInformationProps> = ({
         () => ({
             sortBy: [{ id: 'name', desc: false }],
         }),
-        []
+        [],
     );
 
     const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
@@ -63,48 +63,55 @@ export const VariantInformation: VFC<IVariantInformationProps> = ({
                 disableSortRemove: true,
             },
             useGlobalFilter,
-            useSortBy
+            useSortBy,
         );
 
     return (
         <StyledBox>
-            <StyledTypography variant="subtitle2">
+            <StyledTypography variant='subtitle2'>
                 Variant Information
             </StyledTypography>
 
-            <StyledTypography variant="body2">
+            <StyledTypography variant='body2'>
                 The following table shows the variants defined on this feature
                 toggle and the variant result based on your context
                 configuration.
             </StyledTypography>
 
-            <StyledTypography variant="body2">
+            <StyledTypography variant='body2'>
                 If you include "userId" or "sessionId" in your context, the
                 variant will be the same every time because unleash uses these
                 properties to ensure that the user receives the same experience.
             </StyledTypography>
 
-            <Table {...getTableProps()} rowHeight="dense">
+            <Table {...getTableProps()} rowHeight='dense'>
                 <SortableTableHeader headerGroups={headerGroups as any} />
                 <TableBody {...getTableBodyProps()}>
                     {rows.map((row: any) => {
-                        let styles = {} as { [key: string]: string };
+                        const styles = {} as { [key: string]: string };
 
                         if (!row.original.selected) {
                             styles.color = theme.palette.text.secondary;
                         }
 
                         prepareRow(row);
+                        const { key, ...rowProps } = row.getRowProps();
                         return (
-                            <TableRow hover {...row.getRowProps()}>
-                                {row.cells.map((cell: any) => (
-                                    <TableCell
-                                        {...cell.getCellProps()}
-                                        style={styles}
-                                    >
-                                        {cell.render('Cell')}
-                                    </TableCell>
-                                ))}
+                            <TableRow hover key={key} {...rowProps}>
+                                {row.cells.map((cell: any) => {
+                                    const { key, ...cellProps } =
+                                        cell.getCellProps();
+
+                                    return (
+                                        <TableCell
+                                            key={key}
+                                            {...cellProps}
+                                            style={styles}
+                                        >
+                                            {cell.render('Cell')}
+                                        </TableCell>
+                                    );
+                                })}
                             </TableRow>
                         );
                     })}

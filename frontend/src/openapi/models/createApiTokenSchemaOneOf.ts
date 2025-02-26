@@ -3,8 +3,15 @@
  * Do not edit manually.
  * See `gen:api` script in package.json
  */
-import type { CreateApiTokenSchemaOneOfAllOf } from './createApiTokenSchemaOneOfAllOf';
-import type { CreateApiTokenSchemaOneOfAllOfTwo } from './createApiTokenSchemaOneOfAllOfTwo';
 
-export type CreateApiTokenSchemaOneOf = CreateApiTokenSchemaOneOfAllOf &
-    CreateApiTokenSchemaOneOfAllOfTwo;
+export type CreateApiTokenSchemaOneOf = {
+    /** The time when this token should expire. */
+    expiresAt?: string;
+    /** The name of the token. */
+    tokenName: string;
+    /**
+     * An admin token. Must be the string "admin" (not case sensitive).
+     * @pattern ^[Aa][Dd][Mm][Ii][Nn]$
+     */
+    type: string;
+};

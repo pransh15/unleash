@@ -1,13 +1,14 @@
-import { ReactNode, FC, VFC } from 'react';
+import type React from 'react';
+import type { ReactNode, FC, VFC } from 'react';
 import classnames from 'classnames';
 
 import {
     Divider,
     styled,
-    SxProps,
-    Theme,
+    type SxProps,
+    type Theme,
     Typography,
-    TypographyProps,
+    type TypographyProps,
 } from '@mui/material';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 
@@ -40,7 +41,7 @@ const StyledHeader = styled('div')(({ theme }) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    marginRight: theme.spacing(2),
+    marginRight: theme.spacing(5),
 }));
 
 const StyledHeaderTitle = styled(Typography)(({ theme }) => ({
@@ -66,6 +67,7 @@ interface IPageHeaderProps {
     actions?: ReactNode;
     className?: string;
     secondary?: boolean;
+    children?: React.ReactNode;
 }
 
 const PageHeaderComponent: FC<IPageHeaderProps> & {
@@ -111,7 +113,7 @@ const PageHeaderComponent: FC<IPageHeaderProps> & {
 };
 
 const PageHeaderDivider: VFC<{ sx?: SxProps<Theme> }> = ({ sx }) => {
-    return <StyledDivider orientation="vertical" variant="middle" sx={sx} />;
+    return <StyledDivider orientation='vertical' variant='middle' sx={sx} />;
 };
 
 PageHeaderComponent.Divider = PageHeaderDivider;

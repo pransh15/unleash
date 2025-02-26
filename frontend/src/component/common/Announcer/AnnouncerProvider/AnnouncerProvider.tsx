@@ -1,4 +1,4 @@
-import React, { ReactElement, useMemo, useState, ReactNode } from 'react';
+import { type ReactElement, useMemo, useState, type ReactNode } from 'react';
 import { AnnouncerContext } from '../AnnouncerContext/AnnouncerContext';
 import { AnnouncerElement } from 'component/common/Announcer/AnnouncerElement/AnnouncerElement';
 
@@ -15,7 +15,7 @@ export const AnnouncerProvider = ({
         () => ({
             setAnnouncement,
         }),
-        [setAnnouncement]
+        [setAnnouncement],
     );
 
     return (

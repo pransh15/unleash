@@ -1,13 +1,17 @@
-import { setupApp } from '../../helpers/test-helper';
-import dbInit from '../../helpers/database-init';
+import {
+    type IUnleashTest,
+    setupApp,
+    setupAppWithBaseUrl,
+} from '../../helpers/test-helper';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
 import getLogger from '../../../fixtures/no-logger';
 import SwaggerParser from '@apidevtools/swagger-parser';
 import enforcer from 'openapi-enforcer';
 import semver from 'semver';
 import { openApiTags } from '../../../../lib/openapi/util/openapi-tags';
 
-let app;
-let db;
+let app: IUnleashTest;
+let db: ITestDb;
 
 beforeAll(async () => {
     db = await dbInit('openapi', getLogger);
@@ -47,11 +51,55 @@ test('should serve the OpenAPI spec with a `version` property', async () => {
         .expect((res) => {
             const { version } = res.body.info;
             // ensure there's no whitespace or leading `v`
-            expect(semver.clean(version)).toStrictEqual(version);
+            // clean removes +anything modifier from the version
+            expect(version).toMatch(
+                new RegExp(`^${semver.clean(version) ?? 'invalid semver'}`),
+            );
 
             // ensure the version listed is valid semver
             expect(semver.parse(version, { loose: false })).toBeTruthy();
         });
+});
+
+describe('subpath handling', () => {
+    let appWithSubPath: IUnleashTest;
+    const subPath = '/absolute-nonsense';
+
+    beforeAll(async () => {
+        appWithSubPath = await setupAppWithBaseUrl(db.stores, subPath);
+    });
+
+    afterAll(async () => {
+        await appWithSubPath?.destroy();
+    });
+
+    test('the OpenAPI spec has the base path appended to its server', async () => {
+        const {
+            body: { servers },
+        } = await appWithSubPath.request
+            .get(`${subPath}/docs/openapi.json`)
+            .expect('Content-Type', /json/)
+            .expect(200);
+
+        expect(servers[0].url).toMatch(new RegExp(`.+${subPath}$`));
+    });
+
+    test('When the server has a base path, that base path is stripped from the endpoints', async () => {
+        const {
+            body: { paths },
+        } = await appWithSubPath.request
+            .get(`${subPath}/docs/openapi.json`)
+            .expect('Content-Type', /json/)
+            .expect(200);
+
+        // ensure that paths on this server don't start with the base
+        // uri path.
+        const noPathsStartWithSubpath = Object.keys(paths).every(
+            (p) => !p.startsWith(subPath),
+        );
+
+        expect(noPathsStartWithSubpath).toBe(true);
+    });
 });
 
 test('the generated OpenAPI spec is valid', async () => {
@@ -149,8 +197,7 @@ test('all tags are listed in the root "tags" list', async () => {
                     // store other invalid tags that already exist on this
                     // operation
                     const preExistingTags =
-                        (invalidTags[path] ?? {})[operation]?.invalidTags ?? [];
-
+                        invalidTags[path]?.[operation]?.invalidTags ?? [];
                     // add information about the invalid tag to the invalid tags
                     // dict.
                     invalidTags = {
@@ -193,7 +240,7 @@ test('all tags are listed in the root "tags" list', async () => {
     expect(invalidTags).toStrictEqual({});
 });
 
-test('all API operations have summaries and descriptions', async () => {
+test('all API operations have non-empty summaries and descriptions', async () => {
     const { body: spec } = await app.request
         .get('/docs/openapi.json')
         .expect('Content-Type', /json/)
@@ -203,8 +250,8 @@ test('all API operations have summaries and descriptions', async () => {
         return Object.entries(data)
             .map(([verb, operationDescription]) => {
                 if (
-                    'summary' in operationDescription &&
-                    'description' in operationDescription
+                    operationDescription.summary &&
+                    operationDescription.description
                 ) {
                     return undefined;
                 } else {

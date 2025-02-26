@@ -1,36 +1,39 @@
 import crypto from 'crypto';
-import { Logger } from '../logger';
-import { IUnleashConfig, IUnleashStores } from '../types';
-import { IPublicSignupTokenStore } from '../types/stores/public-signup-token-store';
-import { PublicSignupTokenSchema } from '../openapi/spec/public-signup-token-schema';
-import { IRoleStore } from '../types/stores/role-store';
-import { IPublicSignupTokenCreate } from '../types/models/public-signup-token';
-import { PublicSignupTokenCreateSchema } from '../openapi/spec/public-signup-token-create-schema';
-import { CreateInvitedUserSchema } from 'lib/openapi/spec/create-invited-user-schema';
+import type { Logger } from '../logger';
+import {
+    type IAuditUser,
+    type IUnleashConfig,
+    type IUnleashStores,
+    SYSTEM_USER_AUDIT,
+} from '../types';
+import type { IPublicSignupTokenStore } from '../types/stores/public-signup-token-store';
+import type { PublicSignupTokenSchema } from '../openapi/spec/public-signup-token-schema';
+import type { IRoleStore } from '../types/stores/role-store';
+import type { IPublicSignupTokenCreate } from '../types/models/public-signup-token';
+import type { PublicSignupTokenCreateSchema } from '../openapi/spec/public-signup-token-create-schema';
+import type { CreateInvitedUserSchema } from '../openapi/spec/create-invited-user-schema';
 import { RoleName } from '../types/model';
-import { IEventStore } from '../types/stores/event-store';
 import {
     PublicSignupTokenCreatedEvent,
     PublicSignupTokenUpdatedEvent,
     PublicSignupTokenUserAddedEvent,
 } from '../types/events';
-import UserService from './user-service';
-import { IUser } from '../types/user';
+import type UserService from './user-service';
+import type { IUser } from '../types/user';
 import { URL } from 'url';
 import { add } from 'date-fns';
+import type EventService from '../features/events/event-service';
 
 export class PublicSignupTokenService {
     private store: IPublicSignupTokenStore;
 
     private roleStore: IRoleStore;
 
-    private eventStore: IEventStore;
-
     private userService: UserService;
 
-    private logger: Logger;
+    private eventService: EventService;
 
-    private timer: NodeJS.Timeout;
+    private logger: Logger;
 
     private readonly unleashBase: string;
 
@@ -38,18 +41,15 @@ export class PublicSignupTokenService {
         {
             publicSignupTokenStore,
             roleStore,
-            eventStore,
-        }: Pick<
-            IUnleashStores,
-            'publicSignupTokenStore' | 'roleStore' | 'eventStore'
-        >,
+        }: Pick<IUnleashStores, 'publicSignupTokenStore' | 'roleStore'>,
         config: Pick<IUnleashConfig, 'getLogger' | 'authentication' | 'server'>,
         userService: UserService,
+        eventService: EventService,
     ) {
         this.store = publicSignupTokenStore;
         this.userService = userService;
+        this.eventService = eventService;
         this.roleStore = roleStore;
-        this.eventStore = eventStore;
         this.logger = config.getLogger(
             '/services/public-signup-token-service.ts',
         );
@@ -70,10 +70,6 @@ export class PublicSignupTokenService {
         return this.store.getAll();
     }
 
-    public async getAllActiveTokens(): Promise<PublicSignupTokenSchema[]> {
-        return this.store.getAllActive();
-    }
-
     public async validate(secret: string): Promise<boolean> {
         return this.store.isValid(secret);
     }
@@ -81,12 +77,12 @@ export class PublicSignupTokenService {
     public async update(
         secret: string,
         { expiresAt, enabled }: { expiresAt?: Date; enabled?: boolean },
-        createdBy: string,
+        auditUser: IAuditUser,
     ): Promise<PublicSignupTokenSchema> {
         const result = await this.store.update(secret, { expiresAt, enabled });
-        await this.eventStore.store(
+        await this.eventService.storeEvent(
             new PublicSignupTokenUpdatedEvent({
-                createdBy,
+                auditUser,
                 data: { secret, enabled, expiresAt },
             }),
         );
@@ -96,16 +92,20 @@ export class PublicSignupTokenService {
     public async addTokenUser(
         secret: string,
         createUser: CreateInvitedUserSchema,
+        auditUser: IAuditUser,
     ): Promise<IUser> {
         const token = await this.get(secret);
-        const user = await this.userService.createUser({
-            ...createUser,
-            rootRole: token.role.id,
-        });
+        const user = await this.userService.createUser(
+            {
+                ...createUser,
+                rootRole: token.role.id,
+            },
+            auditUser,
+        );
         await this.store.addTokenUser(secret, user.id);
-        await this.eventStore.store(
+        await this.eventService.storeEvent(
             new PublicSignupTokenUserAddedEvent({
-                createdBy: 'System',
+                auditUser: SYSTEM_USER_AUDIT,
                 data: { secret, userId: user.id },
             }),
         );
@@ -114,7 +114,7 @@ export class PublicSignupTokenService {
 
     public async createNewPublicSignupToken(
         tokenCreate: PublicSignupTokenCreateSchema,
-        createdBy: string,
+        auditUser: IAuditUser,
     ): Promise<PublicSignupTokenSchema> {
         const viewerRole = await this.roleStore.getRoleByName(RoleName.VIEWER);
         const secret = this.generateSecretKey();
@@ -128,14 +128,14 @@ export class PublicSignupTokenService {
             expiresAt: cappedDate,
             secret: secret,
             roleId: viewerRole ? viewerRole.id : -1,
-            createdBy: createdBy,
+            createdBy: auditUser.username,
             url: url,
         };
         const token = await this.store.insert(newToken);
 
-        await this.eventStore.store(
+        await this.eventService.storeEvent(
             new PublicSignupTokenCreatedEvent({
-                createdBy: createdBy,
+                auditUser,
                 data: token,
             }),
         );
@@ -148,10 +148,5 @@ export class PublicSignupTokenService {
 
     private getMinimumDate(date1: Date, date2: Date): Date {
         return date1 < date2 ? date1 : date2;
-    }
-
-    destroy(): void {
-        clearInterval(this.timer);
-        this.timer = null;
     }
 }

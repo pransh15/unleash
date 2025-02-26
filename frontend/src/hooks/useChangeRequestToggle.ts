@@ -9,6 +9,7 @@ export const useChangeRequestToggle = (project: string) => {
     const { addChange } = useChangeRequestApi();
     const { refetch: refetchChangeRequests } =
         usePendingChangeRequests(project);
+    const [pending, setPending] = useState(false);
 
     const [changeRequestDialogDetails, setChangeRequestDialogDetails] =
         useState<{
@@ -24,7 +25,7 @@ export const useChangeRequestToggle = (project: string) => {
             featureName: string,
             environment: string,
             enabled: boolean,
-            shouldActivateDisabledStrategies: boolean
+            shouldActivateDisabledStrategies: boolean,
         ) => {
             setChangeRequestDialogDetails({
                 featureName,
@@ -34,38 +35,48 @@ export const useChangeRequestToggle = (project: string) => {
                 isOpen: true,
             });
         },
-        []
+        [],
     );
 
     const onChangeRequestToggleClose = useCallback(() => {
-        setChangeRequestDialogDetails(prev => ({ ...prev, isOpen: false }));
+        setChangeRequestDialogDetails((prev) => ({ ...prev, isOpen: false }));
     }, []);
 
     const onChangeRequestToggleConfirm = useCallback(async () => {
         try {
+            setPending(true);
             await addChange(project, changeRequestDialogDetails.environment!, {
                 feature: changeRequestDialogDetails.featureName!,
                 action: 'updateEnabled',
                 payload: {
                     enabled: Boolean(changeRequestDialogDetails.enabled),
                     shouldActivateDisabledStrategies: Boolean(
-                        changeRequestDialogDetails.shouldActivateDisabledStrategies
+                        changeRequestDialogDetails.shouldActivateDisabledStrategies,
                     ),
                 },
             });
             refetchChangeRequests();
-            setChangeRequestDialogDetails(prev => ({ ...prev, isOpen: false }));
+            setChangeRequestDialogDetails((prev) => ({
+                ...prev,
+                isOpen: false,
+            }));
             setToastData({
                 type: 'success',
-                title: 'Changes added to the draft!',
+                text: 'Changes added to draft',
             });
         } catch (error) {
             setToastApiError(formatUnknownError(error));
-            setChangeRequestDialogDetails(prev => ({ ...prev, isOpen: false }));
+            setChangeRequestDialogDetails((prev) => ({
+                ...prev,
+                isOpen: false,
+            }));
+        } finally {
+            setPending(false);
         }
     }, [addChange]);
 
     return {
+        pending,
         onChangeRequestToggle,
         onChangeRequestToggleClose,
         onChangeRequestToggleConfirm,

@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { clientFeaturesQuerySchema } from './client-features-query-schema';
 import { clientSegmentSchema } from './client-segment-schema';
 import { constraintSchema } from './constraint-schema';
@@ -9,6 +9,7 @@ import { featureStrategySchema } from './feature-strategy-schema';
 import { clientFeatureSchema } from './client-feature-schema';
 import { variantSchema } from './variant-schema';
 import { strategyVariantSchema } from './strategy-variant-schema';
+import { dependentFeatureSchema } from './dependent-feature-schema';
 
 export const clientFeaturesSchema = {
     $id: '#/components/schemas/clientFeaturesSchema',
@@ -25,7 +26,7 @@ export const clientFeaturesSchema = {
             minimum: 0,
         },
         features: {
-            description: 'A list of feature toggles with their configuration',
+            description: 'A list of feature flags with their configuration',
             type: 'array',
             items: {
                 $ref: '#/components/schemas/clientFeatureSchema',
@@ -57,6 +58,7 @@ export const clientFeaturesSchema = {
             featureStrategySchema,
             strategyVariantSchema,
             variantSchema,
+            dependentFeatureSchema,
         },
     },
 } as const;

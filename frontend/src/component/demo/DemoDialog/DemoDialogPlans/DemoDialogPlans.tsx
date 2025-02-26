@@ -1,8 +1,16 @@
 import { Button, Typography, styled } from '@mui/material';
 import { DemoDialog } from '../DemoDialog';
-import { GitHub } from '@mui/icons-material';
-import { Launch } from '@mui/icons-material';
+import GitHub from '@mui/icons-material/GitHub';
+import Launch from '@mui/icons-material/Launch';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
+import { useUiFlag } from 'hooks/useUiFlag';
+import {
+    BILLING_PAYG_DEFAULT_MINIMUM_SEATS,
+    BILLING_PAYG_USER_PRICE,
+    BILLING_PLAN_PRICES,
+    BILLING_PRO_DEFAULT_INCLUDED_SEATS,
+} from 'component/admin/billing/BillingDashboard/BillingPlan/BillingPlan';
+import { InstancePlan } from 'interfaces/instance';
 
 const StyledDemoDialog = styled(DemoDialog)(({ theme }) => ({
     '& .MuiDialog-paper': {
@@ -82,6 +90,7 @@ interface IDemoDialogPlansProps {
 
 export const DemoDialogPlans = ({ open, onClose }: IDemoDialogPlansProps) => {
     const { trackEvent } = usePlausibleTracker();
+    const isEnterprisePaygEnabled = useUiFlag('enterprise-payg');
 
     return (
         <StyledDemoDialog open={open} onClose={onClose}>
@@ -90,22 +99,22 @@ export const DemoDialogPlans = ({ open, onClose }: IDemoDialogPlansProps) => {
             </DemoDialog.Header>
             <StyledPlans>
                 <StyledPlan>
-                    <Typography variant="h5" fontWeight="bold">
+                    <Typography variant='h5' fontWeight='bold'>
                         Open Source
                     </Typography>
-                    <Typography variant="body2" color="textSecondary">
+                    <Typography variant='body2' color='textSecondary'>
                         Self-hosted basic feature management solution
                     </Typography>
-                    <Typography variant="h6" fontWeight="normal">
+                    <Typography variant='h6' fontWeight='normal'>
                         Free
                     </Typography>
                     <Button
-                        variant="outlined"
-                        color="primary"
+                        variant='outlined'
+                        color='primary'
                         startIcon={<GitHub />}
-                        href="https://github.com/unleash/unleash"
-                        target="_blank"
-                        rel="noreferrer"
+                        href='https://github.com/unleash/unleash'
+                        target='_blank'
+                        rel='noreferrer'
                         onClick={() => {
                             trackEvent('demo-see-plan', {
                                 props: {
@@ -117,59 +126,99 @@ export const DemoDialogPlans = ({ open, onClose }: IDemoDialogPlansProps) => {
                         View project on GitHub
                     </Button>
                 </StyledPlan>
-                <StyledPlan>
-                    <Typography variant="h5" fontWeight="bold">
-                        Pro
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                        Free your team to collaborate. We'll do the heavy
-                        lifting.
-                    </Typography>
-                    <div>
-                        <Typography variant="h6" fontWeight="normal">
-                            $80/month
+                {isEnterprisePaygEnabled ? (
+                    <StyledPlan>
+                        <Typography variant='h5' fontWeight='bold'>
+                            Enterprise
+                            <br />
+                            Pay-as-You-Go
                         </Typography>
-                        <Typography variant="body2">
-                            includes 5 seats
+                        <Typography variant='body2' color='textSecondary'>
+                            All the features of Enterprise with no long term
+                            commitment.
                         </Typography>
-                    </div>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        href="https://www.getunleash.io/plans/pro"
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={() => {
-                            trackEvent('demo-see-plan', {
-                                props: {
-                                    plan: 'pro',
-                                },
-                            });
-                        }}
-                    >
-                        Start 14-day free trial
-                    </Button>
-                </StyledPlan>
+                        <div>
+                            <Typography variant='h6' fontWeight='normal'>
+                                ${BILLING_PAYG_USER_PRICE} per user/month
+                            </Typography>
+                            <Typography variant='body2'>
+                                {BILLING_PAYG_DEFAULT_MINIMUM_SEATS} users
+                                minimum
+                            </Typography>
+                        </div>
+                        <Button
+                            variant='contained'
+                            color='primary'
+                            href='https://www.getunleash.io/plans/enterprise-payg'
+                            target='_blank'
+                            rel='noreferrer'
+                            onClick={() => {
+                                trackEvent('demo-see-plan', {
+                                    props: {
+                                        plan: 'enterprise-starter',
+                                    },
+                                });
+                            }}
+                        >
+                            Start 14-day free trial
+                        </Button>
+                    </StyledPlan>
+                ) : (
+                    <StyledPlan>
+                        <Typography variant='h5' fontWeight='bold'>
+                            Pro
+                        </Typography>
+                        <Typography variant='body2' color='textSecondary'>
+                            Free your team to collaborate. We'll do the heavy
+                            lifting.
+                        </Typography>
+                        <div>
+                            <Typography variant='h6' fontWeight='normal'>
+                                ${BILLING_PLAN_PRICES[InstancePlan.PRO]}/month
+                            </Typography>
+                            <Typography variant='body2'>
+                                includes {BILLING_PRO_DEFAULT_INCLUDED_SEATS}{' '}
+                                seats
+                            </Typography>
+                        </div>
+                        <Button
+                            variant='contained'
+                            color='primary'
+                            href='https://www.getunleash.io/plans/pro'
+                            target='_blank'
+                            rel='noreferrer'
+                            onClick={() => {
+                                trackEvent('demo-see-plan', {
+                                    props: {
+                                        plan: 'pro',
+                                    },
+                                });
+                            }}
+                        >
+                            Start 14-day free trial
+                        </Button>
+                    </StyledPlan>
+                )}
                 <StyledPlan>
-                    <Typography variant="h5" fontWeight="bold">
+                    <Typography variant='h5' fontWeight='bold'>
                         Enterprise
                     </Typography>
-                    <Typography variant="body2" color="textSecondary">
+                    <Typography variant='body2' color='textSecondary'>
                         Security, compliance, and development controls for
                         scale.
                     </Typography>
                     <div>
-                        <Typography variant="h6" fontWeight="normal">
+                        <Typography variant='h6' fontWeight='normal'>
                             Custom
                         </Typography>
-                        <Typography variant="body2">unlimited seats</Typography>
+                        <Typography variant='body2'>unlimited seats</Typography>
                     </div>
                     <Button
-                        variant="contained"
-                        color="web"
-                        href="https://www.getunleash.io/plans/enterprise"
-                        target="_blank"
-                        rel="noreferrer"
+                        variant='contained'
+                        color='web'
+                        href='https://www.getunleash.io/plans/enterprise'
+                        target='_blank'
+                        rel='noreferrer'
                         onClick={() => {
                             trackEvent('demo-see-plan', {
                                 props: {
@@ -183,9 +232,9 @@ export const DemoDialogPlans = ({ open, onClose }: IDemoDialogPlansProps) => {
                 </StyledPlan>
             </StyledPlans>
             <StyledCompareLink
-                href="https://www.getunleash.io/plans"
-                target="_blank"
-                rel="noreferrer"
+                href='https://www.getunleash.io/plans'
+                target='_blank'
+                rel='noreferrer'
                 onClick={() => {
                     trackEvent('demo-see-plan', {
                         props: {

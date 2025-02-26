@@ -1,4 +1,4 @@
-import useSWR, { mutate, SWRConfiguration } from 'swr';
+import useSWR, { mutate, type SWRConfiguration } from 'swr';
 import { useState, useEffect } from 'react';
 import { formatApiPath } from 'utils/formatPath';
 import handleErrorResponses from '../httpErrorResponseHandler';
@@ -10,7 +10,7 @@ const useTagType = (name: string, options: SWRConfiguration = {}) => {
             method: 'GET',
         })
             .then(handleErrorResponses('Tag data'))
-            .then(res => res.json());
+            .then((res) => res.json());
     };
 
     const FEATURE_CACHE_KEY = `api/admin/tag-types/${name}`;

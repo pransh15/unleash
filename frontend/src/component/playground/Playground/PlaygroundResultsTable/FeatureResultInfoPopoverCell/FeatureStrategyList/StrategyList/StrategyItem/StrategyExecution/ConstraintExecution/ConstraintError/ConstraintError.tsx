@@ -1,6 +1,9 @@
 import { styled, Typography } from '@mui/material';
-import { CancelOutlined } from '@mui/icons-material';
-import { PlaygroundConstraintSchema, PlaygroundRequestSchema } from 'openapi';
+import CancelOutlined from '@mui/icons-material/CancelOutlined';
+import type {
+    PlaygroundConstraintSchema,
+    PlaygroundRequestSchema,
+} from 'openapi';
 
 const StyledConstraintErrorDiv = styled('div')(({ theme }) => ({
     display: 'flex',
@@ -31,7 +34,7 @@ export const ConstraintError = ({
     return (
         <StyledConstraintErrorDiv>
             <CancelOutlined style={{ marginRight: '0.25rem' }} />
-            <Typography variant="body2">{formatText()}</Typography>
+            <Typography variant='body2'>{formatText()}</Typography>
         </StyledConstraintErrorDiv>
     );
 };

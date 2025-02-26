@@ -2,12 +2,15 @@ import { Alert, Button, Divider, Link, styled } from '@mui/material';
 import FormTemplate from 'component/common/FormTemplate/FormTemplate';
 import { SidebarModal } from 'component/common/SidebarModal/SidebarModal';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState, memo } from 'react';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
-import { IFeatureEnvironment, IFeatureVariant } from 'interfaces/featureToggle';
+import type {
+    IFeatureEnvironment,
+    IFeatureVariant,
+} from 'interfaces/featureToggle';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
-import { Operation } from 'fast-json-patch';
-import { CloudCircle } from '@mui/icons-material';
+import type { Operation } from 'fast-json-patch';
+import CloudCircle from '@mui/icons-material/CloudCircle';
 import { usePendingChangeRequests } from 'hooks/api/getters/usePendingChangeRequests/usePendingChangeRequests';
 import { useChangeRequestInReviewWarning } from 'hooks/useChangeRequestInReviewWarning';
 import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
@@ -41,7 +44,7 @@ const StyledFormSubtitle = styled('div')(({ theme }) => ({
 }));
 
 const StyledCloudCircle = styled(CloudCircle, {
-    shouldForwardProp: prop => prop !== 'deprecated',
+    shouldForwardProp: (prop) => prop !== 'deprecated',
 })<{ deprecated?: boolean }>(({ theme, deprecated }) => ({
     color: deprecated
         ? theme.palette.neutral.border
@@ -49,7 +52,7 @@ const StyledCloudCircle = styled(CloudCircle, {
 }));
 
 const StyledName = styled('span', {
-    shouldForwardProp: prop => prop !== 'deprecated',
+    shouldForwardProp: (prop) => prop !== 'deprecated',
 })<{ deprecated?: boolean }>(({ theme, deprecated }) => ({
     color: deprecated
         ? theme.palette.text.secondary
@@ -123,7 +126,7 @@ interface IEnvironmentVariantModalProps {
     setOpen: React.Dispatch<React.SetStateAction<boolean>>;
     getApiPayload: (
         variants: IFeatureVariant[],
-        newVariants: IFeatureVariant[]
+        newVariants: IFeatureVariant[],
     ) => { patch: Operation[]; error?: string };
     getCrPayload: (variants: IFeatureVariant[]) => {
         feature: string;
@@ -132,6 +135,8 @@ interface IEnvironmentVariantModalProps {
     };
     onConfirm: (updatedVariants: IFeatureVariant[]) => void;
 }
+
+const MemoizedVariantForm = memo(VariantForm);
 
 export const EnvironmentVariantsModal = ({
     environment,
@@ -161,7 +166,7 @@ export const EnvironmentVariantsModal = ({
         if (!loading) {
             setVariantsEdit(
                 oldVariants.length
-                    ? oldVariants.map(oldVariant => ({
+                    ? oldVariants.map((oldVariant) => ({
                           ...oldVariant,
                           isValid: true,
                           new: false,
@@ -181,25 +186,25 @@ export const EnvironmentVariantsModal = ({
                               isValid: false,
                               id: uuidv4(),
                           },
-                      ]
+                      ],
             );
         }
     }, [open, loading]);
 
     const updateVariant = (updatedVariant: IFeatureVariantEdit, id: string) => {
-        setVariantsEdit(prevVariants =>
+        setVariantsEdit((prevVariants) =>
             updateWeightEdit(
-                prevVariants.map(prevVariant =>
-                    prevVariant.id === id ? updatedVariant : prevVariant
+                prevVariants.map((prevVariant) =>
+                    prevVariant.id === id ? updatedVariant : prevVariant,
                 ),
-                1000
-            )
+                1000,
+            ),
         );
     };
 
     const addVariant = () => {
         const id = uuidv4();
-        setVariantsEdit(variantsEdit => [
+        setVariantsEdit((variantsEdit) => [
             ...variantsEdit,
             {
                 name: '',
@@ -221,7 +226,7 @@ export const EnvironmentVariantsModal = ({
     useEffect(() => {
         if (newVariant) {
             const element = document.getElementById(
-                `variant-name-input-${newVariant}`
+                `variant-name-input-${newVariant}`,
             );
             element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             element?.focus({ preventScroll: true });
@@ -230,7 +235,7 @@ export const EnvironmentVariantsModal = ({
     }, [newVariant]);
 
     const variants = variantsEdit.map(
-        ({ new: _, isValid: __, id: ___, ...rest }) => rest
+        ({ new: _, isValid: __, id: ___, ...rest }) => rest,
     );
 
     const apiPayload = getApiPayload(oldVariants, variants);
@@ -281,21 +286,21 @@ export const EnvironmentVariantsModal = ({
     const stickinessOptions = useMemo(
         () => [
             'default',
-            ...context.filter(c => c.stickiness).map(c => c.name),
+            ...context.filter((c) => c.stickiness).map((c) => c.name),
         ],
-        [context]
+        [context],
     );
-    const options = stickinessOptions.map(c => ({ key: c, label: c }));
+    const options = stickinessOptions.map((c) => ({ key: c, label: c }));
     if (!stickinessOptions.includes(stickiness)) {
         options.push({ key: stickiness, label: stickiness });
     }
 
     const updateStickiness = async (stickiness: string) => {
-        setVariantsEdit(prevVariants =>
-            prevVariants.map(prevVariant => ({
+        setVariantsEdit((prevVariants) =>
+            prevVariants.map((prevVariant) => ({
                 ...prevVariant,
                 stickiness,
-            }))
+            })),
         );
     };
 
@@ -320,13 +325,13 @@ export const EnvironmentVariantsModal = ({
         return <Loader />;
     }
     return (
-        <SidebarModal open={open} onClose={handleClose} label="">
+        <SidebarModal open={open} onClose={handleClose} label=''>
             <FormTemplate
                 modal
-                title=""
-                description="Variants allows you to return a variant object if the feature toggle is considered enabled for the current request."
-                documentationLink="https://docs.getunleash.io/reference/feature-toggle-variants"
-                documentationLinkLabel="Feature toggle variants documentation"
+                title=''
+                description='Variants allow you to return a variant object if the feature flag is considered enabled for the current request.'
+                documentationLink='https://docs.getunleash.io/reference/feature-toggle-variants'
+                documentationLinkLabel='Feature flag variants documentation'
                 formatApiCode={formatApiCode}
                 loading={!open}
             >
@@ -338,9 +343,9 @@ export const EnvironmentVariantsModal = ({
                         </StyledName>
                     </div>
                     <PermissionButton
-                        data-testid="MODAL_ADD_VARIANT_BUTTON"
+                        data-testid='MODAL_ADD_VARIANT_BUTTON'
                         onClick={addVariant}
-                        variant="outlined"
+                        variant='outlined'
                         permission={UPDATE_FEATURE_ENVIRONMENT_VARIANTS}
                         projectId={projectId}
                         environmentId={environment?.name}
@@ -356,7 +361,7 @@ export const EnvironmentVariantsModal = ({
                             <ConditionallyRender
                                 condition={Boolean(isChangeRequest)}
                                 show={
-                                    <StyledCRAlert severity="info">
+                                    <StyledCRAlert severity='info'>
                                         <strong>Change requests</strong> are
                                         enabled
                                         {environment
@@ -372,22 +377,22 @@ export const EnvironmentVariantsModal = ({
                         }
                     />
                     <StyledVariantForms>
-                        {variantsEdit.map(variant => (
-                            <VariantForm
+                        {variantsEdit.map((variant) => (
+                            <MemoizedVariantForm
                                 key={variant.id}
                                 variant={variant}
                                 variants={variantsEdit}
-                                updateVariant={updatedVariant =>
+                                updateVariant={(updatedVariant) =>
                                     updateVariant(updatedVariant, variant.id)
                                 }
                                 removeVariant={() =>
-                                    setVariantsEdit(variantsEdit =>
+                                    setVariantsEdit((variantsEdit) =>
                                         updateWeightEdit(
                                             variantsEdit.filter(
-                                                v => v.id !== variant.id
+                                                (v) => v.id !== variant.id,
                                             ),
-                                            1000
-                                        )
+                                            1000,
+                                        ),
                                     )
                                 }
                                 error={apiPayload.error}
@@ -396,7 +401,7 @@ export const EnvironmentVariantsModal = ({
                     </StyledVariantForms>
                     <PermissionButton
                         onClick={addVariant}
-                        variant="outlined"
+                        variant='outlined'
                         permission={UPDATE_FEATURE_ENVIRONMENT_VARIANTS}
                         projectId={projectId}
                         environmentId={environment?.name}
@@ -416,9 +421,9 @@ export const EnvironmentVariantsModal = ({
                                     which parameter is used to ensure consistent
                                     traffic allocation across variants.{' '}
                                     <Link
-                                        href="https://docs.getunleash.io/reference/feature-toggle-variants"
-                                        target="_blank"
-                                        rel="noreferrer"
+                                        href='https://docs.getunleash.io/reference/feature-toggle-variants'
+                                        target='_blank'
+                                        rel='noreferrer'
                                     >
                                         Read more
                                     </Link>
@@ -428,7 +433,7 @@ export const EnvironmentVariantsModal = ({
                                         value={stickiness}
                                         label={''}
                                         editable
-                                        onChange={e =>
+                                        onChange={(e) =>
                                             onStickinessChange(e.target.value)
                                         }
                                     />
@@ -443,17 +448,17 @@ export const EnvironmentVariantsModal = ({
                         }
                     />
 
-                    <StyledAlert severity="error" hidden={!Boolean(error)}>
+                    <StyledAlert severity='error' hidden={!error}>
                         <strong>Error: </strong>
                         {error}
                     </StyledAlert>
 
                     <StyledButtonContainer>
                         <Button
-                            data-testid="DIALOGUE_CONFIRM_ID"
-                            type="submit"
-                            variant="contained"
-                            color="primary"
+                            data-testid='DIALOGUE_CONFIRM_ID'
+                            type='submit'
+                            variant='contained'
+                            color='primary'
                             disabled={!isValid}
                         >
                             {isChangeRequest

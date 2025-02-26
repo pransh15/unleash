@@ -1,8 +1,8 @@
 import useSWR from 'swr';
 import { formatApiPath } from 'utils/formatPath';
 import handleErrorResponses from '../httpErrorResponseHandler';
-import { PatsSchema } from 'openapi';
-import { IPersonalAPIToken } from 'interfaces/personalAPIToken';
+import type { PatsSchema } from 'openapi';
+import type { IPersonalAPIToken } from 'interfaces/personalAPIToken';
 
 export interface IUsePersonalAPITokensOutput {
     tokens?: IPersonalAPIToken[];
@@ -14,7 +14,7 @@ export interface IUsePersonalAPITokensOutput {
 export const usePersonalAPITokens = (): IUsePersonalAPITokensOutput => {
     const { data, error, mutate } = useSWR<PatsSchema>(
         formatApiPath('api/admin/user/tokens'),
-        fetcher
+        fetcher,
     );
 
     return {
@@ -29,5 +29,5 @@ export const usePersonalAPITokens = (): IUsePersonalAPITokensOutput => {
 const fetcher = (path: string) => {
     return fetch(path)
         .then(handleErrorResponses('Personal API Tokens'))
-        .then(res => res.json());
+        .then((res) => res.json());
 };

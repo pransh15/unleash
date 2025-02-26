@@ -1,7 +1,7 @@
 import useSWR, { mutate } from 'swr';
 import { useCallback } from 'react';
 import { formatApiPath } from 'utils/formatPath';
-import { IStrategy } from 'interfaces/strategy';
+import type { IStrategy } from 'interfaces/strategy';
 import handleErrorResponses from '../httpErrorResponseHandler';
 
 interface IUseStrategiesOutput {
@@ -29,7 +29,7 @@ export const useStrategies = (): IUseStrategiesOutput => {
 const fetcher = (): Promise<{ strategies: IStrategy[] }> => {
     return fetch(STRATEGIES_PATH)
         .then(handleErrorResponses('Strategy types'))
-        .then(res => res.json());
+        .then((res) => res.json());
 };
 
 const flexibleRollout: IStrategy = {

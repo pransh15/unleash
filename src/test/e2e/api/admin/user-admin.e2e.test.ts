@@ -1,23 +1,28 @@
-import { setupAppWithCustomConfig } from '../../helpers/test-helper';
-import dbInit from '../../helpers/database-init';
+import {
+    type IUnleashTest,
+    setupAppWithCustomConfig,
+} from '../../helpers/test-helper';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
 import getLogger from '../../../fixtures/no-logger';
 import {
     USER_CREATED,
     USER_DELETED,
     USER_UPDATED,
 } from '../../../../lib/types/events';
-import { IRole } from '../../../../lib/types/stores/access-store';
-import { IEventStore } from '../../../../lib/types/stores/event-store';
-import { IUserStore } from '../../../../lib/types/stores/user-store';
+import type { IRole } from '../../../../lib/types/stores/access-store';
+import type { IEventStore } from '../../../../lib/types/stores/event-store';
+import type { IUserStore } from '../../../../lib/types/stores/user-store';
 import { RoleName } from '../../../../lib/types/model';
-import { IRoleStore } from 'lib/types/stores/role-store';
+import type { IRoleStore } from '../../../../lib/types/stores/role-store';
 import { randomId } from '../../../../lib/util/random-id';
 import { omitKeys } from '../../../../lib/util/omit-keys';
-import { ISessionStore } from '../../../../lib/types/stores/session-store';
+import type { ISessionStore } from '../../../../lib/types/stores/session-store';
+import type { IUnleashStores } from '../../../../lib/types';
+import { createHash } from 'crypto';
 
-let stores;
-let db;
-let app;
+let stores: IUnleashStores;
+let db: ITestDb;
+let app: IUnleashTest;
 
 let userStore: IUserStore;
 let eventStore: IEventStore;
@@ -33,6 +38,7 @@ beforeAll(async () => {
         experimental: {
             flags: {
                 strictSchemaValidation: true,
+                showUserDeviceCount: true,
             },
         },
     });
@@ -151,7 +157,7 @@ test('should require username or email on create', async () => {
         .set('Content-Type', 'application/json')
         .expect(400)
         .expect((res) => {
-            expect(res.body.details[0].description).toEqual(
+            expect(res.body.details[0].message).toEqual(
                 'You must specify username or email',
             );
         });
@@ -380,10 +386,10 @@ test('generates USER_UPDATED event', async () => {
 });
 
 test('Anonymises name, username and email fields if anonymiseEventLog flag is set', async () => {
-    let anonymisedApp = await setupAppWithCustomConfig(
+    const anonymisedApp = await setupAppWithCustomConfig(
         stores,
         { experimental: { flags: { anonymiseEventLog: true } } },
-        db,
+        db.rawDatabase,
     );
     await anonymisedApp.request
         .post('/api/admin/user-admin')
@@ -393,11 +399,95 @@ test('Anonymises name, username and email fields if anonymiseEventLog flag is se
             rootRole: editorRole.id,
         })
         .set('Content-Type', 'application/json');
-    let response = await anonymisedApp.request.get(
+    const response = await anonymisedApp.request.get(
         '/api/admin/user-admin/access',
     );
-    let body = response.body;
+    const body = response.body;
     expect(body.users[0].email).toEqual('aeb83743e@unleash.run');
     expect(body.users[0].name).toEqual('3a8b17647@unleash.run');
     expect(body.users[0].username).toEqual(''); // Not set, so anonymise should return the empty string.
+});
+
+test('creates user with email md5 hash', async () => {
+    await app.request
+        .post('/api/admin/user-admin')
+        .send({
+            email: `hasher@getunleash.ai`,
+            name: `Some Name Hash`,
+            rootRole: editorRole.id,
+        })
+        .set('Content-Type', 'application/json');
+
+    const user = await db
+        .rawDatabase('users')
+        .where({ email: 'hasher@getunleash.ai' })
+        .first(['email_hash']);
+
+    const expectedHash = createHash('md5')
+        .update('hasher@getunleash.ai')
+        .digest('hex');
+
+    expect(user.email_hash).toBe(expectedHash);
+});
+
+test('should return number of sessions per user', async () => {
+    const user = await userStore.insert({ email: 'tester@example.com' });
+    await sessionStore.insertSession({
+        sid: '1',
+        sess: { user: { id: user.id } },
+    });
+    await sessionStore.insertSession({
+        sid: '2',
+        sess: { user: { id: user.id } },
+    });
+
+    const user2 = await userStore.insert({ email: 'tester2@example.com' });
+    await sessionStore.insertSession({
+        sid: '3',
+        sess: { user: { id: user2.id } },
+    });
+
+    const response = await app.request.get(`/api/admin/user-admin`).expect(200);
+
+    expect(response.body).toMatchObject({
+        users: expect.arrayContaining([
+            expect.objectContaining({
+                email: 'tester@example.com',
+                activeSessions: 2,
+            }),
+            expect.objectContaining({
+                email: 'tester2@example.com',
+                activeSessions: 1,
+            }),
+        ]),
+    });
+});
+
+test('should only delete scim users', async () => {
+    userStore.insert({
+        email: 'boring@example.com',
+    });
+
+    await userStore.insert({
+        email: 'really-boring@example.com',
+    });
+
+    const scimUser = (
+        await db
+            .rawDatabase('users')
+            .insert({
+                email: 'made-by-scim@example.com',
+                scim_id: 'some-random-scim-id',
+            })
+            .returning('id')
+    )[0].id;
+
+    await app.request.delete('/api/admin/user-admin/scim-users').expect(200);
+    const response = await app.request.get(`/api/admin/user-admin`).expect(200);
+    const users = response.body.users;
+
+    expect(users.length).toBe(2);
+    expect(users.every((u) => u.email !== 'made-by-scim@example.com')).toBe(
+        true,
+    );
 });

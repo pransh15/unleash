@@ -1,33 +1,32 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 
 import Controller from '../controller';
 import {
     ADMIN,
-    IUnleashConfig,
-    IUnleashServices,
+    type IUnleashConfig,
+    type IUnleashServices,
     serializeDates,
 } from '../../types';
-import { Logger } from '../../logger';
-import {
+import type { Logger } from '../../logger';
+import type {
     AccessService,
     OpenApiService,
     PublicSignupTokenService,
 } from '../../services';
-import { IAuthRequest } from '../unleash-types';
+import type { IAuthRequest } from '../unleash-types';
 import {
     createRequestSchema,
     createResponseSchema,
     getStandardResponses,
-    PublicSignupTokenCreateSchema,
+    type PublicSignupTokenCreateSchema,
     publicSignupTokenSchema,
-    PublicSignupTokenSchema,
+    type PublicSignupTokenSchema,
     publicSignupTokensSchema,
-    PublicSignupTokensSchema,
-    PublicSignupTokenUpdateSchema,
+    type PublicSignupTokensSchema,
+    type PublicSignupTokenUpdateSchema,
     resourceCreatedResponseSchema,
 } from '../../openapi';
-import UserService from '../../services/user-service';
-import { extractUsername } from '../../util';
+import type UserService from '../../services/user-service';
 
 interface TokenParam {
     token: string;
@@ -185,11 +184,10 @@ export class PublicSignupController extends Controller {
         req: IAuthRequest<void, void, PublicSignupTokenCreateSchema>,
         res: Response<PublicSignupTokenSchema>,
     ): Promise<void> {
-        const username = extractUsername(req);
         const token =
             await this.publicSignupTokenService.createNewPublicSignupToken(
                 req.body,
-                username,
+                req.audit,
             );
         this.openApiService.respondWithValidation(
             201,
@@ -218,7 +216,7 @@ export class PublicSignupController extends Controller {
                 ...(enabled === undefined ? {} : { enabled }),
                 ...(expiresAt ? { expiresAt: new Date(expiresAt) } : {}),
             },
-            extractUsername(req),
+            req.audit,
         );
 
         this.openApiService.respondWithValidation(

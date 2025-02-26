@@ -1,12 +1,17 @@
-import { IGroupStore, IStoreGroup } from '../../lib/types/stores/group-store';
-import Group, {
-    ICreateGroupModel,
+import type {
+    IGroupStore,
+    IStoreGroup,
+} from '../../lib/types/stores/group-store';
+import type Group from '../../lib/types/group';
+import type {
     ICreateGroupUserModel,
     IGroup,
+    IGroupModel,
     IGroupProject,
     IGroupRole,
     IGroupUser,
 } from '../../lib/types/group';
+import type { IGroupWithProjectRoles } from '../../lib/types/stores/access-store';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export default class FakeGroupStore implements IGroupStore {
     count(): Promise<number> {
@@ -62,7 +67,7 @@ export default class FakeGroupStore implements IGroupStore {
         throw new Error('Method not implemented.');
     }
 
-    update(group: ICreateGroupModel): Promise<IGroup> {
+    update(group: IGroupModel): Promise<IGroup> {
         throw new Error('Method not implemented.');
     }
 
@@ -80,6 +85,10 @@ export default class FakeGroupStore implements IGroupStore {
     }
 
     getProjectGroupRoles(projectId: string): Promise<IGroupRole[]> {
+        throw new Error('Method not implemented.');
+    }
+
+    getProjectGroups(projectId: string): Promise<IGroupWithProjectRoles[]> {
         throw new Error('Method not implemented.');
     }
 
@@ -114,6 +123,10 @@ export default class FakeGroupStore implements IGroupStore {
     }
 
     hasProjectRole(groupId: number): Promise<boolean> {
+        throw new Error('Method not implemented.');
+    }
+
+    deleteScimGroups(): Promise<void> {
         throw new Error('Method not implemented.');
     }
 }

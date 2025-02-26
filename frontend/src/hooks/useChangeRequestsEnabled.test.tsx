@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { AccessProviderMock } from '../component/providers/AccessProvider/AccessProviderMock';
 import { useChangeRequestsEnabled } from './useChangeRequestsEnabled';
-import { FC } from 'react';
+import type { FC } from 'react';
 import { testServerRoute, testServerSetup } from '../utils/testServer';
 import {
     SKIP_CHANGE_REQUEST,
@@ -31,7 +31,7 @@ testServerRoute(
             environment,
             changeRequestEnabled: true,
         },
-    ]
+    ],
 );
 testServerRoute(server, '/api/admin/ui-config', {
     versionInfo: {
@@ -51,7 +51,7 @@ test('SKIP_CHANGE_REQUEST disables change request mode', async () => {
             ]}
         >
             <TestComponent />
-        </AccessProviderMock>
+        </AccessProviderMock>,
     );
 
     const result = await screen.findByText('change request');
@@ -68,7 +68,7 @@ test('SKIP_CHANGE_REQUEST disables change request mode', async () => {
             ]}
         >
             <TestComponent />
-        </AccessProviderMock>
+        </AccessProviderMock>,
     );
 
     const regularModeElement = await screen.findByText('regular mode');

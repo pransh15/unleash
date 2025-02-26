@@ -13,6 +13,9 @@ interface IProjectMembersWidgetProps {
     change?: number;
 }
 
+/**
+ * @deprecated in favor of ProjectMembers.tsx
+ */
 export const ProjectMembersWidget = ({
     projectId,
     memberCount,
@@ -30,6 +33,7 @@ export const ProjectMembersWidget = ({
         <StyledProjectInfoWidgetContainer>
             <StyledWidgetTitle data-loading>Project members</StyledWidgetTitle>
             <Box
+                data-loading
                 sx={{
                     display: 'flex',
                     justifyContent: 'center',
@@ -37,7 +41,9 @@ export const ProjectMembersWidget = ({
             >
                 <StatusBox boxText={`${memberCount}`} change={change} />
             </Box>
-            <WidgetFooterLink to={link}>View all members</WidgetFooterLink>
+            <WidgetFooterLink data-loading to={link}>
+                View all members
+            </WidgetFooterLink>
         </StyledProjectInfoWidgetContainer>
     );
 };

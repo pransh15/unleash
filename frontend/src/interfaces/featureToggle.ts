@@ -1,7 +1,11 @@
-import { IFeatureStrategy } from './strategy';
-import { ITag } from './tags';
+import type { CreateFeatureSchemaType, FeatureSchema } from 'openapi';
+import type { IFeatureStrategy } from './strategy';
+import type { ITag } from './tags';
 
-export interface IFeatureToggleListItem {
+/**
+ * @deprecated use FeatureSchema from openapi
+ */
+export interface IFeatureFlagListItem {
     type: string;
     name: string;
     stale?: boolean;
@@ -16,8 +20,38 @@ export interface IEnvironments {
     name: string;
     enabled: boolean;
     variantCount: number;
+    lastSeenAt?: string | null;
+    type?: string;
+    hasStrategies?: boolean;
+    hasEnabledStrategies?: boolean;
+    yes?: number;
+    no?: number;
 }
 
+export type ILastSeenEnvironments = Pick<
+    IEnvironments,
+    'name' | 'enabled' | 'lastSeenAt' | 'yes' | 'no'
+>;
+
+export type Lifecycle = {
+    stage: Required<FeatureSchema>['lifecycle']['stage'];
+    status?: string;
+    enteredStageAt: string;
+};
+
+export type Collaborator = {
+    id: number;
+    name: string;
+    imageUrl: string;
+};
+
+export type CollaboratorData = {
+    users: Collaborator[];
+};
+
+/**
+ * @deprecated use FeatureSchema from openapi
+ */
 export interface IFeatureToggle {
     stale: boolean;
     archived: boolean;
@@ -27,13 +61,27 @@ export interface IFeatureToggle {
     description?: string;
     environments: IFeatureEnvironment[];
     name: string;
-
     favorite: boolean;
     project: string;
-    type: string;
+    type: CreateFeatureSchemaType;
     variants: IFeatureVariant[];
     impressionData: boolean;
     strategies?: IFeatureStrategy[];
+    dependencies: Array<IDependency>;
+    lifecycle?: Lifecycle;
+    children: Array<string>;
+    createdBy?: {
+        id: number;
+        name: string;
+        imageUrl: string;
+    };
+    collaborators?: CollaboratorData;
+}
+
+export interface IDependency {
+    feature: string;
+    enabled?: boolean;
+    variants?: string[];
 }
 
 export interface IFeatureEnvironment {
@@ -42,6 +90,9 @@ export interface IFeatureEnvironment {
     enabled: boolean;
     strategies: IFeatureStrategy[];
     variants?: IFeatureVariant[];
+    lastSeenAt?: string;
+    yes?: number;
+    no?: number;
 }
 
 export interface IFeatureEnvironmentWithCrEnabled extends IFeatureEnvironment {
@@ -88,5 +139,5 @@ export interface IFeatureMetricsRaw {
     timestamp: string;
     yes: number;
     no: number;
-    variants: Record<string, number>;
+    variants?: Record<string, number>;
 }

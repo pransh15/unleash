@@ -1,4 +1,4 @@
-import { Switch, SwitchProps } from '@mui/material';
+import { Switch, type SwitchProps } from '@mui/material';
 import React from 'react';
 import { formatAccessText } from 'utils/formatAccessText';
 import { TooltipResolver } from 'component/common/TooltipResolver/TooltipResolver';
@@ -8,7 +8,7 @@ import {
 } from 'hooks/useHasAccess';
 
 interface IPermissionSwitchProps extends SwitchProps {
-    permission: string;
+    permission: string | string[];
     tooltip?: string;
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     disabled?: boolean;
@@ -28,7 +28,7 @@ const ProjectenvironmentPermissionSwitch = React.forwardRef<
     const access = useHasProjectEnvironmentAccess(
         props.permission,
         props.projectId,
-        props.environmentId
+        props.environmentId,
     );
 
     return <BasePermissionSwitch {...props} access={access} ref={ref} />;
@@ -41,7 +41,7 @@ const RootPermissionSwitch = React.forwardRef<
     const access = useHasRootAccess(
         props.permission,
         props.projectId,
-        props.environmentId
+        props.environmentId,
     );
 
     return <BasePermissionSwitch {...props} access={access} ref={ref} />;
@@ -64,10 +64,14 @@ const BasePermissionSwitch = React.forwardRef<
     } = props;
 
     return (
-        <TooltipResolver title={formatAccessText(access, tooltip)} arrow>
+        <TooltipResolver
+            title={formatAccessText(access, tooltip)}
+            arrow
+            variant='custom'
+        >
             <span data-loading>
                 <Switch
-                    data-testid="toggle-switch"
+                    data-testid='toggle-switch'
                     onChange={onChange}
                     disabled={disabled || !access}
                     checked={checked}

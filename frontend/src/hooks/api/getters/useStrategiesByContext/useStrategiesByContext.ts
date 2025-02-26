@@ -2,7 +2,7 @@ import { mutate } from 'swr';
 import { useCallback } from 'react';
 import { formatApiPath } from 'utils/formatPath';
 import handleErrorResponses from '../httpErrorResponseHandler';
-import { IFeatureStrategy } from 'interfaces/strategy';
+import type { IFeatureStrategy } from 'interfaces/strategy';
 import { useConditionalSWR } from '../useConditionalSWR/useConditionalSWR';
 
 export interface IUseStrategiesByContextOutput {
@@ -13,11 +13,11 @@ export interface IUseStrategiesByContextOutput {
 }
 
 export const useStrategiesByContext = (
-    id?: string | number
+    id?: string | number,
 ): IUseStrategiesByContextOutput => {
     const path = formatApiPath(`api/admin/context/${id}/strategies`);
     const { data, error } = useConditionalSWR(id, [], path, () =>
-        fetchUsedSegment(path)
+        fetchUsedSegment(path),
     );
 
     const refetchUsedSegments = useCallback(() => {
@@ -35,5 +35,5 @@ export const useStrategiesByContext = (
 const fetchUsedSegment = (path: string) => {
     return fetch(path, { method: 'GET' })
         .then(handleErrorResponses('Strategies by context'))
-        .then(res => res.json());
+        .then((res) => res.json());
 };

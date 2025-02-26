@@ -1,8 +1,8 @@
 import Joi, { ValidationError } from 'joi';
-import { IUser } from './user';
+import type { IUser } from './user';
 
 export interface IGroup {
-    id?: number;
+    id: number;
     name: string;
     description?: string;
     mappingsSSO?: string[];
@@ -10,6 +10,7 @@ export interface IGroup {
     createdAt?: Date;
     userCount?: number;
     createdBy?: string;
+    scimId?: string;
 }
 
 export interface IGroupUser {
@@ -33,9 +34,8 @@ export interface IGroupModel extends IGroup {
     projects?: string[];
 }
 
-export interface ICreateGroupModel extends IGroup {
+export interface ICreateGroupModel extends Omit<IGroup, 'id'> {
     users?: ICreateGroupUserModel[];
-    projects?: string[];
 }
 
 export interface IGroupProject {
@@ -53,8 +53,7 @@ export interface ICreateGroupUserModel {
     user: Pick<IUser, 'id'>;
 }
 
-export interface IGroupModelWithProjectRole extends IGroupModel {
-    roleId: number;
+export interface IGroupModelWithAddedAt extends IGroupModel {
     addedAt: Date;
 }
 
@@ -75,6 +74,8 @@ export default class Group implements IGroup {
 
     mappingsSSO: string[];
 
+    scimId?: string;
+
     constructor({
         id,
         name,
@@ -83,6 +84,7 @@ export default class Group implements IGroup {
         rootRole,
         createdBy,
         createdAt,
+        scimId,
     }: IGroup) {
         if (!id) {
             throw new ValidationError('Id is required', [], undefined);
@@ -97,5 +99,6 @@ export default class Group implements IGroup {
         this.mappingsSSO = mappingsSSO;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
+        this.scimId = scimId;
     }
 }

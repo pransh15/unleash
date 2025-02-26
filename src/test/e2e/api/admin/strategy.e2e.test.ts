@@ -1,12 +1,17 @@
-import dbInit from '../../helpers/database-init';
-import { setupAppWithCustomConfig } from '../../helpers/test-helper';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
+import {
+    type IUnleashTest,
+    setupAppWithCustomConfig,
+} from '../../helpers/test-helper';
 import getLogger from '../../../fixtures/no-logger';
 
-let app;
-let db;
+let app: IUnleashTest;
+let db: ITestDb;
 
 beforeAll(async () => {
-    db = await dbInit('strategy_api_serial', getLogger);
+    db = await dbInit('strategy_api_serial', getLogger, {
+        dbInitMethod: 'legacy' as const,
+    });
     app = await setupAppWithCustomConfig(db.stores, {
         experimental: {
             flags: {
@@ -29,7 +34,7 @@ test('gets all strategies', async () => {
         .expect('Content-Type', /json/)
         .expect(200)
         .expect((res) => {
-            expect(res.body.strategies).toHaveLength(2);
+            expect(res.body.strategies).toHaveLength(3);
         });
 });
 

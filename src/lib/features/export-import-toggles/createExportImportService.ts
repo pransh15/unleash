@@ -1,17 +1,15 @@
-import { Db } from '../../db/db';
-import { IUnleashConfig } from '../../types';
+import type { Db } from '../../db/db';
+import type { IUnleashConfig } from '../../types';
 import ExportImportService from './export-import-service';
 import { ImportTogglesStore } from './import-toggles-store';
-import FeatureToggleStore from '../../db/feature-toggle-store';
+import FeatureToggleStore from '../feature-toggle/feature-toggle-store';
 import TagStore from '../../db/tag-store';
-import TagTypeStore from '../../db/tag-type-store';
-import ProjectStore from '../../db/project-store';
+import TagTypeStore from '../tag-type/tag-type-store';
 import FeatureTagStore from '../../db/feature-tag-store';
 import StrategyStore from '../../db/strategy-store';
-import ContextFieldStore from '../../db/context-field-store';
-import FeatureStrategiesStore from '../../db/feature-strategy-store';
+import ContextFieldStore from '../context/context-field-store';
+import FeatureStrategiesStore from '../feature-toggle/feature-toggle-strategies-store';
 import {
-    ContextService,
     FeatureTagService,
     StrategyService,
     TagTypeService,
@@ -24,20 +22,33 @@ import {
     createFakeFeatureToggleService,
     createFeatureToggleService,
 } from '../feature-toggle/createFeatureToggleService';
-import SegmentStore from '../../db/segment-store';
 import { FeatureEnvironmentStore } from '../../db/feature-environment-store';
-import FakeFeatureToggleStore from '../../../test/fixtures/fake-feature-toggle-store';
+import FakeFeatureToggleStore from '../feature-toggle/fakes/fake-feature-toggle-store';
 import FakeTagStore from '../../../test/fixtures/fake-tag-store';
-import FakeTagTypeStore from '../../../test/fixtures/fake-tag-type-store';
-import FakeSegmentStore from '../../../test/fixtures/fake-segment-store';
-import FakeProjectStore from '../../../test/fixtures/fake-project-store';
+import FakeTagTypeStore from '../tag-type/fake-tag-type-store';
 import FakeFeatureTagStore from '../../../test/fixtures/fake-feature-tag-store';
-import FakeContextFieldStore from '../../../test/fixtures/fake-context-field-store';
-import FakeEventStore from '../../../test/fixtures/fake-event-store';
-import FakeFeatureStrategiesStore from '../../../test/fixtures/fake-feature-strategies-store';
+import FakeContextFieldStore from '../context/fake-context-field-store';
+import FakeFeatureStrategiesStore from '../feature-toggle/fakes/fake-feature-strategies-store';
 import FakeFeatureEnvironmentStore from '../../../test/fixtures/fake-feature-environment-store';
 import FakeStrategiesStore from '../../../test/fixtures/fake-strategies-store';
-import EventStore from '../../db/event-store';
+import { createPrivateProjectChecker } from '../private-project/createPrivateProjectChecker';
+import type { DeferredServiceFactory } from '../../db/transaction';
+import { DependentFeaturesReadModel } from '../dependent-features/dependent-features-read-model';
+import { FakeDependentFeaturesReadModel } from '../dependent-features/fake-dependent-features-read-model';
+import {
+    createDependentFeaturesService,
+    createFakeDependentFeaturesService,
+} from '../dependent-features/createDependentFeaturesService';
+import {
+    createEventsService,
+    createFakeEventsService,
+} from '../events/createEventsService';
+import { SegmentReadModel } from '../segment/segment-read-model';
+import { FakeSegmentReadModel } from '../segment/fake-segment-read-model';
+import {
+    createContextService,
+    createFakeContextService,
+} from '../context/createContextService';
 
 export const createFakeExportImportTogglesService = (
     config: IUnleashConfig,
@@ -47,52 +58,49 @@ export const createFakeExportImportTogglesService = (
     const featureToggleStore = new FakeFeatureToggleStore();
     const tagStore = new FakeTagStore();
     const tagTypeStore = new FakeTagTypeStore();
-    const segmentStore = new FakeSegmentStore();
-    const projectStore = new FakeProjectStore();
     const featureTagStore = new FakeFeatureTagStore();
     const strategyStore = new FakeStrategiesStore();
     const contextFieldStore = new FakeContextFieldStore();
-    const eventStore = new FakeEventStore();
     const featureStrategiesStore = new FakeFeatureStrategiesStore();
     const featureEnvironmentStore = new FakeFeatureEnvironmentStore();
-    const accessService = createFakeAccessService(config);
-    const featureToggleService = createFakeFeatureToggleService(config);
+    const { accessService } = createFakeAccessService(config);
+    const { featureToggleService } = createFakeFeatureToggleService(config);
+
+    const eventService = createFakeEventsService(config);
 
     const featureTagService = new FeatureTagService(
         {
             tagStore,
             featureTagStore,
-            eventStore,
             featureToggleStore,
         },
         { getLogger },
+        eventService,
     );
-    const contextService = new ContextService(
-        {
-            projectStore,
-            eventStore,
-            contextFieldStore,
-            featureStrategiesStore,
-        },
-        { getLogger },
-    );
+    const contextService = createFakeContextService(config);
     const strategyService = new StrategyService(
-        { strategyStore, eventStore },
+        { strategyStore },
         { getLogger },
+        eventService,
     );
     const tagTypeService = new TagTypeService(
-        { tagTypeStore, eventStore },
+        { tagTypeStore },
         { getLogger },
+        eventService,
     );
-    const exportImportService = new ExportImportService(
+    const dependentFeaturesReadModel = new FakeDependentFeaturesReadModel();
+
+    const segmentReadModel = new FakeSegmentReadModel();
+
+    const dependentFeaturesService = createFakeDependentFeaturesService(config);
+
+    return new ExportImportService(
         {
-            eventStore,
             importTogglesStore,
             featureStrategiesStore,
             contextFieldStore,
             featureToggleStore,
             featureTagStore,
-            segmentStore,
             tagTypeStore,
             featureEnvironmentStore,
         },
@@ -101,106 +109,111 @@ export const createFakeExportImportTogglesService = (
             featureToggleService,
             featureTagService,
             accessService,
+            eventService,
             contextService,
             strategyService,
             tagTypeService,
+            dependentFeaturesService,
         },
+        dependentFeaturesReadModel,
+        segmentReadModel,
     );
-
-    return exportImportService;
 };
 
+export const deferredExportImportTogglesService = (
+    config: IUnleashConfig,
+): DeferredServiceFactory<ExportImportService> => {
+    return (db: Db) => {
+        const { eventBus, getLogger, flagResolver } = config;
+        const importTogglesStore = new ImportTogglesStore(db);
+        const featureToggleStore = new FeatureToggleStore(
+            db,
+            eventBus,
+            getLogger,
+            flagResolver,
+        );
+        const tagStore = new TagStore(db, eventBus, getLogger);
+        const tagTypeStore = new TagTypeStore(db, eventBus, getLogger);
+        const featureTagStore = new FeatureTagStore(db, eventBus, getLogger);
+        const strategyStore = new StrategyStore(db, getLogger);
+        const contextFieldStore = new ContextFieldStore(
+            db,
+            getLogger,
+            flagResolver,
+        );
+        const featureStrategiesStore = new FeatureStrategiesStore(
+            db,
+            eventBus,
+            getLogger,
+            flagResolver,
+        );
+        const featureEnvironmentStore = new FeatureEnvironmentStore(
+            db,
+            eventBus,
+            config,
+        );
+        const accessService = createAccessService(db, config);
+        const featureToggleService = createFeatureToggleService(db, config);
+        createPrivateProjectChecker(db, config);
+        const eventService = createEventsService(db, config);
+
+        const featureTagService = new FeatureTagService(
+            {
+                tagStore,
+                featureTagStore,
+                featureToggleStore,
+            },
+            { getLogger },
+            eventService,
+        );
+        const contextService = createContextService(config)(db);
+        const strategyService = new StrategyService(
+            { strategyStore },
+            { getLogger },
+            eventService,
+        );
+        const tagTypeService = new TagTypeService(
+            { tagTypeStore },
+            { getLogger },
+            eventService,
+        );
+        const dependentFeaturesReadModel = new DependentFeaturesReadModel(db);
+
+        const segmentReadModel = new SegmentReadModel(db);
+
+        const dependentFeaturesService =
+            createDependentFeaturesService(config)(db);
+
+        return new ExportImportService(
+            {
+                importTogglesStore,
+                featureStrategiesStore,
+                contextFieldStore,
+                featureToggleStore,
+                featureTagStore,
+                tagTypeStore,
+                featureEnvironmentStore,
+            },
+            config,
+            {
+                featureToggleService,
+                featureTagService,
+                accessService,
+                eventService,
+                contextService,
+                strategyService,
+                tagTypeService,
+                dependentFeaturesService,
+            },
+            dependentFeaturesReadModel,
+            segmentReadModel,
+        );
+    };
+};
 export const createExportImportTogglesService = (
     db: Db,
     config: IUnleashConfig,
 ): ExportImportService => {
-    const { eventBus, getLogger, flagResolver } = config;
-    const importTogglesStore = new ImportTogglesStore(db);
-    const featureToggleStore = new FeatureToggleStore(db, eventBus, getLogger);
-    const tagStore = new TagStore(db, eventBus, getLogger);
-    const tagTypeStore = new TagTypeStore(db, eventBus, getLogger);
-    const segmentStore = new SegmentStore(
-        db,
-        eventBus,
-        getLogger,
-        flagResolver,
-    );
-    const projectStore = new ProjectStore(
-        db,
-        eventBus,
-        getLogger,
-        flagResolver,
-    );
-    const featureTagStore = new FeatureTagStore(db, eventBus, getLogger);
-    const strategyStore = new StrategyStore(db, getLogger);
-    const contextFieldStore = new ContextFieldStore(
-        db,
-        getLogger,
-        flagResolver,
-    );
-    const featureStrategiesStore = new FeatureStrategiesStore(
-        db,
-        eventBus,
-        getLogger,
-        flagResolver,
-    );
-    const featureEnvironmentStore = new FeatureEnvironmentStore(
-        db,
-        eventBus,
-        getLogger,
-    );
-    const eventStore = new EventStore(db, getLogger);
-    const accessService = createAccessService(db, config);
-    const featureToggleService = createFeatureToggleService(db, config);
-
-    const featureTagService = new FeatureTagService(
-        {
-            tagStore,
-            featureTagStore,
-            eventStore,
-            featureToggleStore,
-        },
-        { getLogger },
-    );
-    const contextService = new ContextService(
-        {
-            projectStore,
-            eventStore,
-            contextFieldStore,
-            featureStrategiesStore,
-        },
-        { getLogger },
-    );
-    const strategyService = new StrategyService(
-        { strategyStore, eventStore },
-        { getLogger },
-    );
-    const tagTypeService = new TagTypeService(
-        { tagTypeStore, eventStore },
-        { getLogger },
-    );
-    const exportImportService = new ExportImportService(
-        {
-            eventStore,
-            importTogglesStore,
-            featureStrategiesStore,
-            contextFieldStore,
-            featureToggleStore,
-            featureTagStore,
-            segmentStore,
-            tagTypeStore,
-            featureEnvironmentStore,
-        },
-        config,
-        {
-            featureToggleService,
-            featureTagService,
-            accessService,
-            contextService,
-            strategyService,
-            tagTypeService,
-        },
-    );
-
-    return exportImportService;
+    const unboundService = deferredExportImportTogglesService(config);
+    return unboundService(db);
 };

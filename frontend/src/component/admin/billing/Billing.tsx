@@ -10,13 +10,8 @@ import { BillingHistory } from './BillingHistory/BillingHistory';
 import useInvoices from 'hooks/api/getters/useInvoices/useInvoices';
 
 export const Billing = () => {
-    const {
-        instanceStatus,
-        isBilling,
-        refetchInstanceStatus,
-        refresh,
-        loading,
-    } = useInstanceStatus();
+    const { isBilling, refetchInstanceStatus, refresh, loading } =
+        useInstanceStatus();
     const { invoices } = useInvoices();
 
     useEffect(() => {
@@ -29,21 +24,19 @@ export const Billing = () => {
 
     return (
         <div>
-            <PageContent header="Billing" isLoading={loading}>
+            <PageContent header='Billing' isLoading={loading}>
                 <ConditionallyRender
                     condition={isBilling}
                     show={
                         <PermissionGuard permissions={ADMIN}>
                             <>
-                                <BillingDashboard
-                                    instanceStatus={instanceStatus!}
-                                />
+                                <BillingDashboard />
                                 <BillingHistory data={invoices} />
                             </>
                         </PermissionGuard>
                     }
                     elseShow={
-                        <Alert severity="error">
+                        <Alert severity='error'>
                             Billing is not enabled for this instance.
                         </Alert>
                     }

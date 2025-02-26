@@ -1,4 +1,5 @@
-import { FC, useState, useEffect } from 'react';
+import type React from 'react';
+import { type FC, useState, useEffect } from 'react';
 import Plausible from 'plausible-tracker';
 import { PlausibleContext } from 'contexts/PlausibleContext';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
@@ -7,9 +8,11 @@ const PLAUSIBLE_UNLEASH_API_HOST = 'https://plausible.getunleash.io';
 const PLAUSIBLE_UNLEASH_DOMAIN = 'app.unleash-hosted.com';
 const LOCAL_TESTING = false;
 
-export const PlausibleProvider: FC = ({ children }) => {
+export const PlausibleProvider: FC<{ children?: React.ReactNode }> = ({
+    children,
+}) => {
     const [context, setContext] = useState<ReturnType<typeof Plausible> | null>(
-        null
+        null,
     );
 
     const getUIFlags = () => {
@@ -17,7 +20,7 @@ export const PlausibleProvider: FC = ({ children }) => {
             const uiFlagsStr =
                 (
                     document.querySelector(
-                        'meta[name="uiFlags"]'
+                        'meta[name="uiFlags"]',
                     ) as HTMLMetaElement
                 )?.content || '{}';
             return JSON.parse(decodeURI(uiFlagsStr));

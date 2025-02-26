@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { getCreateTogglePath } from 'utils/routePathHelpers';
 import { useFeaturesArchive } from 'hooks/api/getters/useFeaturesArchive/useFeaturesArchive';
@@ -22,7 +21,7 @@ export const FeatureNotFound = () => {
         return null;
     }
 
-    const isArchived = archivedFeatures.some(archivedFeature => {
+    const isArchived = archivedFeatures.some((archivedFeature) => {
         return archivedFeature.name === featureId;
     });
 

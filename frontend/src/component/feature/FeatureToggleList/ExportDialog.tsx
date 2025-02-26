@@ -7,10 +7,12 @@ import useToast from 'hooks/useToast';
 import type { FeatureSchema } from 'openapi';
 
 import { formatUnknownError } from 'utils/formatUnknownError';
+import { ConditionallyRender } from '../../common/ConditionallyRender/ConditionallyRender';
 
 interface IExportDialogProps {
     showExportDialog: boolean;
     data: Pick<FeatureSchema, 'name'>[];
+    project?: string;
     onClose: () => void;
     onConfirm?: () => void;
     environments: string[];
@@ -24,6 +26,7 @@ const StyledSelect = styled(GeneralSelect)(({ theme }) => ({
 export const ExportDialog = ({
     showExportDialog,
     data,
+    project,
     onClose,
     onConfirm,
     environments,
@@ -34,7 +37,7 @@ export const ExportDialog = ({
     const { setToastApiError } = useToast();
 
     const getOptions = () =>
-        environments.map(env => ({
+        environments.map((env) => ({
             key: env,
             label: env,
         }));
@@ -61,8 +64,9 @@ export const ExportDialog = ({
     const onClick = async () => {
         try {
             const payload = {
-                features: data.map(feature => feature.name),
+                features: data.map((feature) => feature.name),
                 environment: selected,
+                project,
             };
             const res = await createExport(payload);
             const body = await res.json();
@@ -77,20 +81,33 @@ export const ExportDialog = ({
     return (
         <Dialogue
             open={showExportDialog}
-            title="Export feature toggle configuration"
+            title='Export feature flag configuration'
             onClose={onClose}
             onClick={onClick}
-            primaryButtonText="Export selection"
-            secondaryButtonText="Cancel"
+            primaryButtonText='Export selection'
+            secondaryButtonText='Cancel'
         >
             <Box ref={ref}>
-                The current search filter will be used to export feature
-                toggles. Currently {data.length} feature toggles will be
-                exported.
+                <ConditionallyRender
+                    condition={data.length > 0}
+                    show={
+                        <span>
+                            The current search filter will be used to export
+                            feature flags. Currently {data.length} feature flags
+                            will be exported.
+                        </span>
+                    }
+                    elseShow={
+                        <span>
+                            You will export all feature flags from this project.
+                        </span>
+                    }
+                />
+
                 <br />
                 <br />
                 <Typography>
-                    Select which environment to export feature toggle
+                    Select which environment to export feature flag
                     configuration from:
                 </Typography>
                 <StyledSelect

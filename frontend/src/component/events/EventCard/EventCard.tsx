@@ -1,13 +1,13 @@
 import EventDiff from 'component/events/EventDiff/EventDiff';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
-import { IEvent } from 'interfaces/event';
 import { useLocationSettings } from 'hooks/useLocationSettings';
 import { formatDateYMDHMS } from 'utils/formatDate';
 import { Link } from 'react-router-dom';
 import { styled } from '@mui/material';
+import type { EventSchema } from 'openapi';
 
 interface IEventCardProps {
-    entry: IEvent;
+    entry: EventSchema;
 }
 
 const StyledDefinitionTerm = styled('dt')(({ theme }) => ({
@@ -37,6 +37,10 @@ const StyledContainerListItem = styled('li')(({ theme }) => ({
         [theme.breakpoints.up('md')]: {
             padding: theme.spacing(4),
         },
+    },
+
+    '& dd': {
+        overflowWrap: 'anywhere',
     },
 
     a: {
@@ -71,7 +75,7 @@ const EventCard = ({ entry }: IEventCardProps) => {
 
     const createdAtFormatted = formatDateYMDHMS(
         entry.createdAt,
-        locationSettings.locale
+        locationSettings.locale,
     );
 
     return (
@@ -130,7 +134,7 @@ const EventCard = ({ entry }: IEventCardProps) => {
                 />
             </dl>
             <ConditionallyRender
-                condition={entry.data || entry.preData}
+                condition={Boolean(entry.data || entry.preData)}
                 show={
                     <StyledCodeSection>
                         <StyledChangesTitle>Changes:</StyledChangesTitle>

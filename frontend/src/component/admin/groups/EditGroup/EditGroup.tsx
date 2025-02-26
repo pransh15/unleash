@@ -6,14 +6,16 @@ import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import useToast from 'hooks/useToast';
 import { useGroupApi } from 'hooks/api/actions/useGroupApi/useGroupApi';
 import { formatUnknownError } from 'utils/formatUnknownError';
-import { Button } from '@mui/material';
+import { Button, Tooltip } from '@mui/material';
 import { EDIT } from 'constants/misc';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
 import { useGroup } from 'hooks/api/getters/useGroup/useGroup';
 import { UG_SAVE_BTN_ID } from 'utils/testIds';
 import { GO_BACK } from 'constants/navigate';
 import { useGroups } from 'hooks/api/getters/useGroups/useGroups';
-import { IGroup } from 'interfaces/group';
+import type { IGroup } from 'interfaces/group';
+import { scimGroupTooltip } from '../group-constants';
+import { useScimSettings } from 'hooks/api/getters/useScimSettings/useScimSettings';
 
 export const EditGroupContainer = () => {
     const groupId = Number(useRequiredPathParam('groupId'));
@@ -47,6 +49,11 @@ export const EditGroup = ({
     const navigate = useNavigate();
 
     const {
+        settings: { enabled: scimEnabled },
+    } = useScimSettings();
+    const isScimGroup = scimEnabled && Boolean(group?.scimId);
+
+    const {
         name,
         setName,
         description,
@@ -66,7 +73,7 @@ export const EditGroup = ({
         group?.description,
         group?.mappingsSSO,
         group?.users,
-        group?.rootRole
+        group?.rootRole,
     );
 
     const { groups } = useGroups();
@@ -83,7 +90,7 @@ export const EditGroup = ({
             refetchGroups();
             navigate(GO_BACK);
             setToastData({
-                title: 'Group updated successfully',
+                text: 'Group updated successfully',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -106,7 +113,7 @@ export const EditGroup = ({
 
     const isNameNotEmpty = (name: string) => name.length;
     const isNameUnique = (name: string) =>
-        !groups?.filter(group => group.name === name && group.id !== groupId)
+        !groups?.filter((group) => group.name === name && group.id !== groupId)
             .length;
     const isValid = isNameNotEmpty(name) && isNameUnique(name);
 
@@ -121,10 +128,10 @@ export const EditGroup = ({
     return (
         <FormTemplate
             loading={loading}
-            title="Edit group"
-            description="Groups is the best and easiest way to organize users and then use them in projects to assign a specific role in one go to all the users in a group."
-            documentationLink="https://docs.getunleash.io/advanced/groups"
-            documentationLinkLabel="Groups documentation"
+            title='Edit group'
+            description='Groups is the best and easiest way to organize users and then use them in projects to assign a specific role in one go to all the users in a group.'
+            documentationLink='https://docs.getunleash.io/reference/rbac#user-groups'
+            documentationLinkLabel='Groups documentation'
             formatApiCode={formatApiCode}
         >
             <GroupForm
@@ -142,16 +149,21 @@ export const EditGroup = ({
                 handleSubmit={handleSubmit}
                 handleCancel={handleCancel}
                 mode={EDIT}
+                isScimGroup={isScimGroup}
             >
-                <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    disabled={!isValid}
-                    data-testid={UG_SAVE_BTN_ID}
-                >
-                    Save
-                </Button>
+                <Tooltip title={isScimGroup ? scimGroupTooltip : ''} arrow>
+                    <div>
+                        <Button
+                            type='submit'
+                            variant='contained'
+                            color='primary'
+                            disabled={!isValid}
+                            data-testid={UG_SAVE_BTN_ID}
+                        >
+                            Save
+                        </Button>
+                    </div>
+                </Tooltip>
             </GroupForm>
         </FormTemplate>
     );

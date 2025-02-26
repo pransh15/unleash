@@ -1,5 +1,5 @@
 import {
-    PlaygroundFeatureEvaluationResult,
+    type PlaygroundFeatureEvaluationResult,
     PlaygroundService,
 } from '../../../lib/features/playground/playground-service';
 import {
@@ -9,51 +9,49 @@ import {
 import { generate as generateContext } from '../../../lib/openapi/spec/sdk-context-schema.test';
 import fc from 'fast-check';
 import { createTestConfig } from '../../config/test-config';
-import dbInit, { ITestDb } from '../helpers/database-init';
-import { IUnleashStores } from '../../../lib/types/stores';
-import FeatureToggleService from '../../../lib/services/feature-toggle-service';
-import { SegmentService } from '../../../lib/services/segment-service';
-import { FeatureToggle, ISegment, WeightType } from '../../../lib/types/model';
-import { PlaygroundFeatureSchema } from '../../../lib/openapi/spec/playground-feature-schema';
+import dbInit, { type ITestDb } from '../helpers/database-init';
+import type { IUnleashStores } from '../../../lib/types/stores';
+import type FeatureToggleService from '../../../lib/features/feature-toggle/feature-toggle-service';
+import {
+    type FeatureToggle,
+    type ISegment,
+    WeightType,
+} from '../../../lib/types/model';
+import type { PlaygroundFeatureSchema } from '../../../lib/openapi/spec/playground-feature-schema';
 import { offlineUnleashClientNode } from '../../../lib/features/playground/offline-unleash-client.test';
-import { ClientFeatureSchema } from 'lib/openapi/spec/client-feature-schema';
-import { SdkContextSchema } from 'lib/openapi/spec/sdk-context-schema';
-import { SegmentSchema } from 'lib/openapi/spec/segment-schema';
+import type { ClientFeatureSchema } from '../../../lib/openapi/spec/client-feature-schema';
+import type { SdkContextSchema } from '../../../lib/openapi/spec/sdk-context-schema';
+import type { SegmentSchema } from '../../../lib/openapi/spec/segment-schema';
 import { playgroundStrategyEvaluation } from '../../../lib/openapi/spec/playground-strategy-schema';
-import { PlaygroundSegmentSchema } from 'lib/openapi/spec/playground-segment-schema';
-import { GroupService } from '../../../lib/services/group-service';
-import { AccessService } from '../../../lib/services/access-service';
-import { ISegmentService } from '../../../lib/segments/segment-service-interface';
-import { ChangeRequestAccessReadModel } from '../../../lib/features/change-request-access-service/sql-change-request-access-read-model';
+import type { PlaygroundSegmentSchema } from '../../../lib/openapi/spec/playground-segment-schema';
+import { createPrivateProjectChecker } from '../../../lib/features/private-project/createPrivateProjectChecker';
+import { createFeatureToggleService } from '../../../lib/features';
+import { SegmentReadModel } from '../../../lib/features/segment/segment-read-model';
 
 let stores: IUnleashStores;
 let db: ITestDb;
 let service: PlaygroundService;
 let featureToggleService: FeatureToggleService;
-let segmentService: ISegmentService;
 
 beforeAll(async () => {
     const config = createTestConfig();
     db = await dbInit('playground_service_serial', config.getLogger);
     stores = db.stores;
-    segmentService = new SegmentService(stores, config);
-    const groupService = new GroupService(stores, config);
-    const accessService = new AccessService(stores, config, groupService);
-    const changeRequestAccessReadModel = new ChangeRequestAccessReadModel(
+    const privateProjectChecker = createPrivateProjectChecker(
         db.rawDatabase,
-        accessService,
-    );
-    featureToggleService = new FeatureToggleService(
-        stores,
         config,
-        segmentService,
-        accessService,
-        changeRequestAccessReadModel,
     );
-    service = new PlaygroundService(config, {
-        featureToggleServiceV2: featureToggleService,
-        segmentService,
-    });
+    const segmentReadModel = new SegmentReadModel(db.rawDatabase);
+
+    featureToggleService = createFeatureToggleService(db.rawDatabase, config);
+    service = new PlaygroundService(
+        config,
+        {
+            featureToggleServiceV2: featureToggleService,
+            privateProjectChecker,
+        },
+        segmentReadModel,
+    );
 });
 
 afterAll(async () => {
@@ -123,6 +121,7 @@ export const seedDatabaseForPlaygroundTest = async (
                     ...feature,
                     createdAt: undefined,
                     variants: null,
+                    createdByUserId: 9999,
                 },
             );
 
@@ -181,13 +180,12 @@ export const seedDatabaseForPlaygroundTest = async (
 };
 
 describe('the playground service (e2e)', () => {
-    const isDisabledVariant = ({
-        name,
-        enabled,
-    }: {
-        name: string;
-        enabled: boolean;
-    }) => name === 'disabled' && !enabled;
+    const isDisabledVariant = (
+        variant?: {
+            name: string;
+            enabled: boolean;
+        } | null,
+    ) => variant?.name === 'disabled' && !variant?.enabled;
 
     const insertAndEvaluateFeatures = async ({
         features,
@@ -294,12 +292,12 @@ describe('the playground service (e2e)', () => {
                                 ctx.log(JSON.stringify(enabledStateMatches));
                                 ctx.log(
                                     JSON.stringify(
-                                        feature.variant.name === 'disabled',
+                                        feature.variant?.name === 'disabled',
                                     ),
                                 );
                                 ctx.log(
                                     JSON.stringify(
-                                        feature.variant.enabled === false,
+                                        feature.variant?.enabled === false,
                                     ),
                                 );
                                 return (
@@ -708,7 +706,7 @@ describe('the playground service (e2e)', () => {
                                     },
                                 );
 
-                            feature.strategies.forEach(
+                            feature.strategies?.forEach(
                                 ({ segments, ...strategy }) => {
                                     expect(cleanedReceivedStrategies).toEqual(
                                         expect.arrayContaining([
@@ -821,6 +819,7 @@ describe('the playground service (e2e)', () => {
                                                         segment.result === true,
                                                 ),
                                             ).toBeTruthy();
+                                            break;
                                         case false:
                                         // empty -- all segments can be true and
                                         // the toggle still not enabled. We
@@ -848,7 +847,7 @@ describe('the playground service (e2e)', () => {
                             features: features.map((feature) => ({
                                 ...feature,
                                 // remove any constraints and use a name that doesn't exist
-                                strategies: feature.strategies.map(
+                                strategies: feature.strategies?.map(
                                     (strategy) => ({
                                         ...strategy,
                                         name: 'bogus-strategy',
@@ -910,14 +909,14 @@ describe('the playground service (e2e)', () => {
                             features: features.map((feature) => ({
                                 ...feature,
                                 // use a constraint that will never be true
-                                strategies: feature.strategies.map(
+                                strategies: feature.strategies?.map(
                                     (strategy) => ({
                                         ...strategy,
                                         name: 'bogusStrategy',
                                         constraints: [
                                             {
                                                 contextName: 'appName',
-                                                operator: 'IN' as 'IN',
+                                                operator: 'IN' as const,
                                                 values: [uuid],
                                             },
                                         ],
@@ -981,7 +980,7 @@ describe('the playground service (e2e)', () => {
                                         constraints: [
                                             {
                                                 contextName: 'appName',
-                                                operator: 'IN' as 'IN',
+                                                operator: 'IN' as const,
                                                 values: [uuid],
                                             },
                                         ],
@@ -1226,6 +1225,7 @@ describe('the playground service (e2e)', () => {
                                 expect(feature.variant).toEqual({
                                     name: 'disabled',
                                     enabled: false,
+                                    feature_enabled: false,
                                 });
                             }
                         });

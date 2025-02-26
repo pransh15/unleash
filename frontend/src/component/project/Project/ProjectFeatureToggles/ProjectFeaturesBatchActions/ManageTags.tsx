@@ -1,12 +1,11 @@
-import { useMemo, useState, VFC } from 'react';
+import { useMemo, useState, type VFC } from 'react';
 import { Button } from '@mui/material';
 import { ManageBulkTagsDialog } from 'component/feature/FeatureView/FeatureOverview/ManageTagsDialog/ManageBulkTagsDialog';
 import type { FeatureSchema } from 'openapi';
-import { ITag } from 'interfaces/tags';
+import type { ITag } from 'interfaces/tags';
 import useTagApi from 'hooks/api/actions/useTagApi/useTagApi';
 import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
-import useProject from 'hooks/api/getters/useProject/useProject';
 import { PermissionHOC } from 'component/common/PermissionHOC/PermissionHOC';
 import { UPDATE_FEATURE } from 'component/providers/AccessProvider/permissions';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
@@ -14,11 +13,15 @@ import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
 interface IManageTagsProps {
     data: FeatureSchema[];
     projectId: string;
+    onChange?: () => void;
 }
 
-export const ManageTags: VFC<IManageTagsProps> = ({ projectId, data }) => {
+export const ManageTags: VFC<IManageTagsProps> = ({
+    projectId,
+    data,
+    onChange,
+}) => {
     const { bulkUpdateTags } = useTagApi();
-    const { refetch } = useProject(projectId);
     const { setToastData, setToastApiError } = useToast();
     const { trackEvent } = usePlausibleTracker();
     const [isOpen, setIsOpen] = useState(false);
@@ -29,21 +32,21 @@ export const ManageTags: VFC<IManageTagsProps> = ({ projectId, data }) => {
                 (acc, tag) => [
                     ...acc,
                     ...(acc.some(
-                        x => x.type === tag.type && x.value === tag.value
+                        (x) => x.type === tag.type && x.value === tag.value,
                     )
                         ? []
                         : [tag]),
                 ],
-                []
+                [],
             );
 
         const tagsNotPresentInEveryFeature = uniqueTags.filter(
-            tag =>
+            (tag) =>
                 !data.every(({ tags }) =>
                     tags?.some(
-                        x => x.type === tag.type && x.value === tag.value
-                    )
-                )
+                        (x) => x.type === tag.type && x.value === tag.value,
+                    ),
+                ),
         );
 
         return [uniqueTags, tagsNotPresentInEveryFeature];
@@ -59,22 +62,18 @@ export const ManageTags: VFC<IManageTagsProps> = ({ projectId, data }) => {
         const features = data.map(({ name }) => name);
         const payload = { features, tags: { addedTags, removedTags } };
         try {
-            await bulkUpdateTags(payload, projectId);
-            refetch();
-            const added = addedTags.length
-                ? `Added tags: ${addedTags
-                      .map(({ type, value }) => `${type}:${value}`)
-                      .join(', ')}.`
-                : '';
-            const removed = removedTags.length
-                ? `Removed tags: ${removedTags
-                      .map(({ type, value }) => `${type}:${value}`)
-                      .join(', ')}.`
-                : '';
+            const toastText = [
+                addedTags.length > 0 &&
+                    `added ${addedTags.length} tag${addedTags.length > 1 ? 's' : ''}`,
+                removedTags.length > 0 &&
+                    `removed ${removedTags.length} tag${removedTags.length > 1 ? 's' : ''}`,
+            ]
+                .filter(Boolean)
+                .join(' and ');
 
+            await bulkUpdateTags(payload, projectId);
             setToastData({
-                title: 'Tags updated',
-                text: `${features.length} feature toggles updated. ${added} ${removed}`,
+                text: toastText,
                 type: 'success',
                 autoHideDuration: 12000,
             });
@@ -86,6 +85,7 @@ export const ManageTags: VFC<IManageTagsProps> = ({ projectId, data }) => {
         } catch (error: unknown) {
             setToastApiError(formatUnknownError(error));
         }
+        onChange?.();
         setIsOpen(false);
     };
 
@@ -93,14 +93,16 @@ export const ManageTags: VFC<IManageTagsProps> = ({ projectId, data }) => {
         <>
             <PermissionHOC projectId={projectId} permission={UPDATE_FEATURE}>
                 {({ hasAccess }) => (
-                    <Button
-                        disabled={!hasAccess || isOpen}
-                        variant="outlined"
-                        size="small"
-                        onClick={() => setIsOpen(true)}
-                    >
-                        Tags
-                    </Button>
+                    <span>
+                        <Button
+                            disabled={!hasAccess || isOpen}
+                            variant='outlined'
+                            size='small'
+                            onClick={() => setIsOpen(true)}
+                        >
+                            Tags
+                        </Button>
+                    </span>
                 )}
             </PermissionHOC>
             <ManageBulkTagsDialog

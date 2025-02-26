@@ -2,9 +2,11 @@ import createStores from '../../../test/fixtures/store';
 import { createTestConfig } from '../../../test/config/test-config';
 import { createServices } from '../../services';
 import getApp from '../../app';
-import supertest from 'supertest';
+import supertest, { type Test } from 'supertest';
 import permissions from '../../../test/fixtures/permissions';
 import { RoleName, RoleType } from '../../types/model';
+import type { IUnleashStores } from '../../types';
+import type TestAgent from 'supertest/lib/agent';
 
 describe('Public Signup API', () => {
     async function getSetup() {
@@ -33,17 +35,11 @@ describe('Public Signup API', () => {
             request: supertest(app),
             stores,
             perms,
-            destroy: () => {
-                services.versionService.destroy();
-                services.clientInstanceService.destroy();
-                services.publicSignupTokenService.destroy();
-            },
         };
     }
 
-    let stores;
-    let request;
-    let destroy;
+    let stores: IUnleashStores;
+    let request: TestAgent<Test>;
 
     const user = {
         username: 'some-username',
@@ -56,14 +52,10 @@ describe('Public Signup API', () => {
         const setup = await getSetup();
         stores = setup.stores;
         request = setup.request;
-        destroy = setup.destroy;
     });
 
-    afterEach(() => {
-        destroy();
-    });
     const expireAt = (addDays: number = 7): Date => {
-        let now = new Date();
+        const now = new Date();
         now.setDate(now.getDate() + addDays);
         return now;
     };
@@ -77,7 +69,11 @@ describe('Public Signup API', () => {
         const appName = '123!23';
 
         stores.clientApplicationsStore.upsert({ appName });
-        stores.roleStore.create({ name: RoleName.VIEWER });
+        stores.roleStore.create({
+            description: '',
+            roleType: '',
+            name: RoleName.VIEWER,
+        });
         const bodyCreate = createBody();
 
         const res = await request
@@ -96,8 +92,11 @@ describe('Public Signup API', () => {
         expect.assertions(2);
         const appName = '123!23';
 
-        stores.clientApplicationsStore.upsert({ appName });
-        stores.publicSignupTokenStore.insert({
+        await stores.clientApplicationsStore.upsert({ appName });
+        await stores.publicSignupTokenStore.insert({
+            roleId: 0,
+            secret: '',
+            url: '',
             name: 'some-name',
             expiresAt: expireAt(),
             createdBy: 'johnDoe',
@@ -118,6 +117,7 @@ describe('Public Signup API', () => {
         const appName = '123!23';
 
         stores.clientApplicationsStore.upsert({ appName });
+        // @ts-expect-error - hacked in via fake store
         stores.publicSignupTokenStore.create({
             name: 'some-name',
             expiresAt: expireAt(),
@@ -137,6 +137,7 @@ describe('Public Signup API', () => {
         const appName = '123!23';
 
         stores.clientApplicationsStore.upsert({ appName });
+        // @ts-expect-error - hacked in via fake store
         stores.publicSignupTokenStore.create({
             name: 'some-name',
             expiresAt: expireAt(),
@@ -161,6 +162,7 @@ describe('Public Signup API', () => {
         const appName = '123!23';
 
         stores.clientApplicationsStore.upsert({ appName });
+        // @ts-expect-error - hacked in via fake store
         stores.publicSignupTokenStore.create({
             name: 'some-name',
             expiresAt: expireAt(),
@@ -180,6 +182,7 @@ describe('Public Signup API', () => {
         const appName = '123!23';
 
         stores.clientApplicationsStore.upsert({ appName });
+        // @ts-expect-error - hacked in via fake store
         stores.publicSignupTokenStore.create({
             name: 'some-name',
             expiresAt: expireAt(),

@@ -1,6 +1,6 @@
 import { Strategy } from './strategy';
-import { Context } from '../context';
-import normalizedValue from './util';
+import type { Context } from '../context';
+import { normalizedStrategyValue } from './util';
 import { resolveContextValue } from '../helpers';
 
 const STICKINESS = {
@@ -10,7 +10,7 @@ const STICKINESS = {
 
 export default class FlexibleRolloutStrategy extends Strategy {
     private randomGenerator: Function = () =>
-        `${Math.round(Math.random() * 100) + 1}`;
+        `${Math.round(Math.random() * 10_000) + 1}`;
 
     constructor(radnomGenerator?: Function) {
         super('flexibleRollout');
@@ -54,7 +54,7 @@ export default class FlexibleRolloutStrategy extends Strategy {
         if (!stickinessId) {
             return false;
         }
-        const normalizedUserId = normalizedValue(stickinessId, groupId);
+        const normalizedUserId = normalizedStrategyValue(stickinessId, groupId);
         return percentage > 0 && normalizedUserId <= percentage;
     }
 }

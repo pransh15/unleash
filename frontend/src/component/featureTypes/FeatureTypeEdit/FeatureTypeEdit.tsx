@@ -1,6 +1,6 @@
-import { VFC } from 'react';
+import type { VFC } from 'react';
 import { useParams } from 'react-router-dom';
-import { FeatureTypeSchema } from 'openapi';
+import type { FeatureTypeSchema } from 'openapi';
 import { FeatureTypeForm } from './FeatureTypeForm/FeatureTypeForm';
 
 type FeatureTypeEditProps = {
@@ -14,7 +14,7 @@ export const FeatureTypeEdit: VFC<FeatureTypeEditProps> = ({
 }) => {
     const { featureTypeId } = useParams();
     const featureType = featureTypes.find(
-        featureType => featureType.id === featureTypeId
+        (featureType) => featureType.id === featureTypeId,
     );
 
     return <FeatureTypeForm featureType={featureType} loading={loading} />;

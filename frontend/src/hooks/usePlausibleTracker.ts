@@ -1,6 +1,6 @@
 import { useCallback, useContext } from 'react';
 import { PlausibleContext } from 'contexts/PlausibleContext';
-import { EventOptions, PlausibleOptions } from 'plausible-tracker';
+import type { EventOptions, PlausibleOptions } from 'plausible-tracker';
 
 /**
  * Allowed event names. Makes it easy to remove, since TS will complain.
@@ -11,10 +11,11 @@ import { EventOptions, PlausibleOptions } from 'plausible-tracker';
 export type CustomEvents =
     | 'invite'
     | 'upgrade_plan_clicked'
+    | 'read_about'
     | 'change_request'
     | 'favorite'
     | 'maintenance'
-    | 'message_banner'
+    | 'banner'
     | 'hidden_environment'
     | 'project_overview'
     | 'suggest_tags'
@@ -41,7 +42,38 @@ export type CustomEvents =
     | 'segment-usage'
     | 'strategy-add'
     | 'playground'
-    | 'feature-type-edit';
+    | 'feature-type-edit'
+    | 'strategy-variants'
+    | 'search-filter-suggestions'
+    | 'project-metrics'
+    | 'open-integration'
+    | 'feature-naming-pattern'
+    | 'project-mode'
+    | 'dependent_features'
+    | 'playground_token_input_used'
+    | 'search-filter'
+    | 'search-feature-buttons'
+    | 'new-strategy-form'
+    | 'feedback'
+    | 'feature-metrics'
+    | 'search-bar'
+    | 'sdk-reporting'
+    | 'insights-share'
+    | 'many-strategies'
+    | 'sdk-banner'
+    | 'feature-lifecycle'
+    | 'command-bar'
+    | 'new-in-unleash-click'
+    | 'new-in-unleash-dismiss'
+    | 'search-opened'
+    | 'events-exported'
+    | 'event-timeline'
+    | 'onboarding'
+    | 'personal-dashboard'
+    | 'order-environments'
+    | 'project-navigation'
+    | 'productivity-report'
+    | 'release-management';
 
 export const usePlausibleTracker = () => {
     const plausible = useContext(PlausibleContext);
@@ -50,7 +82,7 @@ export const usePlausibleTracker = () => {
         (
             eventName: CustomEvents,
             options?: EventOptions | undefined,
-            eventData?: PlausibleOptions | undefined
+            eventData?: PlausibleOptions | undefined,
         ) => {
             if (plausible?.trackEvent) {
                 plausible.trackEvent(eventName, options, eventData);
@@ -60,7 +92,7 @@ export const usePlausibleTracker = () => {
                 }
             }
         },
-        [plausible]
+        [plausible],
     );
 
     return { trackEvent };

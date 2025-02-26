@@ -1,5 +1,5 @@
 import { variantSchema } from './variant-schema';
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { overrideSchema } from './override-schema';
 
 export const featureVariantsSchema = {
@@ -7,7 +7,7 @@ export const featureVariantsSchema = {
     type: 'object',
     additionalProperties: false,
     required: ['version', 'variants'],
-    description: 'A versioned collection of feature toggle variants.',
+    description: 'A versioned collection of feature flag variants.',
     properties: {
         version: {
             type: 'integer',
@@ -19,7 +19,7 @@ export const featureVariantsSchema = {
             items: {
                 $ref: '#/components/schemas/variantSchema',
             },
-            description: 'All variants defined for a specific feature toggle.',
+            description: 'All variants defined for a specific feature flag.',
         },
     },
     components: {

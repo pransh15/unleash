@@ -1,11 +1,11 @@
-import { Logger, LogProvider } from '../logger';
+import type { Logger, LogProvider } from '../logger';
 import User from '../types/user';
 
 import NotFoundError from '../error/notfound-error';
-import { IUserLookup } from '../types/stores/user-store';
-import { IAdminCount } from '../types/stores/account-store';
-import { IAccountStore } from '../types';
-import { Db } from './db';
+import type { IUserLookup } from '../types/stores/user-store';
+import type { IAdminCount } from '../types/stores/account-store';
+import type { IAccountStore, MinimalUser } from '../types';
+import type { Db } from './db';
 
 const TABLE = 'users';
 
@@ -74,6 +74,7 @@ export class AccountStore implements IAccountStore {
     activeAccounts(): any {
         return this.db(TABLE).where({
             deleted_at: null,
+            is_system: false,
         });
     }
 
@@ -196,5 +197,36 @@ export class AccountStore implements IAccountStore {
             noPassword: adminCount[0].no_password,
             service: adminCount[0].service,
         };
+    }
+
+    async getAdmins(): Promise<MinimalUser[]> {
+        const rowToAdminUser = (row) => {
+            const user = rowToUser(row);
+            return {
+                id: user.id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+                imageUrl: user.imageUrl,
+            };
+        };
+
+        const admins = await this.activeAccounts()
+            .join('role_user as ru', 'users.id', 'ru.user_id')
+            .where(
+                'ru.role_id',
+                '=',
+                this.db.raw('(SELECT id FROM roles WHERE name = ?)', ['Admin']),
+            )
+            .andWhereNot('users.is_service', true)
+            .select(
+                'users.id',
+                'users.name',
+                'users.username',
+                'users.email',
+                'users.image_url',
+            );
+
+        return admins.map(rowToAdminUser);
     }
 }

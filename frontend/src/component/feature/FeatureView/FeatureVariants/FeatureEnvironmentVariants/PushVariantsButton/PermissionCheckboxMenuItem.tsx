@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { useHasProjectEnvironmentAccess } from 'hooks/useHasAccess';
 import { Checkbox, MenuItem } from '@mui/material';
 
@@ -16,7 +16,7 @@ export const PermissionCheckboxMenuItem: FC<
     const hasPermissions = useHasProjectEnvironmentAccess(
         permission,
         projectId,
-        environment
+        environment,
     );
 
     return (

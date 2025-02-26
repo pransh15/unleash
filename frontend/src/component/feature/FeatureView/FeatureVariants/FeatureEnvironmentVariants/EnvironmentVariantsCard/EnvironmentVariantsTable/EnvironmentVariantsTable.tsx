@@ -12,7 +12,11 @@ import { SearchHighlightProvider } from 'component/common/Table/SearchHighlightC
 import { calculateVariantWeight } from 'component/common/util';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
 import { useSearch } from 'hooks/useSearch';
-import { IFeatureVariant, IOverride, IPayload } from 'interfaces/featureToggle';
+import type {
+    IFeatureVariant,
+    IOverride,
+    IPayload,
+} from 'interfaces/featureToggle';
 import { useMemo } from 'react';
 import { useSortBy, useTable } from 'react-table';
 import { sortTypes } from 'utils/sortTypes';
@@ -63,7 +67,7 @@ export const EnvironmentVariantsTable = ({
                     value
                         ?.map(
                             ({ contextName, values }) =>
-                                `${contextName}:${values.join()}`
+                                `${contextName}:${values.join()}`,
                         )
                         .join('\n') || '',
             },
@@ -91,14 +95,14 @@ export const EnvironmentVariantsTable = ({
                 sortType: 'alphanumeric',
             },
         ],
-        [projectId, variants]
+        [projectId, variants],
     );
 
     const initialState = useMemo(
         () => ({
             sortBy: [{ id: 'name', desc: false }],
         }),
-        []
+        [],
     );
 
     const { data, getSearchText } = useSearch(columns, searchValue, variants);
@@ -121,7 +125,7 @@ export const EnvironmentVariantsTable = ({
             disableSortRemove: true,
             disableMultiSort: true,
         },
-        useSortBy
+        useSortBy,
     );
 
     useConditionallyHiddenColumns(
@@ -136,7 +140,7 @@ export const EnvironmentVariantsTable = ({
             },
         ],
         setHiddenColumns,
-        columns
+        columns,
     );
 
     return (
@@ -145,15 +149,20 @@ export const EnvironmentVariantsTable = ({
                 <Table {...getTableProps()}>
                     <SortableTableHeader headerGroups={headerGroups as any} />
                     <TableBody {...getTableBodyProps()}>
-                        {rows.map(row => {
+                        {rows.map((row) => {
                             prepareRow(row);
+                            const { key, ...rowProps } = row.getRowProps();
                             return (
-                                <TableRow hover {...row.getRowProps()}>
-                                    {row.cells.map(cell => (
-                                        <TableCell {...cell.getCellProps()}>
-                                            {cell.render('Cell')}
-                                        </TableCell>
-                                    ))}
+                                <TableRow hover {...rowProps} key={key}>
+                                    {row.cells.map((cell) => {
+                                        const { key, ...cellProps } =
+                                            cell.getCellProps();
+                                        return (
+                                            <TableCell key={key} {...cellProps}>
+                                                {cell.render('Cell')}
+                                            </TableCell>
+                                        );
+                                    })}
                                 </TableRow>
                             );
                         })}

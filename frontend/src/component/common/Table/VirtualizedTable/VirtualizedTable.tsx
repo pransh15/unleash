@@ -1,10 +1,10 @@
-import { RefObject, useMemo } from 'react';
+import { type RefObject, useMemo } from 'react';
 import { useTheme, TableBody, TableRow } from '@mui/material';
 import { SortableTableHeader } from 'component/common/Table/SortableTableHeader/SortableTableHeader';
 import { TableCell } from 'component/common/Table/TableCell/TableCell';
 import { Table } from 'component/common/Table/Table/Table';
 import { useVirtualizedRange } from 'hooks/useVirtualizedRange';
-import { HeaderGroup, Row } from 'react-table';
+import type { HeaderGroup, Row } from 'react-table';
 
 /**
  * READ BEFORE USE
@@ -32,30 +32,30 @@ export const VirtualizedTable = <T extends object>({
     const theme = useTheme();
     const rowHeight = useMemo(
         () => rowHeightOverride || theme.shape.tableRowHeight,
-        [rowHeightOverride, theme.shape.tableRowHeight]
+        [rowHeightOverride, theme.shape.tableRowHeight],
     );
 
     const [firstRenderedIndex, lastRenderedIndex] = useVirtualizedRange(
         rowHeight,
         40,
         5,
-        parentRef?.current
+        parentRef?.current,
     );
 
     const tableHeight = useMemo(
         () => rowHeight * rows.length + theme.shape.tableRowHeightCompact,
-        [rowHeight, rows.length, theme.shape.tableRowHeightCompact]
+        [rowHeight, rows.length, theme.shape.tableRowHeightCompact],
     );
 
     return (
         <Table
-            role="table"
+            role='table'
             rowHeight={rowHeight}
             style={{ height: tableHeight }}
         >
             <SortableTableHeader headerGroups={headerGroups} flex />
             <TableBody
-                role="rowgroup"
+                role='rowgroup'
                 sx={{
                     '& tr': {
                         position: 'absolute',
@@ -89,27 +89,27 @@ export const VirtualizedTable = <T extends object>({
 
                     prepareRow(row);
 
+                    const { key, ...props } = row.getRowProps({
+                        style: { display: 'flex', top },
+                    });
+
                     return (
-                        <TableRow
-                            hover
-                            {...row.getRowProps({
-                                style: { display: 'flex', top },
+                        <TableRow {...props} hover key={key || row.id}>
+                            {row.cells.map((cell) => {
+                                const { key, ...props } = cell.getCellProps({
+                                    style: {
+                                        flex: cell.column.minWidth
+                                            ? '1 0 auto'
+                                            : undefined,
+                                    },
+                                });
+
+                                return (
+                                    <TableCell key={key} {...props}>
+                                        {cell.render('Cell')}
+                                    </TableCell>
+                                );
                             })}
-                            key={row.id}
-                        >
-                            {row.cells.map(cell => (
-                                <TableCell
-                                    {...cell.getCellProps({
-                                        style: {
-                                            flex: cell.column.minWidth
-                                                ? '1 0 auto'
-                                                : undefined,
-                                        },
-                                    })}
-                                >
-                                    {cell.render('Cell')}
-                                </TableCell>
-                            ))}
                         </TableRow>
                     );
                 })}

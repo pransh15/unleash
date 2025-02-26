@@ -1,14 +1,16 @@
-import EventEmitter from 'events';
-import { Logger, LogProvider } from '../logger';
+import type EventEmitter from 'events';
+import type { Logger, LogProvider } from '../logger';
 import NotFoundError from '../error/notfound-error';
-import { ICustomRole } from 'lib/types/model';
-import {
+import type { ICustomRole } from '../types/model';
+import type {
     ICustomRoleInsert,
     ICustomRoleUpdate,
     IRoleStore,
-} from 'lib/types/stores/role-store';
-import { IRole, IUserRole } from 'lib/types/stores/access-store';
-import { Db } from './db';
+} from '../types/stores/role-store';
+import type { IRole, IUserRole } from '../types/stores/access-store';
+import type { Db } from './db';
+import { PROJECT_ROLE_TYPES, ROOT_ROLE_TYPES } from '../util';
+import type { RoleSchema } from '../openapi';
 
 const T = {
     ROLE_USER: 'role_user',
@@ -51,6 +53,27 @@ export default class RoleStore implements IRoleStore {
         return this.db
             .from(T.ROLES)
             .count('*')
+            .then((res) => Number(res[0].count));
+    }
+
+    async filteredCount(filter: Partial<RoleSchema>): Promise<number> {
+        return this.db
+            .from(T.ROLES)
+            .count('*')
+            .where(filter)
+            .then((res) => Number(res[0].count));
+    }
+
+    async filteredCountInUse(filter: Partial<RoleSchema>): Promise<number> {
+        return this.db
+            .from(T.ROLES)
+            .countDistinct('roles.id')
+            .leftJoin('role_user as ru', 'roles.id', 'ru.role_id')
+            .leftJoin('groups as g', 'roles.id', 'g.root_role_id')
+            .where(filter)
+            .andWhere((qb) =>
+                qb.whereNotNull('ru.role_id').orWhereNotNull('g.root_role_id'),
+            )
             .then((res) => Number(res[0].count));
     }
 
@@ -144,8 +167,7 @@ export default class RoleStore implements IRoleStore {
         return this.db
             .select(['id', 'name', 'type', 'description'])
             .from<IRole>(T.ROLES)
-            .where('type', 'custom')
-            .orWhere('type', 'project');
+            .whereIn('type', PROJECT_ROLE_TYPES);
     }
 
     async getRolesForProject(projectId: string): Promise<IRole[]> {
@@ -160,7 +182,7 @@ export default class RoleStore implements IRoleStore {
         return this.db
             .select(['id', 'name', 'type', 'description'])
             .from<IRole>(T.ROLES)
-            .whereIn('type', ['root', 'root-custom']);
+            .whereIn('type', ROOT_ROLE_TYPES);
     }
 
     async removeRolesForProject(projectId: string): Promise<void> {
@@ -177,7 +199,7 @@ export default class RoleStore implements IRoleStore {
             .distinctOn('user_id')
             .from(`${T.ROLES} AS r`)
             .leftJoin(`${T.ROLE_USER} AS ru`, 'r.id', 'ru.role_id')
-            .whereIn('r.type', ['root', 'root-custom']);
+            .whereIn('r.type', ROOT_ROLE_TYPES);
 
         return rows.map((row) => ({
             roleId: Number(row.id),

@@ -1,6 +1,7 @@
 import { styled, Alert } from '@mui/material';
-import React, { useEffect, useState } from 'react';
-import { IEnvironment } from 'interfaces/environments';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import type { IEnvironment } from 'interfaces/environments';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import Input from 'component/common/Input/Input';
 import { EnvironmentTableSingle } from 'component/environments/EnvironmentTable/EnvironmentTableSingle';
@@ -35,23 +36,23 @@ export const EnvironmentDeleteDialog = ({
 
     return (
         <Dialogue
-            title="Delete environment?"
+            title='Delete environment?'
             open={open}
-            primaryButtonText="Delete environment"
+            primaryButtonText='Delete environment'
             disabledPrimaryButton={environment.name !== confirmName}
-            secondaryButtonText="Close"
+            secondaryButtonText='Close'
             onClick={onConfirm}
             onClose={() => {
                 setOpen(false);
             }}
         >
-            <Alert severity="error">
+            <Alert severity='error'>
                 <strong>
                     Danger! This action is not reversible. Please proceed with
                     caution.
                 </strong>{' '}
                 Deleting this environment will result in removing all strategies
-                that are active in this environment across all feature toggles.
+                that are active in this environment across all feature flags.
             </Alert>
 
             <EnvironmentTableSingle
@@ -65,9 +66,9 @@ export const EnvironmentDeleteDialog = ({
                 <strong>{environment.name}</strong>
             </StyledLabel>
             <StyledInput
-                label="Environment name"
+                label='Environment name'
                 value={confirmName}
-                onChange={e => setConfirmName(e.target.value)}
+                onChange={(e) => setConfirmName(e.target.value)}
             />
         </Dialogue>
     );

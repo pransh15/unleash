@@ -1,4 +1,3 @@
-import React from 'react';
 import { TagTypeList } from 'component/tags/TagTypeList/TagTypeList';
 import renderer from 'react-test-renderer';
 import { MemoryRouter } from 'react-router-dom';
@@ -22,7 +21,7 @@ test('renders an empty list correctly', () => {
                     </UIProvider>
                 </AnnouncerProvider>
             </ThemeProvider>
-        </MemoryRouter>
+        </MemoryRouter>,
     );
     expect(tree).toMatchSnapshot();
 });

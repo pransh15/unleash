@@ -1,7 +1,6 @@
 import express from 'express';
 import { createTestConfig } from '../test/config/test-config';
-import { start, create } from './server-impl';
-import FakeEventStore from '../test/fixtures/fake-event-store';
+import { create, start } from './server-impl';
 
 jest.mock(
     './routes',
@@ -15,10 +14,12 @@ jest.mock(
 
 const noop = () => {};
 
-const eventStore = new FakeEventStore();
 const settingStore = {
     get: () => {
         Promise.resolve('secret');
+    },
+    postgresVersion: () => {
+        Promise.resolve('16.2');
     },
 };
 
@@ -31,21 +32,20 @@ jest.mock('./metrics', () => ({
     },
 }));
 
+jest.mock('./services', () => ({
+    createServices() {
+        return {
+            featureLifecycleService: { listen() {} },
+            schedulerService: { stop() {}, start() {} },
+            addonService: { destroy() {} },
+        };
+    },
+}));
+
 jest.mock('./db', () => ({
     createStores() {
         return {
-            db: {
-                destroy: () => undefined,
-            },
-            clientInstanceStore: {
-                destroy: noop,
-                removeInstancesOlderThanTwoDays: noop,
-            },
-            clientMetricsStore: { destroy: noop, on: noop },
-            eventStore,
-            publicSignupTokenStore: { destroy: noop, on: noop },
             settingStore,
-            projectStore: { getAll: () => Promise.resolve([]) },
         };
     },
 }));
@@ -58,13 +58,7 @@ jest.mock('./util/db-lock', () => ({
     withDbLock: () => (fn) => fn,
 }));
 
-jest.mock(
-    './util/version',
-    () =>
-        function () {
-            return 'unleash-test-version';
-        },
-);
+jest.mock('./util/version', () => () => 'unleash-test-version');
 
 test('should call preHook', async () => {
     let called = 0;
@@ -113,5 +107,5 @@ test('should shutdown the server when calling stop()', async () => {
         createTestConfig({ server: { port: 0 } }),
     );
     await stop();
-    expect(server!.address()).toBe(null);
+    expect(server?.address()).toBe(null);
 });

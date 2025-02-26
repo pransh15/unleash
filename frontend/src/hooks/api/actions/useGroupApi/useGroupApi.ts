@@ -1,5 +1,5 @@
 import useAPI from '../useApi/useApi';
-import { IGroupUserModel } from 'interfaces/group';
+import type { IGroupUserModel } from 'interfaces/group';
 
 interface ICreateGroupPayload {
     name: string;
@@ -19,28 +19,22 @@ export const useGroupApi = () => {
             method: 'POST',
             body: JSON.stringify(payload),
         });
-        try {
-            const response = await makeRequest(req.caller, req.id);
-            return await response.json();
-        } catch (e) {
-            throw e;
-        }
+
+        const response = await makeRequest(req.caller, req.id);
+        return response.json();
     };
 
     const updateGroup = async (
         groupId: number,
-        payload: ICreateGroupPayload
+        payload: ICreateGroupPayload,
     ) => {
         const path = `api/admin/groups/${groupId}`;
         const req = createRequest(path, {
             method: 'PUT',
             body: JSON.stringify(payload),
         });
-        try {
-            await makeRequest(req.caller, req.id);
-        } catch (e) {
-            throw e;
-        }
+
+        await makeRequest(req.caller, req.id);
     };
 
     const removeGroup = async (groupId: number) => {
@@ -48,17 +42,24 @@ export const useGroupApi = () => {
         const req = createRequest(path, {
             method: 'DELETE',
         });
-        try {
-            await makeRequest(req.caller, req.id);
-        } catch (e) {
-            throw e;
-        }
+
+        await makeRequest(req.caller, req.id);
+    };
+
+    const deleteScimGroups = async () => {
+        const path = `api/admin/groups/scim-groups`;
+        const req = createRequest(path, {
+            method: 'DELETE',
+        });
+
+        await makeRequest(req.caller, req.id);
     };
 
     return {
         createGroup,
         updateGroup,
         removeGroup,
+        deleteScimGroups,
         errors,
         loading,
     };

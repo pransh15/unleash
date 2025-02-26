@@ -1,6 +1,5 @@
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
-import React from 'react';
 import { Checkbox, styled } from '@mui/material';
 
 const SelectOptionCheckbox = styled(Checkbox)(({ theme }) => ({
@@ -8,16 +7,19 @@ const SelectOptionCheckbox = styled(Checkbox)(({ theme }) => ({
 }));
 
 export const renderOption = (
-    props: object,
+    props: object & { key?: string },
     option: { label: string },
-    { selected }: { selected: boolean }
-) => (
-    <li {...props}>
-        <SelectOptionCheckbox
-            icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-            checkedIcon={<CheckBoxIcon fontSize="small" />}
-            checked={selected}
-        />
-        {option.label}
-    </li>
-);
+    { selected }: { selected: boolean },
+) => {
+    const { key, ...rest } = props;
+    return (
+        <li key={key} {...rest}>
+            <SelectOptionCheckbox
+                icon={<CheckBoxOutlineBlankIcon fontSize='small' />}
+                checkedIcon={<CheckBoxIcon fontSize='small' />}
+                checked={selected}
+            />
+            {option.label}
+        </li>
+    );
+};

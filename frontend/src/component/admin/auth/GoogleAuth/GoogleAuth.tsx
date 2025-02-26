@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import {
     Box,
     Button,
@@ -8,7 +9,6 @@ import {
     TextField,
 } from '@mui/material';
 import { Alert } from '@mui/material';
-import { PageContent } from 'component/common/PageContent/PageContent';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import useAuthSettings from 'hooks/api/getters/useAuthSettings/useAuthSettings';
 import useAuthSettingsApi from 'hooks/api/actions/useAuthSettingsApi/useAuthSettingsApi';
@@ -59,7 +59,7 @@ export const GoogleAuth = () => {
         try {
             await updateSettings(removeEmptyStringFields(data));
             setToastData({
-                title: 'Settings stored',
+                text: 'Settings stored',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -68,19 +68,19 @@ export const GoogleAuth = () => {
     };
 
     return (
-        <PageContent>
+        <>
             <Box>
-                <Alert severity="error" sx={{ mb: 2 }}>
+                <Alert severity='error' sx={{ mb: 2 }}>
                     This integration is deprecated and will be removed in next
                     major version. Please use <strong>OpenID Connect</strong> to
                     enable Google SSO.
                 </Alert>
-                <Alert severity="info" sx={{ mb: 3 }}>
+                <Alert severity='info' sx={{ mb: 3 }}>
                     Read the{' '}
                     <a
-                        href="https://www.unleash-hosted.com/docs/enterprise-authentication/google"
-                        target="_blank"
-                        rel="noreferrer"
+                        href='https://www.unleash-hosted.com/docs/enterprise-authentication/google'
+                        target='_blank'
+                        rel='noreferrer'
                     >
                         documentation
                     </a>{' '}
@@ -104,7 +104,7 @@ export const GoogleAuth = () => {
                                 <Switch
                                     onChange={updateEnabled}
                                     value={data.enabled}
-                                    name="enabled"
+                                    name='enabled'
                                     checked={data.enabled}
                                 />
                             }
@@ -123,13 +123,13 @@ export const GoogleAuth = () => {
                     <Grid item xs={6}>
                         <TextField
                             onChange={updateField}
-                            label="Client ID"
-                            name="clientId"
-                            placeholder=""
+                            label='Client ID'
+                            name='clientId'
+                            placeholder=''
                             value={data.clientId}
                             style={{ width: '400px' }}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                             required
                         />
                     </Grid>
@@ -145,13 +145,13 @@ export const GoogleAuth = () => {
                     <Grid item md={6}>
                         <TextField
                             onChange={updateField}
-                            label="Client Secret"
-                            name="clientSecret"
+                            label='Client Secret'
+                            name='clientSecret'
                             value={data.clientSecret}
-                            placeholder=""
+                            placeholder=''
                             style={{ width: '400px' }}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                             required
                         />
                     </Grid>
@@ -173,13 +173,13 @@ export const GoogleAuth = () => {
                     <Grid item md={6}>
                         <TextField
                             onChange={updateField}
-                            label="Unleash Hostname"
-                            name="unleashHostname"
-                            placeholder=""
+                            label='Unleash Hostname'
+                            name='unleashHostname'
+                            placeholder=''
                             value={data.unleashHostname || ''}
                             style={{ width: '400px' }}
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                         />
                     </Grid>
                 </Grid>
@@ -194,7 +194,7 @@ export const GoogleAuth = () => {
                     <Grid item md={6} style={{ padding: '20px' }}>
                         <Switch
                             onChange={updateAutoCreate}
-                            name="enabled"
+                            name='enabled'
                             checked={data.autoCreate}
                         />
                     </Grid>
@@ -210,24 +210,24 @@ export const GoogleAuth = () => {
                     <Grid item md={6}>
                         <TextField
                             onChange={updateField}
-                            label="Email domains"
-                            name="emailDomains"
+                            label='Email domains'
+                            name='emailDomains'
                             value={data.emailDomains}
-                            placeholder="@company.com, @anotherCompany.com"
+                            placeholder='@company.com, @anotherCompany.com'
                             style={{ width: '400px' }}
                             rows={2}
                             multiline
-                            variant="outlined"
-                            size="small"
+                            variant='outlined'
+                            size='small'
                         />
                     </Grid>
                 </Grid>
                 <Grid container spacing={3}>
                     <Grid item md={5}>
                         <Button
-                            variant="contained"
-                            color="primary"
-                            type="submit"
+                            variant='contained'
+                            color='primary'
+                            type='submit'
                             disabled={loading}
                         >
                             Save
@@ -240,6 +240,6 @@ export const GoogleAuth = () => {
                     </Grid>
                 </Grid>
             </form>
-        </PageContent>
+        </>
     );
 };

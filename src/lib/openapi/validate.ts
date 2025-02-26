@@ -1,6 +1,7 @@
-import Ajv, { ErrorObject } from 'ajv';
-import { SchemaId, schemas } from './index';
+import Ajv, { type ErrorObject } from 'ajv';
+import { type SchemaId, schemas } from './index';
 import { omitKeys } from '../util/omit-keys';
+import { fromOpenApiValidationErrors } from '../error/bad-data-error';
 
 export interface ISchemaValidationErrors<S = SchemaId> {
     schema: S;
@@ -16,9 +17,9 @@ const ajv = new Ajv({
     keywords: ['example', 'x-enforcer-exception-skip-codes'],
     formats: {
         'date-time': true,
+        date: true,
         uri: true,
     },
-    allErrors: true,
 });
 
 export const addAjvSchema = (schemaObjects: any[]): any => {
@@ -37,5 +38,19 @@ export const validateSchema = <S = SchemaId>(
             schema,
             errors: ajv.errors ?? [],
         };
+    }
+};
+
+export const throwOnInvalidSchema = <S = SchemaId>(
+    schema: S,
+    data: object,
+): void => {
+    const validationErrors = validateSchema(schema, data);
+    if (validationErrors) {
+        const [firstError, ...remainingErrors] = validationErrors.errors;
+        throw fromOpenApiValidationErrors(data, [
+            firstError,
+            ...remainingErrors,
+        ]);
     }
 };

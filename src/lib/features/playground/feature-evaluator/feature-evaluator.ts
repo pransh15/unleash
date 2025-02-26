@@ -1,16 +1,17 @@
-import Client, { FeatureStrategiesEvaluationResult } from './client';
-import Repository, { RepositoryInterface } from './repository';
-import { Context } from './context';
+import Client, { type FeatureStrategiesEvaluationResult } from './client';
+import Repository, { type RepositoryInterface } from './repository';
+import type { Context } from './context';
 import { Strategy, defaultStrategies } from './strategy';
 
-import { ClientFeaturesResponse, FeatureInterface } from './feature';
-import { Variant } from './variant';
-import { FallbackFunction, createFallbackFunction } from './helpers';
+import type { ClientFeaturesResponse, FeatureInterface } from './feature';
+import type { Variant } from './variant';
+import { type FallbackFunction, createFallbackFunction } from './helpers';
 import {
-    BootstrapOptions,
+    type BootstrapOptions,
     resolveBootstrapProvider,
 } from './repository/bootstrap-provider';
-import { StorageProvider } from './repository/storage-provider';
+import type { StorageProvider } from './repository/storage-provider';
+import InMemStorageProvider from './repository/storage-provider-in-mem';
 
 export { Strategy };
 
@@ -41,7 +42,7 @@ export class FeatureEvaluator {
         strategies = [],
         repository,
         bootstrap = { data: [] },
-        storageProvider,
+        storageProvider = new InMemStorageProvider(),
     }: FeatureEvaluatorConfig) {
         this.staticContext = { appName, environment };
 
@@ -52,7 +53,7 @@ export class FeatureEvaluator {
             new Repository({
                 appName,
                 bootstrapProvider,
-                storageProvider: storageProvider,
+                storageProvider,
             });
 
         // setup client

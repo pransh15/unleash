@@ -13,7 +13,7 @@ import { PageHeader } from 'component/common/PageHeader/PageHeader';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { formatApiPath } from 'utils/formatPath';
 import useInvoices from 'hooks/api/getters/useInvoices/useInvoices';
-import { IInvoice } from 'interfaces/invoice';
+import type { IInvoice } from 'interfaces/invoice';
 import { useLocationSettings } from 'hooks/useLocationSettings';
 import { formatDateYMD } from 'utils/formatDate';
 
@@ -37,12 +37,12 @@ const InvoiceList = () => {
                 <PageContent
                     header={
                         <PageHeader
-                            title="Invoices"
+                            title='Invoices'
                             actions={
                                 <Button
                                     href={PORTAL_URL}
-                                    rel="noreferrer"
-                                    target="_blank"
+                                    rel='noreferrer'
+                                    target='_blank'
                                     endIcon={<OpenInNew />}
                                 >
                                     Billing portal
@@ -89,7 +89,7 @@ const InvoiceList = () => {
                                             {item.dueDate &&
                                                 formatDateYMD(
                                                     item.dueDate,
-                                                    locationSettings.locale
+                                                    locationSettings.locale,
                                                 )}
                                         </TableCell>
                                         <TableCell
@@ -102,8 +102,8 @@ const InvoiceList = () => {
                                         >
                                             <a
                                                 href={item.invoiceURL}
-                                                target="_blank"
-                                                rel="noreferrer"
+                                                target='_blank'
+                                                rel='noreferrer'
                                             >
                                                 Payment link
                                             </a>
@@ -115,7 +115,9 @@ const InvoiceList = () => {
                     </div>
                 </PageContent>
             }
-            elseShow={<div>{isLoaded && 'No invoices to show.'}</div>}
+            elseShow={
+                <PageContent>{isLoaded && 'No invoices to show.'}</PageContent>
+            }
         />
     );
 };

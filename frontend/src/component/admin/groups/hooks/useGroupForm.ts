@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import useQueryParams from 'hooks/useQueryParams';
-import { IGroupUser } from 'interfaces/group';
+import type { IGroupUser } from 'interfaces/group';
 
 export const useGroupForm = (
     initialName = '',
     initialDescription = '',
     initialMappingsSSO: string[] = [],
     initialUsers: IGroupUser[] = [],
-    initialRootRole: number | null = null
+    initialRootRole: number | null = null,
 ) => {
     const params = useQueryParams();
     const groupQueryName = params.get('name');

@@ -1,4 +1,4 @@
-import { VFC } from 'react';
+import type { VFC } from 'react';
 import { Alert } from '@mui/material';
 
 interface IFeatureStrategyChangeRequestAlertProps {
@@ -8,7 +8,7 @@ interface IFeatureStrategyChangeRequestAlertProps {
 export const FeatureStrategyChangeRequestAlert: VFC<
     IFeatureStrategyChangeRequestAlertProps
 > = ({ environment }) => (
-    <Alert severity="info">
+    <Alert severity='info'>
         <strong>Change requests</strong> are enabled
         {environment ? ` for ${environment}` : ''}. Your changes needs to be
         approved before they will be live. All the changes you do now will be

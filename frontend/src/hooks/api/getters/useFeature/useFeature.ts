@@ -1,9 +1,9 @@
-import useSWR, { SWRConfiguration } from 'swr';
+import useSWR, { type SWRConfiguration } from 'swr';
 import { useCallback } from 'react';
 import { emptyFeature } from './emptyFeature';
 import handleErrorResponses from '../httpErrorResponseHandler';
 import { formatApiPath } from 'utils/formatPath';
-import { IFeatureToggle } from 'interfaces/featureToggle';
+import type { IFeatureToggle } from 'interfaces/featureToggle';
 
 export interface IUseFeatureOutput {
     feature: IFeatureToggle;
@@ -21,14 +21,14 @@ export interface IFeatureResponse {
 export const useFeature = (
     projectId: string,
     featureId: string,
-    options?: SWRConfiguration
+    options?: SWRConfiguration,
 ): IUseFeatureOutput => {
     const path = formatFeatureApiPath(projectId, featureId);
 
     const { data, error, mutate } = useSWR<IFeatureResponse>(
         ['useFeature', path],
         () => featureFetcher(path),
-        options
+        options,
     );
 
     const refetchFeature = useCallback(() => {
@@ -45,7 +45,7 @@ export const useFeature = (
 };
 
 export const featureFetcher = async (
-    path: string
+    path: string,
 ): Promise<IFeatureResponse> => {
     const res = await fetch(path);
 
@@ -54,7 +54,7 @@ export const featureFetcher = async (
     }
 
     if (!res.ok) {
-        await handleErrorResponses('Feature toggle data')(res);
+        await handleErrorResponses('Feature flag data')(res);
     }
 
     return {
@@ -65,9 +65,9 @@ export const featureFetcher = async (
 
 export const formatFeatureApiPath = (
     projectId: string,
-    featureId: string
+    featureId: string,
 ): string => {
     return formatApiPath(
-        `api/admin/projects/${projectId}/features/${featureId}?variantEnvironments=true`
+        `api/admin/projects/${projectId}/features/${featureId}?variantEnvironments=true`,
     );
 };

@@ -1,4 +1,4 @@
-import { useMemo, useState, VFC } from 'react';
+import { useMemo, useState, type VFC } from 'react';
 import { useGlobalFilter, useSortBy, useTable } from 'react-table';
 import {
     Table,
@@ -21,7 +21,7 @@ import { SearchHighlightProvider } from 'component/common/Table/SearchHighlightC
 import { sortTypes } from 'utils/sortTypes';
 import { LinkCell } from 'component/common/Table/cells/LinkCell/LinkCell';
 import { ContextActionsCell } from '../ContextActionsCell';
-import { Adjust } from '@mui/icons-material';
+import Adjust from '@mui/icons-material/Adjust';
 import { IconCell } from 'component/common/Table/cells/IconCell/IconCell';
 import { Search } from 'component/common/Search/Search';
 import { UsedInCell } from '../UsedInCell';
@@ -55,7 +55,7 @@ const ContextList: VFC = () => {
                     sortOrder,
                     usedInProjects,
                     usedInFeatures,
-                })
+                }),
             )
             .sort((a, b) => a.sortOrder - b.sortOrder);
     }, [context, loading]);
@@ -64,7 +64,7 @@ const ContextList: VFC = () => {
         () => [
             {
                 id: 'Icon',
-                Cell: () => <IconCell icon={<Adjust color="disabled" />} />,
+                Cell: () => <IconCell icon={<Adjust color='disabled' />} />,
                 disableGlobalFilter: true,
             },
             {
@@ -122,7 +122,7 @@ const ContextList: VFC = () => {
                 sortType: 'number',
             },
         ],
-        []
+        [],
     );
 
     const initialState = useMemo(
@@ -130,7 +130,7 @@ const ContextList: VFC = () => {
             sortBy: [{ id: 'name', desc: false }],
             hiddenColumns: ['description', 'sortOrder'],
         }),
-        []
+        [],
     );
 
     const onDeleteContext = async () => {
@@ -142,8 +142,7 @@ const ContextList: VFC = () => {
             refetchUnleashContext();
             setToastData({
                 type: 'success',
-                title: 'Successfully deleted context',
-                text: 'Your context is now deleted',
+                text: 'Context field deleted',
             });
         } catch (error) {
             setToastApiError(formatUnknownError(error));
@@ -171,7 +170,7 @@ const ContextList: VFC = () => {
             disableSortRemove: true,
         },
         useGlobalFilter,
-        useSortBy
+        useSortBy,
     );
 
     return (
@@ -197,15 +196,21 @@ const ContextList: VFC = () => {
                 <Table {...getTableProps()}>
                     <SortableTableHeader headerGroups={headerGroups} />
                     <TableBody {...getTableBodyProps()}>
-                        {rows.map(row => {
+                        {rows.map((row) => {
                             prepareRow(row);
+                            const { key, ...rowProps } = row.getRowProps();
                             return (
-                                <TableRow hover {...row.getRowProps()}>
-                                    {row.cells.map(cell => (
-                                        <TableCell {...cell.getCellProps()}>
-                                            {cell.render('Cell')}
-                                        </TableCell>
-                                    ))}
+                                <TableRow hover key={key} {...rowProps}>
+                                    {row.cells.map((cell) => {
+                                        const { key, ...cellProps } =
+                                            cell.getCellProps();
+
+                                        return (
+                                            <TableCell key={key} {...cellProps}>
+                                                {cell.render('Cell')}
+                                            </TableCell>
+                                        );
+                                    })}
                                 </TableRow>
                             );
                         })}
@@ -240,7 +245,7 @@ const ContextList: VFC = () => {
                     setName(undefined);
                     setShowDelDialogue(false);
                 }}
-                title="Really delete context field"
+                title='Really delete context field'
             />
         </PageContent>
     );

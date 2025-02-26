@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC, SVGProps } from 'react';
 import { SvgIcon, useTheme } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PeopleIcon from '@mui/icons-material/People';
@@ -6,20 +6,21 @@ import LanguageIcon from '@mui/icons-material/Language';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import CodeIcon from '@mui/icons-material/Code';
 import { ReactComponent as RolloutIcon } from 'assets/icons/rollout.svg';
+import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 
 export const formatStrategyName = (strategyName: string): string => {
     return formattedStrategyNames[strategyName] ?? strategyName;
 };
 
-const RolloutSvgIcon: FC = props => (
+const RolloutSvgIcon: FC = (props) => (
     <SvgIcon
         {...props}
-        component={rest => <RolloutIcon {...rest} />}
+        component={(rest: SVGProps<SVGSVGElement>) => <RolloutIcon {...rest} />}
         inheritViewBox
     />
 );
 
-export const getFeatureStrategyIcon = (strategyName: string) => {
+export const getFeatureStrategyIcon = (strategyName?: string) => {
     switch (strategyName) {
         case 'default':
             return PowerSettingsNewIcon;
@@ -31,10 +32,23 @@ export const getFeatureStrategyIcon = (strategyName: string) => {
             return PeopleIcon;
         case 'applicationHostname':
             return LocationOnIcon;
+        case 'releasePlanTemplate':
+            return FactCheckOutlinedIcon;
         default:
             return CodeIcon;
     }
 };
+
+export const BuiltInStrategies = [
+    'default',
+    'applicationHostname',
+    'flexibleRollout',
+    'gradualRolloutRandom',
+    'gradualRolloutSessionId',
+    'gradualRolloutUserId',
+    'remoteAddress',
+    'userWithId',
+];
 
 export const GetFeatureStrategyIcon: FC<{ strategyName: string }> = ({
     strategyName,

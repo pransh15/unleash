@@ -1,23 +1,29 @@
-import { IUnleashTest, setupAppWithAuth } from '../../helpers/test-helper';
+import { type IUnleashTest, setupAppWithAuth } from '../../helpers/test-helper';
 import metricsExample from '../../../examples/client-metrics.json';
-import dbInit, { ITestDb } from '../../helpers/database-init';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
 import getLogger from '../../../fixtures/no-logger';
-import { ApiTokenType } from '../../../../lib/types/models/api-token';
+import {
+    ApiTokenType,
+    type IApiToken,
+} from '../../../../lib/types/models/api-token';
+import { TEST_AUDIT_USER } from '../../../../lib/types';
 
 let app: IUnleashTest;
 let db: ITestDb;
 
-let defaultToken;
-
+let defaultToken: IApiToken;
 beforeAll(async () => {
-    db = await dbInit('metrics_two_api_client', getLogger);
-    app = await setupAppWithAuth(db.stores, {});
-    defaultToken = await app.services.apiTokenService.createApiToken({
-        type: ApiTokenType.CLIENT,
-        project: 'default',
-        environment: 'default',
-        tokenName: 'tester',
+    db = await dbInit('metrics_two_api_client', getLogger, {
+        dbInitMethod: 'legacy' as const,
     });
+    app = await setupAppWithAuth(db.stores, {}, db.rawDatabase);
+    defaultToken =
+        await app.services.apiTokenService.createApiTokenWithProjects({
+            type: ApiTokenType.CLIENT,
+            projects: ['default'],
+            environment: 'default',
+            tokenName: 'tester',
+        });
 });
 
 afterEach(async () => {
@@ -103,12 +109,12 @@ test('should set lastSeen for toggles with metrics both for toggle and toggle en
     await app.services.featureToggleServiceV2.createFeatureToggle(
         'default',
         { name: 't1' },
-        'tester',
+        TEST_AUDIT_USER,
     );
     await app.services.featureToggleServiceV2.createFeatureToggle(
         'default',
         { name: 't2' },
-        'tester',
+        TEST_AUDIT_USER,
     );
 
     const token = await app.services.apiTokenService.createApiToken({

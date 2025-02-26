@@ -1,25 +1,25 @@
-import { Request, Response } from 'express';
-import { IUnleashServices } from '../../types/services';
-import FeatureTypeService from '../../services/feature-type-service';
-import { Logger } from '../../logger';
-import { IUnleashConfig } from '../../types/option';
-import { OpenApiService } from '../../services/openapi-service';
+import type { Request, Response } from 'express';
+import type { IUnleashServices } from '../../types/services';
+import type FeatureTypeService from '../../services/feature-type-service';
+import type { Logger } from '../../logger';
+import type { IUnleashConfig } from '../../types/option';
+import type { OpenApiService } from '../../services/openapi-service';
 import { ADMIN, NONE } from '../../types/permissions';
 import {
     featureTypesSchema,
-    FeatureTypesSchema,
+    type FeatureTypesSchema,
 } from '../../openapi/spec/feature-types-schema';
 import { createResponseSchema } from '../../openapi/util/create-response-schema';
 import Controller from '../controller';
 import {
     createRequestSchema,
     featureTypeSchema,
-    FeatureTypeSchema,
+    type FeatureTypeSchema,
     getStandardResponses,
-    UpdateFeatureTypeLifetimeSchema,
+    type UpdateFeatureTypeLifetimeSchema,
 } from '../../openapi';
-import { IAuthRequest } from '../unleash-types';
-import { IFlagResolver } from '../../types';
+import type { IAuthRequest } from '../unleash-types';
+import type { IFlagResolver } from '../../types';
 
 const version = 1;
 
@@ -52,7 +52,7 @@ export class FeatureTypeController extends Controller {
             permission: NONE,
             middleware: [
                 openApiService.validPath({
-                    tags: ['Features'],
+                    tags: ['Feature Types'],
                     operationId: 'getAllFeatureTypes',
                     summary: 'Get all feature types',
                     description:
@@ -72,12 +72,12 @@ export class FeatureTypeController extends Controller {
             permission: ADMIN,
             middleware: [
                 openApiService.validPath({
-                    tags: ['Unstable'],
+                    tags: ['Feature Types'],
                     operationId: 'updateFeatureTypeLifetime',
                     summary: 'Update feature type lifetime',
-                    description: `Updates the lifetime configuration for the specified [feature toggle type](https://docs.getunleash.io/reference/feature-toggle-types). The expected lifetime is an integer representing the number of days before Unleash marks a feature toggle of that type as potentially stale. If set to \`null\` or \`0\`, then feature toggles of that particular type will never be marked as potentially stale.
+                    description: `Updates the lifetime configuration for the specified [feature flag type](https://docs.getunleash.io/reference/feature-toggles#feature-flag-types). The expected lifetime is an integer representing the number of days before Unleash marks a feature flag of that type as potentially stale. If set to \`null\` or \`0\`, then feature flags of that particular type will never be marked as potentially stale.
 
-When a feature toggle type's expected lifetime is changed, this will also cause any feature toggles of this type to be reevaluated for potential staleness.`,
+When a feature flag type's expected lifetime is changed, this will also cause any feature flags of this type to be reevaluated for potential staleness.`,
                     responses: {
                         200: createResponseSchema('featureTypeSchema'),
                         ...getStandardResponses(400, 401, 403, 404, 409, 415),
@@ -113,20 +113,17 @@ When a feature toggle type's expected lifetime is changed, this will also cause 
         >,
         res: Response<FeatureTypeSchema>,
     ): Promise<void> {
-        if (this.flagResolver.isEnabled('configurableFeatureTypeLifetimes')) {
-            const result = await this.featureTypeService.updateLifetime(
-                req.params.id.toLowerCase(),
-                req.body.lifetimeDays,
-            );
+        const result = await this.featureTypeService.updateLifetime(
+            req.params.id.toLowerCase(),
+            req.body.lifetimeDays,
+            req.audit,
+        );
 
-            this.openApiService.respondWithValidation(
-                200,
-                res,
-                featureTypeSchema.$id,
-                result,
-            );
-        } else {
-            res.status(409).end();
-        }
+        this.openApiService.respondWithValidation(
+            200,
+            res,
+            featureTypeSchema.$id,
+            result,
+        );
     }
 }

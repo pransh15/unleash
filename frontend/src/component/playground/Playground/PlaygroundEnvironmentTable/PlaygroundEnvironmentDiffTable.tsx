@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import {
     useFlexLayout,
     useGlobalFilter,
@@ -8,7 +8,7 @@ import {
 
 import { VirtualizedTable } from 'component/common/Table';
 import { sortTypes } from 'utils/sortTypes';
-import { AdvancedPlaygroundFeatureSchemaEnvironments } from 'openapi';
+import type { AdvancedPlaygroundFeatureSchemaEnvironments } from 'openapi';
 import { Box } from '@mui/material';
 import { FeatureStatusCell } from '../PlaygroundResultsTable/FeatureStatusCell/FeatureStatusCell';
 import { HighlightCell } from '../../../common/Table/cells/HighlightCell/HighlightCell';
@@ -30,30 +30,32 @@ export const PlaygroundEnvironmentDiffTable = ({
         () =>
             firstEnvFeatures.map((item, index) => ({
                 ...Object.fromEntries(
-                    environments.map(env => [env, features[env][index]])
+                    environments.map((env) => [env, features[env][index]]),
                 ),
             })),
-        [JSON.stringify(features)]
+        [JSON.stringify(features)],
     );
-    type RowType = typeof data[0];
+    type RowType = (typeof data)[0];
 
     const contextFieldsHeaders = Object.keys(firstContext).map(
-        contextField => ({
+        (contextField) => ({
             Header: capitalizeFirst(contextField),
-            accessor: `${environments[0]}.context.${contextField}`,
+            accessor: (
+                row: Record<string, { context: Record<string, unknown> }>,
+            ) => row[environments[0]].context[contextField],
             minWidth: 160,
             Cell: HighlightCell,
-        })
+        }),
     );
 
-    const environmentHeaders = environments.map(environment => ({
+    const environmentHeaders = environments.map((environment) => ({
         Header: environment,
         accessor: (row: RowType) =>
             row[environment]?.isEnabled
                 ? 'true'
                 : row[environment]?.strategies?.result === 'unknown'
-                ? 'unknown'
-                : 'false',
+                  ? 'unknown'
+                  : 'false',
         Cell: ({ row }: { row: { original: RowType } }) => {
             return (
                 <Box sx={{ display: 'flex' }}>
@@ -89,7 +91,7 @@ export const PlaygroundEnvironmentDiffTable = ({
         },
         useGlobalFilter,
         useFlexLayout,
-        useSortBy
+        useSortBy,
     );
 
     const parentRef = useRef<HTMLElement | null>(null);

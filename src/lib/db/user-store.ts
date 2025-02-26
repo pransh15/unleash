@@ -1,18 +1,20 @@
 /* eslint camelcase: "off" */
 
-import { Logger, LogProvider } from '../logger';
+import type { Logger, LogProvider } from '../logger';
 import User from '../types/user';
 
 import NotFoundError from '../error/notfound-error';
-import {
+import type {
     ICreateUser,
     IUserLookup,
     IUserStore,
     IUserUpdateFields,
 } from '../types/stores/user-store';
-import { Db } from './db';
+import type { Db } from './db';
+import type { IFlagResolver } from '../types';
 
 const TABLE = 'users';
+const PASSWORD_HASH_TABLE = 'used_passwords';
 
 const USER_COLUMNS_PUBLIC = [
     'id',
@@ -22,6 +24,7 @@ const USER_COLUMNS_PUBLIC = [
     'image_url',
     'seen_at',
     'is_service',
+    'scim_id',
 ];
 
 const USER_COLUMNS = [...USER_COLUMNS_PUBLIC, 'login_attempts', 'created_at'];
@@ -56,6 +59,7 @@ const rowToUser = (row) => {
         seenAt: row.seen_at,
         createdAt: row.created_at,
         isService: row.is_service,
+        scimId: row.scim_id,
     });
 };
 
@@ -64,9 +68,36 @@ class UserStore implements IUserStore {
 
     private logger: Logger;
 
-    constructor(db: Db, getLogger: LogProvider) {
+    private flagResolver: IFlagResolver;
+
+    constructor(db: Db, getLogger: LogProvider, flagResolver: IFlagResolver) {
         this.db = db;
         this.logger = getLogger('user-store.ts');
+        this.flagResolver = flagResolver;
+    }
+
+    async getPasswordsPreviouslyUsed(userId: number): Promise<string[]> {
+        const previouslyUsedPasswords = await this.db(PASSWORD_HASH_TABLE)
+            .select('password_hash')
+            .where({ user_id: userId });
+        return previouslyUsedPasswords.map((row) => row.password_hash);
+    }
+
+    async deletePasswordsUsedMoreThanNTimesAgo(
+        userId: number,
+        keepLastN: number,
+    ): Promise<void> {
+        await this.db.raw(
+            `
+            WITH UserPasswords AS (
+                SELECT user_id, password_hash, used_at, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY used_at DESC) AS rn
+            FROM ${PASSWORD_HASH_TABLE}
+            WHERE user_id = ?)
+            DELETE FROM ${PASSWORD_HASH_TABLE} WHERE user_id = ? AND (user_id, password_hash, used_at) NOT IN (SELECT user_id, password_hash, used_at FROM UserPasswords WHERE rn <= ?
+            );
+        `,
+            [userId, userId, keepLastN],
+        );
     }
 
     async update(id: number, fields: IUserUpdateFields): Promise<User> {
@@ -77,8 +108,15 @@ class UserStore implements IUserStore {
     }
 
     async insert(user: ICreateUser): Promise<User> {
+        const emailHash = user.email
+            ? this.db.raw('md5(?)', [user.email])
+            : null;
         const rows = await this.db(TABLE)
-            .insert(mapUserToColumns(user))
+            .insert({
+                ...mapUserToColumns(user),
+                email_hash: emailHash,
+                created_at: new Date(),
+            })
             .returning(USER_COLUMNS);
         return rowToUser(rows[0]);
     }
@@ -116,6 +154,7 @@ class UserStore implements IUserStore {
         return this.db(TABLE).where({
             deleted_at: null,
             is_service: false,
+            is_system: false,
         });
     }
 
@@ -158,6 +197,8 @@ class UserStore implements IUserStore {
                 deleted_at: new Date(),
                 email: null,
                 username: null,
+                scim_id: null,
+                scim_external_id: null,
                 name: this.db.raw('name || ?', '(Deleted)'),
             });
     }
@@ -174,29 +215,94 @@ class UserStore implements IUserStore {
         return item.password_hash;
     }
 
-    async setPasswordHash(userId: number, passwordHash: string): Promise<void> {
-        return this.activeUsers().where('id', userId).update({
+    async setPasswordHash(
+        userId: number,
+        passwordHash: string,
+        disallowNPreviousPasswords: number,
+    ): Promise<void> {
+        await this.activeUsers().where('id', userId).update({
             password_hash: passwordHash,
         });
+        // We apparently set this to null, but you should be allowed to have null, so need to allow this
+        if (passwordHash) {
+            await this.db(PASSWORD_HASH_TABLE).insert({
+                user_id: userId,
+                password_hash: passwordHash,
+            });
+            await this.deletePasswordsUsedMoreThanNTimesAgo(
+                userId,
+                disallowNPreviousPasswords,
+            );
+        }
     }
 
     async incLoginAttempts(user: User): Promise<void> {
         return this.buildSelectUser(user).increment('login_attempts', 1);
     }
 
-    async successfullyLogin(user: User): Promise<void> {
-        return this.buildSelectUser(user).update({
+    async successfullyLogin(user: User): Promise<number> {
+        const currentDate = new Date();
+        const updateQuery = this.buildSelectUser(user).update({
             login_attempts: 0,
-            seen_at: new Date(),
+            seen_at: currentDate,
         });
+
+        let firstLoginOrder = 0;
+
+        const existingUser =
+            await this.buildSelectUser(user).first('first_seen_at');
+
+        if (!existingUser.first_seen_at) {
+            const countEarlierUsers = await this.db(TABLE)
+                .whereNotNull('first_seen_at')
+                .andWhere('first_seen_at', '<', currentDate)
+                .count('*')
+                .then((res) => Number(res[0].count));
+
+            firstLoginOrder = countEarlierUsers;
+
+            await updateQuery.update({
+                first_seen_at: currentDate,
+            });
+        }
+
+        await updateQuery;
+        return firstLoginOrder;
     }
 
     async deleteAll(): Promise<void> {
         await this.activeUsers().del();
     }
 
+    async deleteScimUsers(): Promise<void> {
+        await this.db(TABLE).whereNotNull('scim_id').del();
+    }
+
     async count(): Promise<number> {
         return this.activeUsers()
+            .count('*')
+            .then((res) => Number(res[0].count));
+    }
+
+    async countServiceAccounts(): Promise<number> {
+        return this.db(TABLE)
+            .where({
+                deleted_at: null,
+                is_service: true,
+            })
+            .count('*')
+            .then((res) => Number(res[0].count));
+    }
+
+    async countRecentlyDeleted(): Promise<number> {
+        return this.db(TABLE)
+            .whereNotNull('deleted_at')
+            .andWhere(
+                'deleted_at',
+                '>=',
+                this.db.raw(`NOW() - INTERVAL '1 month'`),
+            )
+            .andWhere({ is_service: false, is_system: false })
             .count('*')
             .then((res) => Number(res[0].count));
     }
@@ -215,6 +321,16 @@ class UserStore implements IUserStore {
     async get(id: number): Promise<User> {
         const row = await this.activeUsers().where({ id }).first();
         return rowToUser(row);
+    }
+
+    async getFirstUserDate(): Promise<Date | null> {
+        const firstInstanceUser = await this.db('users')
+            .select('created_at')
+            .where('is_system', '=', false)
+            .orderBy('created_at', 'asc')
+            .first();
+
+        return firstInstanceUser ? firstInstanceUser.created_at : null;
     }
 }
 

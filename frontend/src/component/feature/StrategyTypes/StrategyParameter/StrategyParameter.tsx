@@ -1,8 +1,8 @@
-import React from 'react';
+import type React from 'react';
 import { FormControlLabel, Switch, TextField } from '@mui/material';
 import StrategyInputList from '../StrategyInputList/StrategyInputList';
 import RolloutSlider from '../RolloutSlider/RolloutSlider';
-import {
+import type {
     IFeatureStrategyParameters,
     IStrategyParameter,
 } from 'interfaces/strategy';
@@ -12,7 +12,7 @@ import {
     parseParameterString,
 } from 'utils/parseParameter';
 import { InputCaption } from 'component/common/InputCaption/InputCaption';
-import { IFormErrors } from 'hooks/useFormErrors';
+import type { IFormErrors } from 'hooks/useFormErrors';
 
 interface IStrategyParameterProps {
     definition: IStrategyParameter;
@@ -62,8 +62,8 @@ export const StrategyParameter = ({
                     onChange={onChangePercentage}
                     disabled={!editable}
                     value={parseParameterNumber(parameters[name])}
-                    minLabel="off"
-                    maxLabel="on"
+                    minLabel='off'
+                    maxLabel='on'
                 />
                 <InputCaption text={description} />
             </div>
@@ -91,8 +91,8 @@ export const StrategyParameter = ({
                 <TextField
                     error={Boolean(error)}
                     helperText={error}
-                    variant="outlined"
-                    size="small"
+                    variant='outlined'
+                    size='small'
                     aria-required={required}
                     style={{ width: '100%' }}
                     disabled={!editable}
@@ -129,9 +129,9 @@ export const StrategyParameter = ({
         <div>
             <TextField
                 rows={1}
-                placeholder=""
-                variant="outlined"
-                size="small"
+                placeholder=''
+                variant='outlined'
+                size='small'
                 style={{ width: '100%' }}
                 aria-required={required}
                 disabled={!editable}

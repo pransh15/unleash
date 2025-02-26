@@ -1,4 +1,4 @@
-import React, { Fragment, useState, ChangeEvent, VFC } from 'react';
+import { type FC, Fragment, useState, type ChangeEvent } from 'react';
 import {
     Checkbox,
     FormControlLabel,
@@ -6,10 +6,11 @@ import {
     Box,
     Paper,
     styled,
+    Chip,
 } from '@mui/material';
 import { Autocomplete } from '@mui/material';
 
-import {
+import type {
     AutocompleteRenderGroupParams,
     AutocompleteRenderInputParams,
     AutocompleteRenderOptionState,
@@ -17,7 +18,7 @@ import {
 
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import CheckBoxIcon from '@mui/icons-material/CheckBox';
-import { IAutocompleteBoxOption } from 'component/common/AutocompleteBox/AutocompleteBox';
+import type { IAutocompleteBoxOption } from 'component/common/AutocompleteBox/AutocompleteBox';
 import { SelectAllButton } from './SelectAllButton/SelectAllButton';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 
@@ -39,7 +40,7 @@ export interface ISelectProjectInputProps {
     error?: string;
 }
 
-export const SelectProjectInput: VFC<ISelectProjectInputProps> = ({
+export const SelectProjectInput: FC<ISelectProjectInputProps> = ({
     options,
     defaultValue = [ALL_PROJECTS],
     onChange,
@@ -48,10 +49,10 @@ export const SelectProjectInput: VFC<ISelectProjectInputProps> = ({
     onFocus,
 }) => {
     const [projects, setProjects] = useState<string[]>(
-        typeof defaultValue === 'string' ? [defaultValue] : defaultValue
+        typeof defaultValue === 'string' ? [defaultValue] : defaultValue,
     );
     const [isWildcardSelected, selectWildcard] = useState(
-        typeof defaultValue === 'string' || defaultValue.includes(ALL_PROJECTS)
+        typeof defaultValue === 'string' || defaultValue.includes(ALL_PROJECTS),
     );
     const isAllSelected =
         projects.length > 0 &&
@@ -60,7 +61,7 @@ export const SelectProjectInput: VFC<ISelectProjectInputProps> = ({
 
     const onAllProjectsChange = (
         e: ChangeEvent<HTMLInputElement>,
-        checked: boolean
+        checked: boolean,
     ) => {
         if (checked) {
             selectWildcard(true);
@@ -80,19 +81,22 @@ export const SelectProjectInput: VFC<ISelectProjectInputProps> = ({
     };
 
     const renderOption = (
-        props: object,
+        props: object & { key?: string },
         option: IAutocompleteBoxOption,
-        { selected }: AutocompleteRenderOptionState
-    ) => (
-        <li {...props}>
-            <SelectOptionCheckbox
-                icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-                checkedIcon={<CheckBoxIcon fontSize="small" />}
-                checked={selected}
-            />
-            {option.label}
-        </li>
-    );
+        { selected }: AutocompleteRenderOptionState,
+    ) => {
+        const { key, ...rest } = props;
+        return (
+            <li key={key} {...rest}>
+                <SelectOptionCheckbox
+                    icon={<CheckBoxOutlineBlankIcon fontSize='small' />}
+                    checkedIcon={<CheckBoxIcon fontSize='small' />}
+                    checked={selected}
+                />
+                {option.label}
+            </li>
+        );
+    };
 
     const renderGroup = ({ key, children }: AutocompleteRenderGroupParams) => (
         <Fragment key={key}>
@@ -114,11 +118,11 @@ export const SelectProjectInput: VFC<ISelectProjectInputProps> = ({
             {...params}
             error={Boolean(error)}
             helperText={error}
-            variant="outlined"
-            label="Projects"
-            placeholder="Select one or more projects"
+            variant='outlined'
+            label='Projects'
+            placeholder='Select one or more projects'
             onFocus={onFocus}
-            data-testid="select-input"
+            data-testid='select-input'
         />
     );
 
@@ -127,14 +131,14 @@ export const SelectProjectInput: VFC<ISelectProjectInputProps> = ({
             <Box sx={{ mt: 1, mb: 0.25, ml: 1.5 }}>
                 <FormControlLabel
                     disabled={disabled}
-                    data-testid="select-all-projects"
+                    data-testid='select-all-projects'
                     control={
                         <Checkbox
                             checked={disabled || isWildcardSelected}
                             onChange={onAllProjectsChange}
                         />
                     }
-                    label="ALL current and future projects"
+                    label='ALL current and future projects'
                 />
             </Box>
             <Autocomplete
@@ -149,12 +153,25 @@ export const SelectProjectInput: VFC<ISelectProjectInputProps> = ({
                 fullWidth
                 PaperComponent={CustomPaper}
                 renderOption={renderOption}
+                renderTags={(value, getTagProps) => {
+                    return value.map((option, index) => {
+                        const { key, ...props } = getTagProps({ index });
+                        return (
+                            <Chip
+                                size='small'
+                                key={key}
+                                {...props}
+                                label={option.label}
+                            />
+                        );
+                    });
+                }}
                 renderInput={renderInput}
                 value={
                     isWildcardSelected || disabled
                         ? options
-                        : options.filter(option =>
-                              projects.includes(option.value)
+                        : options.filter((option) =>
+                              projects.includes(option.value),
                           )
                 }
                 onChange={(_, input) => {

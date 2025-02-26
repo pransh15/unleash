@@ -1,5 +1,5 @@
 import { v4 as uuidV4 } from 'uuid';
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 
 export const UnleashApiErrorTypes = [
     'ContentTypeError',
@@ -28,12 +28,14 @@ export const UnleashApiErrorTypes = [
     'InvalidTokenError',
     'OwaspValidationError',
     'ForbiddenError',
-
+    'ExceedsLimitError',
+    'PasswordPreviouslyUsedError',
+    'RateLimitError',
     // server errors; not the end user's fault
     'InternalError',
 ] as const;
 
-export type UnleashApiErrorName = typeof UnleashApiErrorTypes[number];
+export type UnleashApiErrorName = (typeof UnleashApiErrorTypes)[number];
 
 export abstract class UnleashError extends Error {
     id: string;
@@ -60,7 +62,7 @@ export abstract class UnleashError extends Error {
             id: this.id,
             name: this.name,
             message: this.message,
-            details: [{ message: this.message, description: this.message }],
+            details: [{ message: this.message }],
         };
     }
 

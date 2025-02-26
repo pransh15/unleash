@@ -1,8 +1,8 @@
-import { PlaygroundFeatureSchema, PlaygroundRequestSchema } from 'openapi';
+import type { PlaygroundFeatureSchema, PlaygroundRequestSchema } from 'openapi';
 import { Alert, IconButton, Typography, useTheme, styled } from '@mui/material';
 import { PlaygroundResultChip } from '../../PlaygroundResultChip/PlaygroundResultChip';
-import { CloseOutlined } from '@mui/icons-material';
-import React from 'react';
+import CloseOutlined from '@mui/icons-material/CloseOutlined';
+import type React from 'react';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import {
     checkForEmptyValues,
@@ -55,34 +55,53 @@ export const FeatureDetails = ({
     const [description, reason, color] = (() => {
         if (feature.isEnabled)
             return [
-                `This feature toggle is True in ${input?.environment} because `,
+                `This feature flag is True in ${input?.environment} because `,
                 'at least one strategy is True',
                 theme.palette.success.main,
             ];
 
+        if (
+            feature.hasUnsatisfiedDependency &&
+            !feature.isEnabledInCurrentEnvironment
+        ) {
+            return [
+                `This feature flag is False in ${input?.environment} because `,
+                'parent dependency is not satisfied and the environment is disabled',
+                theme.palette.error.main,
+            ];
+        }
+
         if (!feature.isEnabledInCurrentEnvironment)
             return [
-                `This feature toggle is False in ${input?.environment} because `,
+                `This feature flag is False in ${input?.environment} because `,
                 'the environment is disabled',
                 theme.palette.error.main,
             ];
 
         if (hasOnlyCustomStrategies(feature))
             return [
-                `This feature toggle is Unknown in ${input?.environment} because `,
+                `This feature flag is Unknown in ${input?.environment} because `,
                 'no strategies could be fully evaluated',
                 theme.palette.warning.main,
             ];
 
         if (hasCustomStrategies(feature))
             return [
-                `This feature toggle is Unknown in ${input?.environment} because `,
+                `This feature flag is Unknown in ${input?.environment} because `,
                 'not all strategies could be fully evaluated',
                 theme.palette.warning.main,
             ];
 
+        if (feature.hasUnsatisfiedDependency) {
+            return [
+                `This feature flag is False in ${input?.environment} because `,
+                'parent dependency is not satisfied',
+                theme.palette.error.main,
+            ];
+        }
+
         return [
-            `This feature toggle is False in ${input?.environment} because `,
+            `This feature flag is False in ${input?.environment} because `,
             'all strategies are either False or could not be fully evaluated',
             theme.palette.error.main,
         ];
@@ -120,7 +139,7 @@ export const FeatureDetails = ({
                         )}
                         elseShow={() => (
                             <PlaygroundResultChip
-                                enabled="unknown"
+                                enabled='unknown'
                                 label={'Unknown'}
                                 showIcon={false}
                             />
@@ -132,13 +151,13 @@ export const FeatureDetails = ({
                 </StyledIconButton>
             </StyledDivWrapper>
             <StyledDivDescriptionRow>
-                <Typography variant="body1" component="span">
+                <Typography variant='body1' component='span'>
                     {description}
                 </Typography>
-                <Typography variant="subtitle1" color={color} component="span">
+                <Typography variant='subtitle1' color={color} component='span'>
                     {reason}
                 </Typography>
-                <Typography variant="body1" component="span">
+                <Typography variant='body1' component='span'>
                     .
                 </Typography>
             </StyledDivDescriptionRow>
@@ -154,7 +173,7 @@ export const FeatureDetails = ({
                 condition={Boolean(customStrategiesTxt)}
                 show={
                     <StyledDivAlertRow>
-                        <Alert severity="warning" color="info">
+                        <Alert severity='warning' color='info'>
                             {customStrategiesTxt}
                         </Alert>
                     </StyledDivAlertRow>

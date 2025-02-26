@@ -1,9 +1,12 @@
-import { IEventStore } from '../../lib/types/stores/event-store';
-import { IEvent } from '../../lib/types/events';
+import type { IEventStore } from '../../lib/types/stores/event-store';
+import type { IBaseEvent, IEvent } from '../../lib/types/events';
 import { sharedEventEmitter } from '../../lib/util/anyEventEmitter';
-import { IQueryOperations } from 'lib/db/event-store';
-import { SearchEventsSchema } from '../../lib/openapi';
-import EventEmitter from 'events';
+import type { IQueryOperations } from '../../lib/features/events/event-store';
+import type {
+    DeprecatedSearchEventsSchema,
+    ProjectActivitySchema,
+} from '../../lib/openapi';
+import type EventEmitter from 'events';
 
 class FakeEventStore implements IEventStore {
     events: IEvent[];
@@ -14,20 +17,41 @@ class FakeEventStore implements IEventStore {
         this.eventEmitter.setMaxListeners(0);
         this.events = [];
     }
+    getRevisionRange(start: number, end: number): Promise<IEvent[]> {
+        throw new Error('Method not implemented.');
+    }
+
+    getProjectRecentEventActivity(
+        project: string,
+    ): Promise<ProjectActivitySchema> {
+        throw new Error('Method not implemented.');
+    }
+
+    getEventCreators(): Promise<{ id: number; name: string }[]> {
+        throw new Error('Method not implemented.');
+    }
 
     getMaxRevisionId(): Promise<number> {
         return Promise.resolve(1);
     }
 
-    store(event: IEvent): Promise<void> {
-        this.events.push(event);
+    store(event: IBaseEvent): Promise<void> {
+        this.events.push({
+            ...event,
+            id: this.events.length,
+            createdAt: new Date(),
+        });
         this.eventEmitter.emit(event.type, event);
         return Promise.resolve();
     }
 
-    batchStore(events: IEvent[]): Promise<void> {
+    batchStore(events: IBaseEvent[]): Promise<void> {
         events.forEach((event) => {
-            this.events.push(event);
+            this.events.push({
+                ...event,
+                id: this.events.length,
+                createdAt: new Date(),
+            });
             this.eventEmitter.emit(event.type, event);
         });
         return Promise.resolve();
@@ -53,7 +77,13 @@ class FakeEventStore implements IEventStore {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    filteredCount(search: SearchEventsSchema): Promise<number> {
+    searchEventsCount(): Promise<number> {
+        return Promise.resolve(0);
+    }
+
+    deprecatedFilteredCount(
+        search: DeprecatedSearchEventsSchema,
+    ): Promise<number> {
         return Promise.resolve(0);
     }
 
@@ -71,23 +101,11 @@ class FakeEventStore implements IEventStore {
         return this.events;
     }
 
-    async searchEvents(): Promise<IEvent[]> {
+    async deprecatedSearchEvents(): Promise<IEvent[]> {
         throw new Error('Method not implemented.');
     }
-
-    async getForFeatures(
-        features: string[],
-        environments: string[],
-        query: { type: string; projectId: string },
-    ): Promise<IEvent[]> {
-        return this.events.filter((event) => {
-            return (
-                event.type === query.type &&
-                event.project === query.projectId &&
-                features.includes(event.data.featureName) &&
-                environments.includes(event.data.environment)
-            );
-        });
+    async searchEvents(): Promise<IEvent[]> {
+        throw new Error('Method not implemented.');
     }
 
     async query(operations: IQueryOperations[]): Promise<IEvent[]> {
@@ -123,6 +141,10 @@ class FakeEventStore implements IEventStore {
     }
 
     publishUnannouncedEvents(): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
+
+    setCreatedByUserId(batchSize: number): Promise<number | undefined> {
         throw new Error('Method not implemented.');
     }
 }

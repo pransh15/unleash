@@ -1,22 +1,29 @@
-import dbInit from '../../../helpers/database-init';
-import { setupAppWithCustomConfig } from '../../../helpers/test-helper';
+import dbInit, { type ITestDb } from '../../../helpers/database-init';
+import {
+    type IUnleashTest,
+    setupAppWithCustomConfig,
+} from '../../../helpers/test-helper';
 import getLogger from '../../../../fixtures/no-logger';
-import { ApiTokenStore } from '../../../../../lib/db/api-token-store';
+import type { IApiTokenStore } from '../../../../../lib/types';
 
-let app;
-let db;
+let app: IUnleashTest;
+let db: ITestDb;
 
-let apiTokenStore: ApiTokenStore;
+let apiTokenStore: IApiTokenStore;
 
 beforeAll(async () => {
     db = await dbInit('projects_api_serial', getLogger);
-    app = await setupAppWithCustomConfig(db.stores, {
-        experimental: {
-            flags: {
-                strictSchemaValidation: true,
+    app = await setupAppWithCustomConfig(
+        db.stores,
+        {
+            experimental: {
+                flags: {
+                    strictSchemaValidation: true,
+                },
             },
         },
-    });
+        db.rawDatabase,
+    );
     apiTokenStore = db.stores.apiTokenStore;
 });
 

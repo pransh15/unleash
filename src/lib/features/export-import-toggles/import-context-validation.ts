@@ -1,4 +1,4 @@
-import { IContextFieldDto } from '../../types/stores/context-field-store';
+import type { IContextFieldDto } from '../context/context-field-store-type';
 
 export const isValidField = (
     importedField: IContextFieldDto,
@@ -10,7 +10,9 @@ export const isValidField = (
     if (!matchingExistingField) {
         return true;
     }
-    return importedField.legalValues.every((value) =>
-        matchingExistingField.legalValues.find((v) => v.value === value.value),
+    return (importedField.legalValues || []).every((value) =>
+        (matchingExistingField.legalValues || []).find(
+            (v) => v.value === value.value,
+        ),
     );
 };

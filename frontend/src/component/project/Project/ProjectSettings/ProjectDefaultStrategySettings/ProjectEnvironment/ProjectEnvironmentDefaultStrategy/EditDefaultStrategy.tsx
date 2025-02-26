@@ -6,10 +6,10 @@ import { useStrategy } from 'hooks/api/getters/useStrategy/useStrategy';
 import { useEffect, useState } from 'react';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import FormTemplate from 'component/common/FormTemplate/FormTemplate';
-import { UPDATE_FEATURE_STRATEGY } from 'component/providers/AccessProvider/permissions';
-import { IStrategy } from 'interfaces/strategy';
+import { PROJECT_DEFAULT_STRATEGY_WRITE } from 'component/providers/AccessProvider/permissions';
+import type { IStrategy } from 'interfaces/strategy';
 import { useRequiredQueryParam } from 'hooks/useRequiredQueryParam';
-import { ISegment } from 'interfaces/segment';
+import type { ISegment } from 'interfaces/segment';
 import { useFormErrors } from 'hooks/useFormErrors';
 import { useSegments } from 'hooks/api/getters/useSegments/useSegments';
 import { formatStrategyName } from 'utils/strategyNames';
@@ -17,14 +17,15 @@ import { sortStrategyParameters } from 'utils/sortStrategyParameters';
 import useProjectApi from 'hooks/api/actions/useProjectApi/useProjectApi';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
 import { ProjectDefaultStrategyForm } from './ProjectDefaultStrategyForm';
-import { CreateFeatureStrategySchema } from 'openapi';
-import useProject from 'hooks/api/getters/useProject/useProject';
+import type { CreateFeatureStrategySchema } from 'openapi';
+import useProjectOverview from 'hooks/api/getters/useProjectOverview/useProjectOverview';
+import { UPDATE_PROJECT } from '@server/types/permissions';
 
 export const useDefaultStrategy = (
     projectId: string,
-    environmentId: string
+    environmentId: string,
 ) => {
-    const { project, refetch } = useProject(projectId);
+    const { project, refetch } = useProjectOverview(projectId);
 
     const defaultStrategyFallback = {
         name: 'flexibleRollout',
@@ -37,7 +38,7 @@ export const useDefaultStrategy = (
     };
 
     const strategy = project.environments.find(
-        env => env.environment === environmentId
+        (env) => env.environment === environmentId,
     )?.defaultStrategy;
 
     return { defaultStrategyFallback, strategy, refetch };
@@ -46,6 +47,7 @@ export const useDefaultStrategy = (
 const EditDefaultStrategy = () => {
     const projectId = useRequiredPathParam('projectId');
     const environmentId = useRequiredQueryParam('environmentId');
+    const { refetch: refetchProjectOverview } = useProjectOverview(projectId);
 
     const {
         defaultStrategyFallback,
@@ -79,21 +81,19 @@ const EditDefaultStrategy = () => {
             const temp: ISegment[] = [];
             for (const segmentId of strategy?.segments) {
                 temp.push(
-                    ...allSegments.filter(segment => segment.id === segmentId)
+                    ...allSegments.filter(
+                        (segment) => segment.id === segmentId,
+                    ),
                 );
             }
             setSegments(temp);
         }
     }, [JSON.stringify(allSegments), JSON.stringify(strategy?.segments)]);
 
-    const segmentsToSubmit = uiConfig?.flags.SE ? segments : [];
-    const payload = createStrategyPayload(
-        defaultStrategy as any,
-        segmentsToSubmit
-    );
+    const payload = createStrategyPayload(defaultStrategy as any, segments);
 
     const onDefaultStrategyEdit = async (
-        payload: CreateFeatureStrategySchema
+        payload: CreateFeatureStrategySchema,
     ) => {
         await updateDefaultStrategy(projectId, environmentId, payload);
 
@@ -104,11 +104,11 @@ const EditDefaultStrategy = () => {
             },
         });
 
-        await refetchSavedStrategySegments();
+        refetchSavedStrategySegments();
+        refetchProjectOverview();
         setToastData({
-            title: 'Default Strategy updated',
+            text: 'Default Strategy updated',
             type: 'success',
-            confetti: true,
         });
     };
 
@@ -141,7 +141,7 @@ const EditDefaultStrategy = () => {
                     environmentId,
                     payload,
                     strategyDefinition,
-                    unleashUrl
+                    unleashUrl,
                 )
             }
         >
@@ -154,7 +154,7 @@ const EditDefaultStrategy = () => {
                 environmentId={environmentId}
                 onSubmit={onSubmit}
                 loading={loading}
-                permission={UPDATE_FEATURE_STRATEGY}
+                permission={[PROJECT_DEFAULT_STRATEGY_WRITE, UPDATE_PROJECT]}
                 errors={errors}
                 isChangeRequest={false}
             />
@@ -164,13 +164,14 @@ const EditDefaultStrategy = () => {
 
 export const createStrategyPayload = (
     strategy: CreateFeatureStrategySchema,
-    segments: ISegment[]
+    segments: ISegment[],
 ): CreateFeatureStrategySchema => ({
     name: strategy.name,
     title: strategy.title,
     constraints: strategy.constraints ?? [],
     parameters: strategy.parameters ?? {},
-    segments: segments.map(segment => segment.id),
+    variants: strategy.variants ?? [],
+    segments: segments.map((segment) => segment.id),
     disabled: strategy.disabled ?? false,
 });
 
@@ -179,7 +180,7 @@ export const formatUpdateStrategyApiCode = (
     environmentId: string,
     strategy: CreateFeatureStrategySchema,
     strategyDefinition: IStrategy,
-    unleashUrl?: string
+    unleashUrl?: string,
 ): string => {
     if (!unleashUrl) {
         return '';
@@ -191,7 +192,7 @@ export const formatUpdateStrategyApiCode = (
         ...strategy,
         parameters: sortStrategyParameters(
             strategy.parameters ?? {},
-            strategyDefinition
+            strategyDefinition,
         ),
     };
 
@@ -205,12 +206,12 @@ export const formatUpdateStrategyApiCode = (
 };
 
 export const projectDefaultStrategyHelp = `
-    An activation strategy will only run when a feature toggle is enabled and provides a way to control who will get access to the feature.
-    If any of a feature toggle's activation strategies returns true, the user will get access.
+    An activation strategy will only run when a feature flag is enabled and provides a way to control who will get access to the feature.
+    If any of a feature flag's activation strategies returns true, the user will get access.
 `;
 
 export const projectDefaultStrategyDocsLink =
-    'https://docs.getunleash.io/reference/activation-strategies';
+    'https://docs.getunleash.io/reference/projects#project-default-strategy';
 
 export const projectDefaultStrategyDocsLinkLabel =
     'Default strategy documentation';

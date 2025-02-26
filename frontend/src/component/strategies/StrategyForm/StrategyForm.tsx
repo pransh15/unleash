@@ -1,10 +1,10 @@
 import Input from 'component/common/Input/Input';
 import { Button, styled } from '@mui/material';
-import { Add } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
 import { trim } from 'component/common/util';
 import { StrategyParameters } from './StrategyParameters/StrategyParameters';
-import { IStrategyParameter } from 'interfaces/strategy';
-import React from 'react';
+import type { IStrategyParameter } from 'interfaces/strategy';
+import type React from 'react';
 
 interface IStrategyFormProps {
     strategyName: string;
@@ -20,6 +20,7 @@ interface IStrategyFormProps {
     mode: 'Create' | 'Edit';
     clearErrors: () => void;
     setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+    children?: React.ReactNode;
 }
 
 const StyledForm = styled('form')(({ theme }) => ({
@@ -71,13 +72,13 @@ export const StrategyForm: React.FC<IStrategyFormProps> = ({
     clearErrors,
 }) => {
     const updateParameter = (index: number, updated: object) => {
-        let item = { ...params[index] };
+        const item = { ...params[index] };
         params[index] = Object.assign({}, item, updated);
-        setParams(prev => [...prev]);
+        setParams((prev) => [...prev]);
     };
 
     const appParameter = () => {
-        setParams(prev => [
+        setParams((prev) => [
             ...prev,
             { name: '', type: 'string', description: '', required: false },
         ]);
@@ -92,9 +93,9 @@ export const StrategyForm: React.FC<IStrategyFormProps> = ({
                 <StyledInput
                     disabled={mode === 'Edit'}
                     autoFocus
-                    label="Strategy name*"
+                    label='Strategy name*'
                     value={strategyName}
-                    onChange={e => setStrategyName(trim(e.target.value))}
+                    onChange={(e) => setStrategyName(trim(e.target.value))}
                     error={Boolean(errors.name)}
                     errorText={errors.name}
                     onFocus={clearErrors}
@@ -104,9 +105,9 @@ export const StrategyForm: React.FC<IStrategyFormProps> = ({
                     What is your strategy description?
                 </StyledInputDescription>
                 <StyledInput
-                    label="Strategy description"
+                    label='Strategy description'
                     value={strategyDesc}
-                    onChange={e => setStrategyDesc(e.target.value)}
+                    onChange={(e) => setStrategyDesc(e.target.value)}
                     rows={2}
                     multiline
                 />
@@ -118,12 +119,12 @@ export const StrategyForm: React.FC<IStrategyFormProps> = ({
                     errors={errors}
                 />
                 <StyledParamButton
-                    onClick={e => {
+                    onClick={(e) => {
                         e.preventDefault();
                         appParameter();
                     }}
-                    variant="outlined"
-                    color="secondary"
+                    variant='outlined'
+                    color='secondary'
                     startIcon={<Add />}
                 >
                     Add parameter
@@ -131,7 +132,7 @@ export const StrategyForm: React.FC<IStrategyFormProps> = ({
             </StyledContainer>
             <StyledButtonContainer>
                 {children}
-                <StyledCancelButton type="button" onClick={handleCancel}>
+                <StyledCancelButton type='button' onClick={handleCancel}>
                     Cancel
                 </StyledCancelButton>
             </StyledButtonContainer>

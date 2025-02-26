@@ -1,4 +1,5 @@
-import React, { SyntheticEvent, useState } from 'react';
+import type React from 'react';
+import { type SyntheticEvent, useState } from 'react';
 import {
     Box,
     IconButton,
@@ -9,7 +10,7 @@ import {
     Tooltip,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { IFeatureStrategy } from 'interfaces/strategy';
+import type { IFeatureStrategy } from 'interfaces/strategy';
 import { DialogStrategyRemove } from './DialogStrategyRemove';
 import { DisableEnableStrategyDialog } from './DisableEnableStrategyDialog/DisableEnableStrategyDialog';
 import TrackChangesIcon from '@mui/icons-material/TrackChanges';
@@ -54,12 +55,12 @@ const MenuStrategyRemove = ({
     const updateAccess = useHasProjectEnvironmentAccess(
         UPDATE_FEATURE_STRATEGY,
         projectId,
-        environmentId
+        environmentId,
     );
     const deleteAccess = useHasProjectEnvironmentAccess(
         DELETE_FEATURE_STRATEGY,
         projectId,
-        environmentId
+        environmentId,
     );
 
     return (
@@ -71,12 +72,12 @@ const MenuStrategyRemove = ({
                     textAlign: 'center',
                 }}
             >
-                <Tooltip title="More actions">
+                <Tooltip title='More actions'>
                     <IconButton
                         onClick={handleClick}
-                        size="small"
+                        size='small'
                         aria-controls={open ? 'actions-menu' : undefined}
-                        aria-haspopup="true"
+                        aria-haspopup='true'
                         aria-expanded={open ? 'true' : undefined}
                         data-testid={STRATEGY_REMOVE_MENU_BTN}
                     >
@@ -86,7 +87,7 @@ const MenuStrategyRemove = ({
             </Box>
             <Menu
                 anchorEl={anchorEl}
-                id="actions-menu"
+                id='actions-menu'
                 open={open}
                 onClose={handleClose}
                 onClick={handleClose}
@@ -101,7 +102,7 @@ const MenuStrategyRemove = ({
                             : 'Disable strategy'
                     }
                     arrow
-                    placement="left"
+                    placement='left'
                 >
                     <MenuItem
                         disabled={!updateAccess}
@@ -119,7 +120,7 @@ const MenuStrategyRemove = ({
                         </ListItemText>
                     </MenuItem>
                 </Tooltip>
-                <Tooltip title="Remove strategy" arrow placement="left">
+                <Tooltip title='Remove strategy' arrow placement='left'>
                     <MenuItem
                         disabled={!deleteAccess}
                         onClick={() => setRemoveDialogOpen(true)}

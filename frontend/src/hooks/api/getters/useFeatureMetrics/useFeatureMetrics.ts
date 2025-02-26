@@ -1,7 +1,7 @@
 import { formatApiPath } from 'utils/formatPath';
 import { useEffect, useState } from 'react';
-import useSWR, { mutate, SWRConfiguration } from 'swr';
-import { IFeatureMetrics } from 'interfaces/featureToggle';
+import useSWR, { mutate, type SWRConfiguration } from 'swr';
+import type { IFeatureMetrics } from 'interfaces/featureToggle';
 import handleErrorResponses from '../httpErrorResponseHandler';
 
 const emptyMetrics: IFeatureMetrics = {
@@ -12,11 +12,11 @@ const emptyMetrics: IFeatureMetrics = {
 const useFeatureMetrics = (
     projectId: string,
     featureId: string,
-    options: SWRConfiguration = {}
+    options: SWRConfiguration = {},
 ) => {
     const fetcher = async () => {
         const path = formatApiPath(
-            `api/admin/client-metrics/features/${featureId}`
+            `api/admin/client-metrics/features/${featureId}`,
         );
         const res = await fetch(path, {
             method: 'GET',
@@ -34,7 +34,7 @@ const useFeatureMetrics = (
         fetcher,
         {
             ...options,
-        }
+        },
     );
 
     const [loading, setLoading] = useState(!error && !data);

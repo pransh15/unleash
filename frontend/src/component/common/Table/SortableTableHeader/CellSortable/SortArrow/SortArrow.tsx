@@ -1,12 +1,10 @@
-import { VFC } from 'react';
-import {
-    KeyboardArrowDown,
-    KeyboardArrowUp,
-    UnfoldMoreOutlined,
-} from '@mui/icons-material';
+import type { VFC } from 'react';
+import KeyboardArrowDown from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUp from '@mui/icons-material/KeyboardArrowUp';
+import UnfoldMoreOutlined from '@mui/icons-material/UnfoldMoreOutlined';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import classnames from 'classnames';
-import { Theme } from '@mui/material';
+import type { Theme } from '@mui/material';
 
 interface ISortArrowProps {
     isSorted?: boolean;
@@ -33,31 +31,31 @@ export const SortArrow: VFC<ISortArrowProps> = ({
                 condition={Boolean(desc)}
                 show={
                     <KeyboardArrowDown
-                        sx={theme => ({
+                        sx={(theme) => ({
                             ...iconStyle(theme),
                         })}
                         className={className}
-                        fontSize="inherit"
+                        fontSize='inherit'
                     />
                 }
                 elseShow={
                     <KeyboardArrowUp
-                        sx={theme => ({
+                        sx={(theme) => ({
                             ...iconStyle(theme),
                         })}
                         className={className}
-                        fontSize="inherit"
+                        fontSize='inherit'
                     />
                 }
             />
         }
         elseShow={
             <UnfoldMoreOutlined
-                sx={theme => ({
+                sx={(theme) => ({
                     ...iconStyle(theme),
                 })}
                 className={classnames(className, 'hover-only')}
-                fontSize="inherit"
+                fontSize='inherit'
             />
         }
     />

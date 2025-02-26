@@ -1,7 +1,7 @@
 import { Box, Tooltip } from '@mui/material';
-import { ReactComponent as NegatedIcon } from 'assets/icons/24_Negator.svg';
-import { ReactComponent as NegatedIconOff } from 'assets/icons/24_Negator off.svg';
-import { IConstraint } from 'interfaces/strategy';
+import { ReactComponent as NegatedOnIcon } from 'assets/icons/not_operator_selected.svg';
+import { ReactComponent as NegatedOffIcon } from 'assets/icons/not_operator_unselected.svg';
+import type { IConstraint } from 'interfaces/strategy';
 import {
     StyledToggleButtonOff,
     StyledToggleButtonOn,
@@ -18,11 +18,7 @@ export const InvertedOperatorButton = ({
     setInvertedOperator,
 }: InvertedOperatorButtonProps) => (
     <Tooltip
-        title={
-            Boolean(localConstraint.inverted)
-                ? 'Remove negation'
-                : 'Negate operator'
-        }
+        title={localConstraint.inverted ? 'Remove negation' : 'Negate operator'}
         arrow
     >
         <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
@@ -30,11 +26,11 @@ export const InvertedOperatorButton = ({
                 condition={Boolean(localConstraint.inverted)}
                 show={
                     <StyledToggleButtonOn
-                        className="operator-is-active"
+                        className='operator-is-active'
                         onClick={setInvertedOperator}
                         disableRipple
                     >
-                        <NegatedIcon />
+                        <NegatedOnIcon />
                     </StyledToggleButtonOn>
                 }
                 elseShow={
@@ -42,7 +38,7 @@ export const InvertedOperatorButton = ({
                         onClick={setInvertedOperator}
                         disableRipple
                     >
-                        <NegatedIconOff />
+                        <NegatedOffIcon />
                     </StyledToggleButtonOff>
                 }
             />

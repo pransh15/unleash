@@ -1,6 +1,6 @@
 import { useAuthFeedback } from 'hooks/api/getters/useAuth/useAuthFeedback';
 import { useAuthFeedbackApi } from 'hooks/api/actions/useAuthFeedbackApi/useAuthFeedbackApi';
-import { IFeedbackCESState } from 'component/feedback/FeedbackCESContext/FeedbackCESContext';
+import type { IFeedbackCESState } from 'component/feedback/FeedbackCESContext/FeedbackCESContext';
 import { useCallback } from 'react';
 
 interface IUseFeedbackCESSeen {
@@ -15,14 +15,14 @@ export const useFeedbackCESSeen = (): IUseFeedbackCESSeen => {
     const isSeen = useCallback(
         (state: IFeedbackCESState) =>
             !!feedback &&
-            feedback.some(f => f.feedbackId === formatFeedbackCESId(state)),
-        [feedback]
+            feedback.some((f) => f.feedbackId === formatFeedbackCESId(state)),
+        [feedback],
     );
 
     const setSeen = useCallback(
         (state: IFeedbackCESState) =>
             createFeedback({ feedbackId: formatFeedbackCESId(state) }),
-        [createFeedback]
+        [createFeedback],
     );
 
     return {

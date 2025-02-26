@@ -8,7 +8,7 @@ import {
 } from 'component/common/Table';
 import { PageContent } from 'component/common/PageContent/PageContent';
 import { DateCell } from 'component/common/Table/cells/DateCell/DateCell';
-import { useMemo, VFC } from 'react';
+import { useMemo, type VFC } from 'react';
 import { useGlobalFilter, useSortBy, useTable } from 'react-table';
 import { sortTypes } from 'utils/sortTypes';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
@@ -40,14 +40,12 @@ const columns = [
         Header: 'Created date',
         accessor: 'created',
         Cell: DateCell,
-        sortType: 'date',
         disableGlobalFilter: true,
     },
     {
         Header: 'Due date',
         accessor: 'dueDate',
         Cell: DateCell,
-        sortType: 'date',
         disableGlobalFilter: true,
     },
     {
@@ -76,9 +74,9 @@ export const BillingHistory: VFC<IBillingHistoryProps> = ({
 }) => {
     const initialState = useMemo(
         () => ({
-            sortBy: [{ id: 'created' }],
+            sortBy: [{ id: 'created', desc: true }],
         }),
-        []
+        [],
     );
 
     const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
@@ -95,7 +93,7 @@ export const BillingHistory: VFC<IBillingHistoryProps> = ({
                 },
             },
             useGlobalFilter,
-            useSortBy
+            useSortBy,
         );
 
     return (
@@ -104,15 +102,21 @@ export const BillingHistory: VFC<IBillingHistoryProps> = ({
             <Table {...getTableProps()}>
                 <SortableTableHeader headerGroups={headerGroups} />
                 <TableBody {...getTableBodyProps()}>
-                    {rows.map(row => {
+                    {rows.map((row) => {
                         prepareRow(row);
+                        const { key, ...rowProps } = row.getRowProps();
                         return (
-                            <TableRow hover {...row.getRowProps()}>
-                                {row.cells.map(cell => (
-                                    <TableCell {...cell.getCellProps()}>
-                                        {cell.render('Cell')}
-                                    </TableCell>
-                                ))}
+                            <TableRow hover key={key} {...rowProps}>
+                                {row.cells.map((cell) => {
+                                    const { key, ...cellProps } =
+                                        cell.getCellProps();
+
+                                    return (
+                                        <TableCell key={key} {...cellProps}>
+                                            {cell.render('Cell')}
+                                        </TableCell>
+                                    );
+                                })}
                             </TableRow>
                         );
                     })}

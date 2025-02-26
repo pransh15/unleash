@@ -1,15 +1,15 @@
 import dbInit from '../helpers/database-init';
 import getLogger from '../../fixtures/no-logger';
 import assert from 'assert';
-import User from '../../../lib/types/user';
 import { randomId } from '../../../lib/util/random-id';
-import {
+import type {
     IConstraint,
     IFeatureToggleClient,
     ISegment,
 } from '../../../lib/types/model';
-import { IUnleashTest, setupApp } from '../helpers/test-helper';
-import { UpsertSegmentSchema } from 'lib/openapi';
+import { type IUnleashTest, setupApp } from '../helpers/test-helper';
+import type { UpsertSegmentSchema } from '../../../lib/openapi';
+import { TEST_AUDIT_USER } from '../../../lib/types';
 
 interface ISeedSegmentSpec {
     featuresCount: number;
@@ -37,8 +37,7 @@ const createSegment = (
     app: IUnleashTest,
     postData: UpsertSegmentSchema,
 ): Promise<unknown> => {
-    const user = { email: 'test@example.com' } as User;
-    return app.services.segmentService.create(postData, user);
+    return app.services.segmentService.create(postData, TEST_AUDIT_USER);
 };
 
 const createFeatureToggle = (

@@ -1,17 +1,30 @@
-import { DragEventHandler, RefObject, useEffect, useState } from 'react';
-import { Alert, styled } from '@mui/material';
+import {
+    type DragEventHandler,
+    type RefObject,
+    useEffect,
+    useState,
+} from 'react';
+import { Alert, Pagination, styled } from '@mui/material';
 import useFeatureStrategyApi from 'hooks/api/actions/useFeatureStrategyApi/useFeatureStrategyApi';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import useToast from 'hooks/useToast';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { StrategyDraggableItem } from './StrategyDraggableItem/StrategyDraggableItem';
-import { IFeatureEnvironment } from 'interfaces/featureToggle';
+import type { IFeatureEnvironment } from 'interfaces/featureToggle';
 import { FeatureStrategyEmpty } from 'component/feature/FeatureStrategy/FeatureStrategyEmpty/FeatureStrategyEmpty';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
 import { useFeature } from 'hooks/api/getters/useFeature/useFeature';
 import { useChangeRequestApi } from 'hooks/api/actions/useChangeRequestApi/useChangeRequestApi';
 import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
 import { usePendingChangeRequests } from 'hooks/api/getters/usePendingChangeRequests/usePendingChangeRequests';
+import usePagination from 'hooks/usePagination';
+import type { IFeatureStrategy } from 'interfaces/strategy';
+import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
+import { useUiFlag } from 'hooks/useUiFlag';
+import { useReleasePlans } from 'hooks/api/getters/useReleasePlans/useReleasePlans';
+import { ReleasePlan } from '../../../ReleasePlan/ReleasePlan';
+import { Badge } from 'component/common/Badge/Badge';
+import { SectionSeparator } from '../SectionSeparator/SectionSeparator';
 
 interface IEnvironmentAccordionBodyProps {
     isDisabled: boolean;
@@ -31,6 +44,21 @@ const StyledAccordionBodyInnerContainer = styled('div')(({ theme }) => ({
     },
 }));
 
+const StyledBadge = styled(Badge)(({ theme }) => ({
+    backgroundColor: theme.palette.primary.light,
+    border: 'none',
+    padding: theme.spacing(0.75, 1.5),
+    borderRadius: theme.shape.borderRadiusLarge,
+    color: theme.palette.common.white,
+}));
+
+const AdditionalStrategiesDiv = styled('div')(({ theme }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing(2),
+}));
+
 const EnvironmentAccordionBody = ({
     featureEnvironment,
     isDisabled,
@@ -45,9 +73,17 @@ const EnvironmentAccordionBody = ({
         usePendingChangeRequests(projectId);
     const { setToastData, setToastApiError } = useToast();
     const { refetchFeature } = useFeature(projectId, featureId);
+    const manyStrategiesPagination = useUiFlag('manyStrategiesPagination');
     const [strategies, setStrategies] = useState(
-        featureEnvironment?.strategies || []
+        featureEnvironment?.strategies || [],
     );
+    const { releasePlans } = useReleasePlans(
+        projectId,
+        featureId,
+        featureEnvironment?.name,
+    );
+    const { trackEvent } = usePlausibleTracker();
+
     const [dragItem, setDragItem] = useState<{
         id: string;
         index: number;
@@ -58,9 +94,19 @@ const EnvironmentAccordionBody = ({
         setStrategies(featureEnvironment?.strategies || []);
     }, [featureEnvironment?.strategies]);
 
+    useEffect(() => {
+        if (strategies.length > 50) {
+            trackEvent('many-strategies');
+        }
+    }, []);
+
     if (!featureEnvironment) {
         return null;
     }
+
+    const pageSize = 20;
+    const { page, pages, setPageIndex, pageIndex } =
+        usePagination<IFeatureStrategy>(strategies, pageSize);
 
     const onReorder = async (payload: { id: string; sortOrder: number }[]) => {
         try {
@@ -68,11 +114,11 @@ const EnvironmentAccordionBody = ({
                 projectId,
                 featureId,
                 featureEnvironment.name,
-                payload
+                payload,
             );
             refetchFeature();
             setToastData({
-                title: 'Order of strategies updated',
+                text: 'Order of strategies updated',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -81,7 +127,7 @@ const EnvironmentAccordionBody = ({
     };
 
     const onChangeRequestReorder = async (
-        payload: { id: string; sortOrder: number }[]
+        payload: { id: string; sortOrder: number }[],
     ) => {
         await addChange(projectId, featureEnvironment.name, {
             action: 'reorderStrategy',
@@ -90,15 +136,14 @@ const EnvironmentAccordionBody = ({
         });
 
         setToastData({
-            title: 'Strategy execution order added to draft',
+            text: 'Strategy execution order added to draft',
             type: 'success',
-            confetti: true,
         });
         refetchChangeRequests();
     };
 
     const onStrategyReorder = async (
-        payload: { id: string; sortOrder: number }[]
+        payload: { id: string; sortOrder: number }[],
     ) => {
         try {
             if (isChangeRequestConfigured(featureEnvironment.name)) {
@@ -114,9 +159,9 @@ const EnvironmentAccordionBody = ({
     const onDragStartRef =
         (
             ref: RefObject<HTMLDivElement>,
-            index: number
+            index: number,
         ): DragEventHandler<HTMLButtonElement> =>
-        event => {
+        (event) => {
             setDragItem({
                 id: strategies[index].id,
                 index,
@@ -134,9 +179,9 @@ const EnvironmentAccordionBody = ({
         (targetId: string) =>
         (
             ref: RefObject<HTMLDivElement>,
-            targetIndex: number
+            targetIndex: number,
         ): DragEventHandler<HTMLDivElement> =>
-        event => {
+        (event) => {
             if (dragItem === null || ref.current === null) return;
             if (dragItem.index === targetIndex || targetId === dragItem.id)
                 return;
@@ -154,7 +199,7 @@ const EnvironmentAccordionBody = ({
                 const newStrategies = [...strategies];
                 const movedStrategy = newStrategies.splice(
                     dragItem.index,
-                    1
+                    1,
                 )[0];
                 newStrategies.splice(targetIndex, 0, movedStrategy);
                 setStrategies(newStrategies);
@@ -171,7 +216,7 @@ const EnvironmentAccordionBody = ({
             strategies.map((strategy, sortOrder) => ({
                 id: strategy.id,
                 sortOrder,
-            }))
+            })),
         );
     };
 
@@ -179,31 +224,117 @@ const EnvironmentAccordionBody = ({
         <StyledAccordionBody>
             <StyledAccordionBodyInnerContainer>
                 <ConditionallyRender
-                    condition={strategies.length > 0 && isDisabled}
+                    condition={
+                        (releasePlans.length > 0 || strategies.length > 0) &&
+                        isDisabled
+                    }
                     show={() => (
-                        <Alert severity="warning" sx={{ mb: 2 }}>
+                        <Alert severity='warning' sx={{ mb: 2 }}>
                             This environment is disabled, which means that none
                             of your strategies are executing.
                         </Alert>
                     )}
                 />
                 <ConditionallyRender
-                    condition={strategies.length > 0}
+                    condition={releasePlans.length > 0 || strategies.length > 0}
                     show={
                         <>
-                            {strategies.map((strategy, index) => (
-                                <StrategyDraggableItem
-                                    key={strategy.id}
-                                    strategy={strategy}
-                                    index={index}
-                                    environmentName={featureEnvironment.name}
-                                    otherEnvironments={otherEnvironments}
-                                    isDragging={dragItem?.id === strategy.id}
-                                    onDragStartRef={onDragStartRef}
-                                    onDragOver={onDragOver(strategy.id)}
-                                    onDragEnd={onDragEnd}
+                            {releasePlans.map((plan) => (
+                                <ReleasePlan
+                                    key={plan.id}
+                                    plan={plan}
+                                    environmentIsDisabled={isDisabled}
                                 />
                             ))}
+                            <ConditionallyRender
+                                condition={
+                                    releasePlans.length > 0 &&
+                                    strategies.length > 0
+                                }
+                                show={
+                                    <>
+                                        <SectionSeparator>
+                                            <StyledBadge>OR</StyledBadge>
+                                        </SectionSeparator>
+                                        <AdditionalStrategiesDiv>
+                                            Additional strategies
+                                        </AdditionalStrategiesDiv>
+                                    </>
+                                }
+                            />
+                            <ConditionallyRender
+                                condition={
+                                    strategies.length < 50 ||
+                                    !manyStrategiesPagination
+                                }
+                                show={
+                                    <>
+                                        {strategies.map((strategy, index) => (
+                                            <StrategyDraggableItem
+                                                key={strategy.id}
+                                                strategy={strategy}
+                                                index={index}
+                                                environmentName={
+                                                    featureEnvironment.name
+                                                }
+                                                otherEnvironments={
+                                                    otherEnvironments
+                                                }
+                                                isDragging={
+                                                    dragItem?.id === strategy.id
+                                                }
+                                                onDragStartRef={onDragStartRef}
+                                                onDragOver={onDragOver(
+                                                    strategy.id,
+                                                )}
+                                                onDragEnd={onDragEnd}
+                                            />
+                                        ))}
+                                    </>
+                                }
+                                elseShow={
+                                    <>
+                                        <Alert severity='error'>
+                                            We noticed you're using a high
+                                            number of activation strategies. To
+                                            ensure a more targeted approach,
+                                            consider leveraging constraints or
+                                            segments.
+                                        </Alert>
+                                        <br />
+                                        {page.map((strategy, index) => (
+                                            <StrategyDraggableItem
+                                                key={strategy.id}
+                                                strategy={strategy}
+                                                index={
+                                                    index + pageIndex * pageSize
+                                                }
+                                                environmentName={
+                                                    featureEnvironment.name
+                                                }
+                                                otherEnvironments={
+                                                    otherEnvironments
+                                                }
+                                                isDragging={false}
+                                                onDragStartRef={
+                                                    (() => {}) as any
+                                                }
+                                                onDragOver={(() => {}) as any}
+                                                onDragEnd={(() => {}) as any}
+                                            />
+                                        ))}
+                                        <br />
+                                        <Pagination
+                                            count={pages.length}
+                                            shape='rounded'
+                                            page={pageIndex + 1}
+                                            onChange={(_, page) =>
+                                                setPageIndex(page - 1)
+                                            }
+                                        />
+                                    </>
+                                }
+                            />
                         </>
                     }
                     elseShow={

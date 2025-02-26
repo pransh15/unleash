@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import UIContext, { createEmptyToast, themeMode } from 'contexts/UIContext';
-import { IToast } from 'interfaces/toast';
+import UIContext, {
+    createEmptyToast,
+    type themeMode,
+} from 'contexts/UIContext';
+import type { IToast } from 'interfaces/toast';
 import { getLocalStorageItem } from 'utils/storage';
 
 const resolveMode = (): themeMode => {
@@ -9,9 +12,7 @@ const resolveMode = (): themeMode => {
         return value as themeMode;
     }
 
-    const osDark =
-        window.matchMedia &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const osDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
 
     if (osDark) {
         return 'dark';
@@ -19,7 +20,7 @@ const resolveMode = (): themeMode => {
     return 'light';
 };
 
-const UIProvider: React.FC = ({ children }) => {
+const UIProvider: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     const [toastData, setToast] = useState<IToast>(createEmptyToast());
     const [showFeedback, setShowFeedback] = useState(false);
     const [themeMode, setThemeMode] = useState(resolveMode());
@@ -33,7 +34,7 @@ const UIProvider: React.FC = ({ children }) => {
             themeMode,
             setThemeMode,
         }),
-        [toastData, showFeedback, themeMode]
+        [toastData, showFeedback, themeMode],
     );
 
     return <UIContext.Provider value={context}>{children}</UIContext.Provider>;

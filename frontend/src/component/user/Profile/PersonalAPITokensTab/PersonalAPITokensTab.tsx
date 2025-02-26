@@ -1,4 +1,4 @@
-import { Delete } from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
 import {
     Alert,
     Button,
@@ -22,7 +22,7 @@ import { SearchHighlightProvider } from 'component/common/Table/SearchHighlightC
 import { PAT_LIMIT } from '@server/util/constants';
 import { usePersonalAPITokens } from 'hooks/api/getters/usePersonalAPITokens/usePersonalAPITokens';
 import { useSearch } from 'hooks/useSearch';
-import {
+import type {
     INewPersonalAPIToken,
     IPersonalAPIToken,
 } from 'interfaces/personalAPIToken';
@@ -30,10 +30,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     useTable,
-    SortingRule,
+    type SortingRule,
     useSortBy,
     useFlexLayout,
-    Column,
+    type Column,
 } from 'react-table';
 import { createLocalStorage } from 'utils/createLocalStorage';
 import { sortTypes } from 'utils/sortTypes';
@@ -75,11 +75,11 @@ export type PageQueryType = Partial<
     Record<'sort' | 'order' | 'search', string>
 >;
 
-const defaultSort: SortingRule<string> = { id: 'createdAt' };
+const defaultSort: SortingRule<string> = { id: 'createdAt', desc: true };
 
 const { value: storedParams, setValue: setStoredParams } = createLocalStorage(
     'PersonalAPITokensTable:v1',
-    defaultSort
+    defaultSort,
 );
 
 export const PersonalAPITokensTab = () => {
@@ -132,21 +132,18 @@ export const PersonalAPITokensTab = () => {
                         }
                         return <DateCell value={value} />;
                     },
-                    sortType: 'date',
                     maxWidth: 150,
                 },
                 {
                     Header: 'Created',
                     accessor: 'createdAt',
                     Cell: DateCell,
-                    sortType: 'date',
                     maxWidth: 150,
                 },
                 {
                     Header: 'Last seen',
                     accessor: 'seenAt',
                     Cell: TimeAgoCell,
-                    sortType: 'date',
                     maxWidth: 150,
                 },
                 {
@@ -155,7 +152,7 @@ export const PersonalAPITokensTab = () => {
                     align: 'center',
                     Cell: ({ row: { original: rowToken } }: any) => (
                         <ActionCell>
-                            <Tooltip title="Delete token" arrow describeChild>
+                            <Tooltip title='Delete token' arrow describeChild>
                                 <span>
                                     <IconButton
                                         onClick={() => {
@@ -173,7 +170,7 @@ export const PersonalAPITokensTab = () => {
                     disableSortBy: true,
                 },
             ] as Column<IPersonalAPIToken>[],
-        [setSelectedToken, setDeleteOpen]
+        [setSelectedToken, setDeleteOpen],
     );
 
     const {
@@ -187,7 +184,7 @@ export const PersonalAPITokensTab = () => {
             searchedData?.length === 0 && loading
                 ? tokensPlaceholder
                 : searchedData,
-        [searchedData, loading]
+        [searchedData, loading],
     );
 
     const {
@@ -208,7 +205,7 @@ export const PersonalAPITokensTab = () => {
             disableMultiSort: true,
         },
         useSortBy,
-        useFlexLayout
+        useFlexLayout,
     );
 
     useConditionallyHiddenColumns(
@@ -223,7 +220,7 @@ export const PersonalAPITokensTab = () => {
             },
         ],
         setHiddenColumns,
-        columns
+        columns,
     );
 
     useEffect(() => {
@@ -268,8 +265,8 @@ export const PersonalAPITokensTab = () => {
                                 }
                             />
                             <Button
-                                variant="contained"
-                                color="primary"
+                                variant='contained'
+                                color='primary'
                                 disabled={tokens.length >= PAT_LIMIT}
                                 onClick={() => setCreateOpen(true)}
                             >
@@ -292,7 +289,7 @@ export const PersonalAPITokensTab = () => {
                 </PageHeader>
             }
         >
-            <StyledAlert severity="info">
+            <StyledAlert severity='info'>
                 Use personal API tokens to authenticate to the Unleash API as
                 yourself. A personal API token has the same access privileges as
                 your user.
@@ -321,13 +318,13 @@ export const PersonalAPITokensTab = () => {
                                 <StyledPlaceholderTitle>
                                     You have no personal API tokens yet.
                                 </StyledPlaceholderTitle>
-                                <StyledPlaceholderSubtitle variant="body2">
+                                <StyledPlaceholderSubtitle variant='body2'>
                                     Need an API token for scripts or testing?
                                     Create a personal API token for quick access
                                     to the Unleash API.
                                 </StyledPlaceholderSubtitle>
                                 <Button
-                                    variant="outlined"
+                                    variant='outlined'
                                     onClick={() => setCreateOpen(true)}
                                 >
                                     Create your first token

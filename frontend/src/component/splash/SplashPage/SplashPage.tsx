@@ -4,7 +4,7 @@ import useSplashApi from 'hooks/api/actions/useSplashApi/useSplashApi';
 import { SplashPageOperators } from 'component/splash/SplashPageOperators';
 import { useEffect } from 'react';
 import { useAuthSplash } from 'hooks/api/getters/useAuth/useAuthSplash';
-import { splashIds, SplashId } from 'component/splash/splash';
+import { splashIds, type SplashId } from 'component/splash/splash';
 
 export const SplashPage = () => {
     const splashId = useRequiredPathParam('splashId');
@@ -33,7 +33,7 @@ export const SplashPage = () => {
         case 'operators':
             return <SplashPageOperators />;
         default:
-            return <Navigate to="/" replace />;
+            return <Navigate to='/' replace />;
     }
 };
 

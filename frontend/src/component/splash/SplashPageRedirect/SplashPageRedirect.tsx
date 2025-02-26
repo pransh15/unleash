@@ -2,8 +2,8 @@ import { useAuthSplash } from 'hooks/api/getters/useAuth/useAuthSplash';
 import { useLocation, Navigate } from 'react-router-dom';
 import { matchPath } from 'react-router';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
-import { IAuthSplash } from 'hooks/api/getters/useAuth/useAuthEndpoint';
-import { activeSplashIds, SplashId } from 'component/splash/splash';
+import type { IAuthSplash } from 'hooks/api/getters/useAuth/useAuthEndpoint';
+import { activeSplashIds, type SplashId } from 'component/splash/splash';
 import { useAuthUser } from 'hooks/api/getters/useAuth/useAuthUser';
 
 export const SplashPageRedirect = () => {
@@ -29,7 +29,7 @@ export const SplashPageRedirect = () => {
     }
 
     // Find the splash page to show (if any).
-    const showSplashId = activeSplashIds.find(splashId => {
+    const showSplashId = activeSplashIds.find((splashId) => {
         return !hasSeenSplashId(splashId, splash);
     });
 

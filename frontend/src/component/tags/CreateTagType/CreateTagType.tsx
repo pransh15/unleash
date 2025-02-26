@@ -3,7 +3,7 @@ import useTagTypeForm from '../TagTypeForm/useTagTypeForm';
 import TagTypeForm from '../TagTypeForm/TagTypeForm';
 import { CreateButton } from 'component/common/CreateButton/CreateButton';
 import FormTemplate from 'component/common/FormTemplate/FormTemplate';
-import { UPDATE_TAG_TYPE } from 'component/providers/AccessProvider/permissions';
+import { CREATE_TAG_TYPE } from 'component/providers/AccessProvider/permissions';
 import useTagTypesApi from 'hooks/api/actions/useTagTypesApi/useTagTypesApi';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import useToast from 'hooks/useToast';
@@ -36,8 +36,7 @@ const CreateTagType = () => {
                 await createTag(payload);
                 navigate('/tag-types');
                 setToastData({
-                    title: 'Tag type created',
-                    confetti: true,
+                    text: 'Tag type created',
                     type: 'success',
                 });
             } catch (error: unknown) {
@@ -47,9 +46,7 @@ const CreateTagType = () => {
     };
 
     const formatApiCode = () => {
-        return `curl --location --request POST '${
-            uiConfig.unleashUrl
-        }/api/admin/tag-types' \\
+        return `curl --location --request POST '${uiConfig.unleashUrl}/api/admin/tag-types' \\
 --header 'Authorization: INSERT_API_KEY' \\
 --header 'Content-Type: application/json' \\
 --data-raw '${JSON.stringify(getTagPayload(), undefined, 2)}'`;
@@ -62,10 +59,10 @@ const CreateTagType = () => {
     return (
         <FormTemplate
             loading={loading}
-            title="Create tag type"
-            description="Tag types allow you to group tags together in the management UI"
-            documentationLink="https://docs.getunleash.io/reference/tags"
-            documentationLinkLabel="Tags documentation"
+            title='Create tag type'
+            description='Tag types allow you to group tags together in the management UI'
+            documentationLink='https://docs.getunleash.io/reference/feature-toggles#tags'
+            documentationLinkLabel='Tags documentation'
             formatApiCode={formatApiCode}
         >
             <TagTypeForm
@@ -76,11 +73,11 @@ const CreateTagType = () => {
                 setTagName={setTagName}
                 tagDesc={tagDesc}
                 setTagDesc={setTagDesc}
-                mode="Create"
+                mode='Create'
                 clearErrors={clearErrors}
                 validateNameUniqueness={validateNameUniqueness}
             >
-                <CreateButton name="type" permission={UPDATE_TAG_TYPE} />
+                <CreateButton name='type' permission={CREATE_TAG_TYPE} />
             </TagTypeForm>
         </FormTemplate>
     );

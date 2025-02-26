@@ -1,10 +1,9 @@
-import { IAuthRequest } from '../routes/unleash-types';
-import { NextFunction, Response } from 'express';
-import { LogProvider } from '../logger';
+import type { IAuthRequest } from '../routes/unleash-types';
+import type { NextFunction, Response } from 'express';
+import type { LogProvider } from '../logger';
 import { AuthenticationRequired } from '../server-impl';
 import UnauthorizedError from '../error/unauthorized-error';
 
-/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 const authorizationMiddleware = (
     getLogger: LogProvider,
     baseUriPath: string,
@@ -13,7 +12,7 @@ const authorizationMiddleware = (
     logger.debug('Enabling Authorization middleware');
 
     return async (req: IAuthRequest, res: Response, next: NextFunction) => {
-        if (req.session && req.session.user) {
+        if (!req.user?.isAPI && req.session?.user) {
             req.user = req.session.user;
             return next();
         }

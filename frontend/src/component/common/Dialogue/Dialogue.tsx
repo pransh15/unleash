@@ -1,4 +1,5 @@
-import React from 'react';
+import type React from 'react';
+import type { KeyboardEvent } from 'react';
 import {
     Button,
     Dialog,
@@ -45,6 +46,7 @@ interface IDialogue {
     primaryButtonText?: string;
     secondaryButtonText?: string;
     open: boolean;
+    setOpen?: (status: boolean) => void;
     onClick?: (e: React.SyntheticEvent) => void;
     onClose?: (e: React.SyntheticEvent, reason?: string) => void;
     style?: object;
@@ -53,12 +55,15 @@ interface IDialogue {
     maxWidth?: 'lg' | 'sm' | 'xs' | 'md' | 'xl';
     disabledPrimaryButton?: boolean;
     formId?: string;
-    permissionButton?: JSX.Element;
+    permissionButton?: React.JSX.Element;
+    customButton?: React.JSX.Element;
+    children?: React.ReactNode;
 }
 
 export const Dialogue: React.FC<IDialogue> = ({
     children,
     open,
+    setOpen,
     onClick,
     onClose,
     title,
@@ -69,6 +74,7 @@ export const Dialogue: React.FC<IDialogue> = ({
     fullWidth = false,
     formId,
     permissionButton,
+    customButton,
 }) => {
     const handleClick = formId
         ? (e: React.SyntheticEvent) => {
@@ -78,10 +84,18 @@ export const Dialogue: React.FC<IDialogue> = ({
               }
           }
         : onClick;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+            setOpen?.(false);
+        }
+    };
     return (
         <StyledDialog
             open={open}
             onClose={onClose}
+            onKeyDown={onKeyDown}
+            role={'dialog'}
             fullWidth={fullWidth}
             aria-labelledby={'simple-modal-title'}
             aria-describedby={'simple-modal-description'}
@@ -103,8 +117,8 @@ export const Dialogue: React.FC<IDialogue> = ({
                                 show={
                                     <Button
                                         form={formId}
-                                        color="primary"
-                                        variant="contained"
+                                        color='primary'
+                                        variant='contained'
                                         onClick={handleClick}
                                         autoFocus={!formId}
                                         disabled={disabledPrimaryButton}
@@ -125,6 +139,11 @@ export const Dialogue: React.FC<IDialogue> = ({
                                 {secondaryButtonText || 'No, take me back'}
                             </Button>
                         }
+                    />
+
+                    <ConditionallyRender
+                        condition={Boolean(customButton)}
+                        show={customButton}
                     />
                 </StyledDialogActions>
             </StyledDialogBody>

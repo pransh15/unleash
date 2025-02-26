@@ -1,74 +1,149 @@
-import React, { MouseEventHandler, useMemo, VFC } from 'react';
-import { MenuItem, Typography } from '@mui/material';
-import DropdownMenu, { IDropdownMenuProps } from '../DropdownMenu/DropdownMenu';
+import {
+    forwardRef,
+    type ComponentProps,
+    type Dispatch,
+    type SetStateAction,
+    type VFC,
+} from 'react';
+import { Autocomplete, Chip, type SxProps, TextField } from '@mui/material';
+import { renderOption } from 'component/playground/Playground/PlaygroundForm/renderOption';
 import useProjects from 'hooks/api/getters/useProjects/useProjects';
-import { IProjectCard } from 'interfaces/project';
 
-const ALL_PROJECTS = { id: '*', name: '> All projects' };
-
-interface IProjectSelectProps {
-    currentProjectId: string;
-    updateCurrentProject: (id: string) => void;
+interface IOption {
+    label: string;
+    id: string;
 }
 
-const ProjectSelect: VFC<IProjectSelectProps & Partial<IDropdownMenuProps>> = ({
-    currentProjectId,
-    updateCurrentProject,
-    ...rest
-}) => {
-    const { projects } = useProjects();
+export const allOption = { label: 'ALL', id: '*' };
 
-    const setProject = (value?: string | null) => {
-        const id = value && typeof value === 'string' ? value.trim() : '*';
-        updateCurrentProject(id);
-    };
+interface IProjectSelectProps {
+    selectedProjects: string[];
+    onChange:
+        | Dispatch<SetStateAction<string[]>>
+        | ((projects: string[]) => void);
+    limitTags: number;
+    dataTestId?: string;
+    sx?: SxProps;
+    disabled?: boolean;
+}
 
-    const currentProject = useMemo(() => {
-        const project = projects.find(i => i.id === currentProjectId);
-        return project || ALL_PROJECTS;
-    }, [currentProjectId, projects]);
+function findAllIndexes(arr: string[], name: string): number[] {
+    const indexes: number[] = [];
+    arr.forEach((currentValue, index) => {
+        if (currentValue === name) {
+            indexes.push(index);
+        }
+    });
+    return indexes;
+}
 
-    const handleChangeProject: MouseEventHandler = event => {
-        const target = (event.target as Element).getAttribute('data-target');
-        setProject(target);
-    };
+export const ProjectSelect: VFC<IProjectSelectProps> = forwardRef(
+    (
+        {
+            limitTags,
+            selectedProjects,
+            onChange,
+            dataTestId,
+            sx,
+            disabled,
+            ...props
+        },
+        ref,
+    ) => {
+        const { projects: availableProjects } = useProjects();
 
-    const renderProjectItem = (selectedId: string, item: IProjectCard) => (
-        <MenuItem
-            disabled={selectedId === item.id}
-            data-target={item.id}
-            key={item.id}
-            style={{ fontSize: '14px' }}
-        >
-            {item.name}
-        </MenuItem>
-    );
+        const projectNames = availableProjects.map(({ name }) => name);
 
-    const renderProjectOptions = () => [
-        <MenuItem
-            disabled={currentProject === ALL_PROJECTS}
-            data-target={ALL_PROJECTS.id}
-            key={ALL_PROJECTS.id}
-        >
-            <Typography variant="body2">{ALL_PROJECTS.name}</Typography>
-        </MenuItem>,
-        ...projects.map(project =>
-            renderProjectItem(currentProjectId, project)
-        ),
-    ];
+        const projectsOptions = [
+            allOption,
+            ...availableProjects.map(({ name, id }) => {
+                const indexes = findAllIndexes(projectNames, name);
+                const isDuplicate = indexes.length > 1;
 
-    return (
-        <React.Fragment>
-            <DropdownMenu
-                id={'project'}
-                title="Select project"
-                label={`${currentProject.name}`}
-                callback={handleChangeProject}
-                renderOptions={renderProjectOptions}
-                {...rest}
+                return {
+                    label: isDuplicate ? `${name} - (${id})` : name,
+                    id,
+                };
+            }),
+        ];
+
+        const isAllProjects =
+            selectedProjects &&
+            (selectedProjects.length === 0 ||
+                (selectedProjects.length === 1 && selectedProjects[0] === '*'));
+
+        const onProjectsChange: ComponentProps<
+            typeof Autocomplete
+        >['onChange'] = (event, value, reason) => {
+            const newProjects = value as IOption | IOption[];
+            if (reason === 'clear' || newProjects === null) {
+                return onChange([allOption.id]);
+            }
+            if (Array.isArray(newProjects)) {
+                if (newProjects.length === 0) {
+                    return onChange([allOption.id]);
+                }
+                if (
+                    newProjects.find(({ id }) => id === allOption.id) !==
+                    undefined
+                ) {
+                    return onChange([allOption.id]);
+                }
+                return onChange(newProjects.map(({ id }) => id));
+            }
+            if (newProjects.id === allOption.id) {
+                return onChange([allOption.id]);
+            }
+
+            return onChange([newProjects.id]);
+        };
+
+        return (
+            <Autocomplete
+                {...props}
+                ref={ref}
+                disablePortal
+                id='projects'
+                limitTags={limitTags}
+                multiple={!isAllProjects}
+                options={projectsOptions}
+                sx={sx}
+                renderInput={(params) => (
+                    <TextField {...params} label='Projects' />
+                )}
+                renderOption={renderOption}
+                getOptionLabel={({ label }) => label}
+                disableCloseOnSelect
+                size='small'
+                disabled={disabled}
+                value={
+                    isAllProjects
+                        ? allOption
+                        : projectsOptions.filter(({ id }) =>
+                              selectedProjects.includes(id),
+                          )
+                }
+                onChange={onProjectsChange}
+                data-testid={dataTestId ? dataTestId : 'PROJECT_SELECT'}
+                renderTags={(value, getTagProps) => {
+                    const numTags = value.length;
+
+                    return (
+                        <>
+                            {value.slice(0, limitTags).map((option, index) => (
+                                <Chip
+                                    {...getTagProps({ index })}
+                                    size='small'
+                                    key={index}
+                                    label={option.label}
+                                />
+                            ))}
+
+                            {numTags > limitTags && ` +${numTags - limitTags}`}
+                        </>
+                    );
+                }}
             />
-        </React.Fragment>
-    );
-};
-
-export default ProjectSelect;
+        );
+    },
+);

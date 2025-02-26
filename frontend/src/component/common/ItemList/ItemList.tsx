@@ -1,4 +1,4 @@
-import { Add } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
 import { Button, Chip, Stack, styled } from '@mui/material';
 import Input from 'component/common/Input/Input';
 import { useState } from 'react';
@@ -30,12 +30,12 @@ export const ItemList = ({
     const [inputValue, setInputValue] = useState('');
 
     const addItem = () => {
-        onChange(prev => [...prev, inputValue]);
+        onChange((prev) => [...prev, inputValue]);
         setInputValue('');
     };
 
     const removeItem = (value: string) => {
-        onChange(prev => prev.filter(item => item !== value));
+        onChange((prev) => prev.filter((item) => item !== value));
     };
 
     return (
@@ -44,8 +44,8 @@ export const ItemList = ({
                 <Input
                     label={label}
                     value={inputValue}
-                    onChange={e => setInputValue(e.target.value)}
-                    onKeyPress={e => {
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                             addItem();
                         }
@@ -54,14 +54,14 @@ export const ItemList = ({
                 <Button
                     startIcon={<Add />}
                     onClick={addItem}
-                    variant="outlined"
-                    color="primary"
+                    variant='outlined'
+                    color='primary'
                     disabled={!inputValue.trim() || value.includes(inputValue)}
                 >
                     Add
                 </Button>
             </StyledItemListAdd>
-            <Stack flexDirection="row" flexWrap={'wrap'} gap={1}>
+            <Stack flexDirection='row' flexWrap={'wrap'} gap={1}>
                 {value?.map((item, index) => (
                     <Chip
                         key={index}

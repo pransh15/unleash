@@ -1,7 +1,7 @@
-import { Fragment, VFC } from 'react';
-import { PlaygroundSegmentSchema, PlaygroundRequestSchema } from 'openapi';
+import { Fragment, type VFC } from 'react';
+import type { PlaygroundSegmentSchema, PlaygroundRequestSchema } from 'openapi';
 import { ConstraintExecution } from '../ConstraintExecution/ConstraintExecution';
-import { CancelOutlined } from '@mui/icons-material';
+import CancelOutlined from '@mui/icons-material/CancelOutlined';
 import { StrategySeparator } from 'component/common/StrategySeparator/StrategySeparator';
 import { styled, Typography } from '@mui/material';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
@@ -40,7 +40,7 @@ export const SegmentExecution: VFC<ISegmentExecutionProps> = ({
                         }
                         headerContent={
                             <ConditionallyRender
-                                condition={!Boolean(segment.result)}
+                                condition={!segment.result}
                                 show={
                                     <SegmentResultTextWrapper>
                                         <Typography
@@ -54,6 +54,7 @@ export const SegmentExecution: VFC<ISegmentExecutionProps> = ({
                                         </span>
                                     </SegmentResultTextWrapper>
                                 }
+                                elseShow={undefined}
                             />
                         }
                         isExpanded
@@ -66,7 +67,7 @@ export const SegmentExecution: VFC<ISegmentExecutionProps> = ({
                             // Don't add if it's the last segment item
                             index !== segments.length - 1
                         }
-                        show={<StrategySeparator text="AND" />}
+                        show={<StrategySeparator text='AND' />}
                     />
                 </Fragment>
             ))}

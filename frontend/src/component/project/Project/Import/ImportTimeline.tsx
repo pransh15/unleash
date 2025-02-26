@@ -1,12 +1,12 @@
 import TimelineSeparator from '@mui/lab/TimelineSeparator';
 import TimelineItem, { timelineItemClasses } from '@mui/lab/TimelineItem';
-import React, { FC } from 'react';
+import type { FC } from 'react';
 import { alpha, Box, styled } from '@mui/material';
 import TimelineConnector from '@mui/lab/TimelineConnector';
 import TimelineDot from '@mui/lab/TimelineDot';
 import TimelineContent from '@mui/lab/TimelineContent';
 import Timeline from '@mui/lab/Timeline';
-import { StageName } from './StageName';
+import type { StageName } from './StageName';
 
 const StyledTimeline = styled(Timeline)(() => ({
     padding: 0,
@@ -19,7 +19,7 @@ const StyledTimeline = styled(Timeline)(() => ({
 }));
 
 const StyledTimelineConnector = styled(TimelineConnector, {
-    shouldForwardProp: prop => prop !== 'active',
+    shouldForwardProp: (prop) => prop !== 'active',
 })<{ active: boolean }>(({ theme, active }) => ({
     width: '1px',
     backgroundColor: active
@@ -28,7 +28,7 @@ const StyledTimelineConnector = styled(TimelineConnector, {
 }));
 
 const StyledTimelineDot = styled(TimelineDot, {
-    shouldForwardProp: prop => prop !== 'active',
+    shouldForwardProp: (prop) => prop !== 'active',
 })<{ active: boolean }>(({ theme, active }) => ({
     color: active
         ? theme.palette.background.sidebar
@@ -49,7 +49,7 @@ const StyledTimelineDot = styled(TimelineDot, {
 }));
 
 const StyledTimelineContent = styled(TimelineContent, {
-    shouldForwardProp: prop => prop !== 'active',
+    shouldForwardProp: (prop) => prop !== 'active',
 })<{ active: boolean }>(({ theme, active }) => ({
     padding: theme.spacing(2, 2, 6, 2),
     color: active
@@ -58,7 +58,7 @@ const StyledTimelineContent = styled(TimelineContent, {
 }));
 
 const TimelineItemTitle = styled(Box, {
-    shouldForwardProp: prop => prop !== 'active',
+    shouldForwardProp: (prop) => prop !== 'active',
 })<{ active: boolean }>(({ theme, active }) => ({
     fontWeight: active ? theme.fontWeight.bold : 'normal',
     fontSize: theme.fontSizes.bodySize,
@@ -76,7 +76,7 @@ export const ImportTimeline: FC<{
             <TimelineItem>
                 <TimelineSeparator>
                     <StyledTimelineDot
-                        variant="outlined"
+                        variant='outlined'
                         active={stage === 'configure'}
                     >
                         1
@@ -88,7 +88,7 @@ export const ImportTimeline: FC<{
                         Import file
                     </TimelineItemTitle>
                     <TimelineItemDescription>
-                        Import previously exported toggle configuration from
+                        Import previously exported flag configuration from
                         another Unleash instance as a JSON file
                     </TimelineItemDescription>
                 </StyledTimelineContent>
@@ -96,7 +96,7 @@ export const ImportTimeline: FC<{
             <TimelineItem>
                 <TimelineSeparator>
                     <StyledTimelineDot
-                        variant="outlined"
+                        variant='outlined'
                         active={stage === 'validate'}
                     >
                         2
@@ -115,7 +115,7 @@ export const ImportTimeline: FC<{
             <TimelineItem>
                 <TimelineSeparator>
                     <StyledTimelineDot
-                        variant="outlined"
+                        variant='outlined'
                         active={stage === 'import'}
                     >
                         3
@@ -126,8 +126,8 @@ export const ImportTimeline: FC<{
                         Finish import
                     </TimelineItemTitle>
                     <TimelineItemDescription>
-                        Feature toggle configuration will be imported to your
-                        new Unleash instance
+                        Feature flag configuration will be imported to your new
+                        Unleash instance
                     </TimelineItemDescription>
                 </StyledTimelineContent>
             </TimelineItem>

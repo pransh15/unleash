@@ -1,11 +1,10 @@
 import { dateSchema } from './date-schema';
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 
 export const clientMetricsEnvSchema = {
     $id: '#/components/schemas/clientMetricsEnvSchema',
     type: 'object',
     required: ['featureName', 'appName', 'environment'],
-    additionalProperties: true,
     description: 'Used for reporting feature evaluation results from SDKs',
     properties: {
         featureName: {
@@ -62,4 +61,4 @@ export const clientMetricsEnvSchema = {
     },
 } as const;
 
-export type ClientMetricsSchema = FromSchema<typeof clientMetricsEnvSchema>;
+export type ClientMetricsEnvSchema = FromSchema<typeof clientMetricsEnvSchema>;

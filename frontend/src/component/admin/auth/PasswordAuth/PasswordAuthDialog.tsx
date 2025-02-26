@@ -1,7 +1,7 @@
 import { Alert, Typography } from '@mui/material';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
-import { IAdminCount } from 'hooks/api/getters/useAdminCount/useAdminCount';
-import { IApiToken } from 'hooks/api/getters/useApiTokens/useApiTokens';
+import type { IAdminCount } from 'hooks/api/getters/useAdminCount/useAdminCount';
+import type { IApiToken } from 'hooks/api/getters/useApiTokens/useApiTokens';
 
 interface IPasswordAuthDialogProps {
     open: boolean;
@@ -24,11 +24,11 @@ export const PasswordAuthDialog = ({
             setOpen(false);
         }}
         onClick={onClick}
-        title="Disable password based login?"
-        primaryButtonText="Disable password based login"
-        secondaryButtonText="Cancel"
+        title='Disable password based login?'
+        primaryButtonText='Disable password based login'
+        secondaryButtonText='Cancel'
     >
-        <Alert severity="warning">
+        <Alert severity='warning'>
             <strong>Warning!</strong> Disabling password based login may lock
             you out of the system permanently if you do not have any alternative
             admin credentials (such as an admin SSO account or admin API token)

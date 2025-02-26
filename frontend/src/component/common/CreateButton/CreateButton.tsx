@@ -1,5 +1,5 @@
 import PermissionButton, {
-    IPermissionButtonProps,
+    type IPermissionButtonProps,
 } from 'component/common/PermissionButton/PermissionButton';
 
 interface ICreateButtonProps extends IPermissionButtonProps {
@@ -8,7 +8,7 @@ interface ICreateButtonProps extends IPermissionButtonProps {
 
 export const CreateButton = ({ name, ...rest }: ICreateButtonProps) => {
     return (
-        <PermissionButton type="submit" {...rest}>
+        <PermissionButton type='submit' {...rest}>
             Create {name}
         </PermissionButton>
     );

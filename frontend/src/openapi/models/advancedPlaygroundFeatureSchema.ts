@@ -6,13 +6,13 @@
 import type { AdvancedPlaygroundFeatureSchemaEnvironments } from './advancedPlaygroundFeatureSchemaEnvironments';
 
 /**
- * A simplified feature toggle model intended for the Unleash playground.
+ * A simplified feature flag model intended for the Unleash playground.
  */
 export interface AdvancedPlaygroundFeatureSchema {
+    /** The lists of features that have been evaluated grouped by environment. */
+    environments: AdvancedPlaygroundFeatureSchemaEnvironments;
     /** The feature's name. */
     name: string;
     /** The ID of the project that contains this feature. */
     projectId: string;
-    /** The lists of features that have been evaluated grouped by environment. */
-    environments: AdvancedPlaygroundFeatureSchemaEnvironments;
 }

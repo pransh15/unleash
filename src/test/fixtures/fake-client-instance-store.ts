@@ -1,9 +1,10 @@
-import {
+import type {
     IClientInstance,
     IClientInstanceStore,
     INewClientInstance,
 } from '../../lib/types/stores/client-instance-store';
 import NotFoundError from '../../lib/error/notfound-error';
+import groupBy from 'lodash.groupby';
 
 export default class FakeClientInstanceStore implements IClientInstanceStore {
     instances: IClientInstance[] = [];
@@ -28,7 +29,30 @@ export default class FakeClientInstanceStore implements IClientInstanceStore {
     }
 
     setLastSeen(): Promise<void> {
-        return;
+        return Promise.resolve();
+    }
+
+    async getBySdkName(sdkName: string): Promise<IClientInstance[]> {
+        return this.instances.filter((instance) =>
+            instance.sdkVersion?.startsWith(sdkName),
+        );
+    }
+
+    async groupApplicationsBySdk(): Promise<
+        { sdkVersion: string; applications: string[] }[]
+    > {
+        return Object.entries(groupBy(this.instances, 'sdkVersion')).map(
+            ([sdkVersion, apps]) => ({
+                sdkVersion,
+                applications: apps.map((item) => item.appName),
+            }),
+        );
+    }
+
+    async groupApplicationsBySdkAndProject(
+        projectId: string,
+    ): Promise<{ sdkVersion: string; applications: string[] }[]> {
+        throw new Error('Not implemented in mock');
     }
 
     async deleteAll(): Promise<void> {
@@ -69,6 +93,15 @@ export default class FakeClientInstanceStore implements IClientInstanceStore {
         return this.instances.filter((i) => i.appName === appName);
     }
 
+    async getByAppNameAndEnvironment(
+        appName: string,
+        environment: string,
+    ): Promise<IClientInstance[]> {
+        return this.instances
+            .filter((i) => i.appName === appName)
+            .filter((i) => i.environment === environment);
+    }
+
     async getDistinctApplications(): Promise<string[]> {
         const apps = new Set<string>();
         this.instances.forEach((i) => apps.add(i.appName));
@@ -76,7 +109,8 @@ export default class FakeClientInstanceStore implements IClientInstanceStore {
     }
 
     async getDistinctApplicationsCount(): Promise<number> {
-        return this.getDistinctApplications().then((apps) => apps.length);
+        const apps = await this.getDistinctApplications();
+        return apps.length;
     }
 
     async insert(details: INewClientInstance): Promise<void> {

@@ -1,10 +1,11 @@
 import { styled } from '@mui/material';
 import { VerticalTab } from './VerticalTab/VerticalTab';
+import type { HTMLAttributes } from 'react';
 
 const StyledTabPage = styled('div')(({ theme }) => ({
     display: 'flex',
     gap: theme.spacing(3),
-    [theme.breakpoints.down('md')]: {
+    [theme.breakpoints.down('xl')]: {
         flexDirection: 'column',
     },
 }));
@@ -15,13 +16,15 @@ const StyledTabPageContent = styled('div')(() => ({
     flexDirection: 'column',
 }));
 
-const StyledTabs = styled('div')(({ theme }) => ({
+const StyledTabs = styled('div', {
+    shouldForwardProp: (prop) => prop !== 'fullWidth',
+})<{ fullWidth?: boolean }>(({ theme, fullWidth }) => ({
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(1),
-    width: theme.spacing(30),
+    width: fullWidth ? '100%' : theme.spacing(30),
     flexShrink: 0,
-    [theme.breakpoints.down('md')]: {
+    [theme.breakpoints.down('xl')]: {
         width: '100%',
     },
 }));
@@ -29,15 +32,19 @@ const StyledTabs = styled('div')(({ theme }) => ({
 export interface ITab {
     id: string;
     label: string;
+    description?: string;
     path?: string;
     hidden?: boolean;
+    startIcon?: React.ReactNode;
+    endIcon?: React.ReactNode;
 }
 
-interface IVerticalTabsProps {
+interface IVerticalTabsProps
+    extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> {
     tabs: ITab[];
     value: string;
     onChange: (tab: ITab) => void;
-    children: React.ReactNode;
+    children?: React.ReactNode;
 }
 
 export const VerticalTabs = ({
@@ -45,20 +52,33 @@ export const VerticalTabs = ({
     value,
     onChange,
     children,
-}: IVerticalTabsProps) => (
-    <StyledTabPage>
-        <StyledTabs>
-            {tabs
-                .filter(tab => !tab.hidden)
-                .map(tab => (
-                    <VerticalTab
-                        key={tab.id}
-                        label={tab.label}
-                        selected={tab.id === value}
-                        onClick={() => onChange(tab)}
-                    />
-                ))}
-        </StyledTabs>
-        <StyledTabPageContent>{children}</StyledTabPageContent>
-    </StyledTabPage>
-);
+    ...props
+}: IVerticalTabsProps) => {
+    const verticalTabs = tabs
+        .filter((tab) => !tab.hidden)
+        .map((tab) => (
+            <VerticalTab
+                key={tab.id}
+                label={tab.label}
+                description={tab.description}
+                selected={tab.id === value}
+                onClick={() => onChange(tab)}
+                startIcon={tab.startIcon}
+                endIcon={tab.endIcon}
+            />
+        ));
+
+    if (!children) {
+        return (
+            <StyledTabs fullWidth {...props}>
+                {verticalTabs}
+            </StyledTabs>
+        );
+    }
+    return (
+        <StyledTabPage>
+            <StyledTabs {...props}>{verticalTabs}</StyledTabs>
+            <StyledTabPageContent>{children}</StyledTabPageContent>
+        </StyledTabPage>
+    );
+};

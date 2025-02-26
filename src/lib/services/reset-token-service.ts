@@ -1,12 +1,12 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { URL } from 'url';
-import { Logger } from '../logger';
+import type { Logger } from '../logger';
 import UsedTokenError from '../error/used-token-error';
 import InvalidTokenError from '../error/invalid-token-error';
-import { IUnleashConfig } from '../types/option';
-import { IUnleashStores } from '../types/stores';
-import {
+import type { IUnleashConfig } from '../types/option';
+import type { IUnleashStores } from '../types/stores';
+import type {
     IResetQuery,
     IResetToken,
     IResetTokenStore,
@@ -66,7 +66,7 @@ export default class ResetTokenService {
     };
 
     async isValid(token: string): Promise<IResetToken> {
-        let t;
+        let t: IResetToken;
         try {
             t = await this.store.getActive(token);
             if (!t.usedAt) {

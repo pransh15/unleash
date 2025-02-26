@@ -1,10 +1,14 @@
-import User from '../../types/user';
+import type { IUser } from '../../types/user';
 
 export interface IChangeRequestAccessReadModel {
     canBypassChangeRequest(
         project: string,
         environment: string,
-        user?: User,
+        user?: IUser,
+    ): Promise<boolean>;
+    canBypassChangeRequestForProject(
+        project: string,
+        user?: IUser,
     ): Promise<boolean>;
     isChangeRequestsEnabled(
         project: string,

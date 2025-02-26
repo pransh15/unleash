@@ -1,6 +1,6 @@
 import * as jsonpatch from 'fast-json-patch';
 
-import { Alert, styled, useMediaQuery, useTheme } from '@mui/material';
+import { styled, useMediaQuery, useTheme } from '@mui/material';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { PageContent } from 'component/common/PageContent/PageContent';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
@@ -10,7 +10,7 @@ import { updateWeight } from 'component/common/util';
 import { UPDATE_FEATURE_ENVIRONMENT_VARIANTS } from 'component/providers/AccessProvider/permissions';
 import { useFeature } from 'hooks/api/getters/useFeature/useFeature';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
-import {
+import type {
     IFeatureEnvironmentWithCrEnabled,
     IFeatureVariant,
 } from 'interfaces/featureToggle';
@@ -26,14 +26,8 @@ import { useChangeRequestApi } from 'hooks/api/actions/useChangeRequestApi/useCh
 import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
 import { usePendingChangeRequests } from 'hooks/api/getters/usePendingChangeRequests/usePendingChangeRequests';
 import PermissionIconButton from 'component/common/PermissionIconButton/PermissionIconButton';
-import { Edit } from '@mui/icons-material';
-
-const StyledAlert = styled(Alert)(({ theme }) => ({
-    marginBottom: theme.spacing(4),
-    '& code': {
-        fontWeight: theme.fontWeight.bold,
-    },
-}));
+import Edit from '@mui/icons-material/Edit';
+import { StrategyVariantsPreferredAlert } from 'component/common/StrategyVariantsUpgradeAlert/StrategyVariantsUpgradeAlert';
 
 const StyledButtonContainer = styled('div')(({ theme }) => ({
     display: 'flex',
@@ -49,7 +43,7 @@ export const FeatureEnvironmentVariants = () => {
     const featureId = useRequiredPathParam('featureId');
     const { feature, refetchFeature, loading } = useFeature(
         projectId,
-        featureId
+        featureId,
     );
     const { patchFeatureEnvironmentVariants, overrideVariantsInEnvironments } =
         useFeatureApi();
@@ -65,23 +59,23 @@ export const FeatureEnvironmentVariants = () => {
 
     const environments: IFeatureEnvironmentWithCrEnabled[] = useMemo(
         () =>
-            feature?.environments?.map(environment => ({
+            feature?.environments?.map((environment) => ({
                 ...environment,
                 crEnabled: isChangeRequestConfigured(environment.name),
             })) || [],
-        [feature.environments]
+        [feature.environments],
     );
 
     const createPatch = (
         variants: IFeatureVariant[],
-        newVariants: IFeatureVariant[]
+        newVariants: IFeatureVariant[],
     ) => {
         return jsonpatch.compare(variants, newVariants);
     };
 
     const getApiPayload = (
         variants: IFeatureVariant[],
-        newVariants: IFeatureVariant[]
+        newVariants: IFeatureVariant[],
     ): {
         patch: jsonpatch.Operation[];
         error?: string;
@@ -102,20 +96,20 @@ export const FeatureEnvironmentVariants = () => {
 
     const updateVariants = async (
         environment: IFeatureEnvironmentWithCrEnabled,
-        variants: IFeatureVariant[]
+        variants: IFeatureVariant[],
     ) => {
         if (environment.crEnabled) {
             await addChange(
                 projectId,
                 environment.name,
-                getCrPayload(variants)
+                getCrPayload(variants),
             );
             refetchChangeRequests();
         } else {
             const environmentVariants = environment.variants ?? [];
             const { patch, error } = getApiPayload(
                 environmentVariants,
-                variants
+                variants,
             );
 
             if (patch.length === 0) return;
@@ -123,7 +117,7 @@ export const FeatureEnvironmentVariants = () => {
             if (error) {
                 setToastData({
                     type: 'error',
-                    title: error,
+                    text: error,
                 });
                 return;
             }
@@ -132,7 +126,7 @@ export const FeatureEnvironmentVariants = () => {
                 projectId,
                 featureId,
                 environment.name,
-                patch
+                patch,
             );
         }
         refetchFeature();
@@ -140,25 +134,25 @@ export const FeatureEnvironmentVariants = () => {
 
     const pushToEnvironments = async (
         variants: IFeatureVariant[],
-        selected: IFeatureEnvironmentWithCrEnabled[]
+        selected: IFeatureEnvironmentWithCrEnabled[],
     ) => {
         try {
             const selectedWithCrEnabled = selected.filter(
-                ({ crEnabled }) => crEnabled
+                ({ crEnabled }) => crEnabled,
             );
             const selectedWithCrDisabled = selected.filter(
-                ({ crEnabled }) => !crEnabled
+                ({ crEnabled }) => !crEnabled,
             );
 
             if (selectedWithCrEnabled.length) {
                 await Promise.all(
-                    selectedWithCrEnabled.map(environment =>
+                    selectedWithCrEnabled.map((environment) =>
                         addChange(
                             projectId,
                             environment.name,
-                            getCrPayload(variants)
-                        )
-                    )
+                            getCrPayload(variants),
+                        ),
+                    ),
                 );
             }
             if (selectedWithCrDisabled.length) {
@@ -166,7 +160,7 @@ export const FeatureEnvironmentVariants = () => {
                     projectId,
                     featureId,
                     variants,
-                    selectedWithCrDisabled.map(({ name }) => name)
+                    selectedWithCrDisabled.map(({ name }) => name),
                 );
             }
             refetchChangeRequests();
@@ -189,7 +183,7 @@ export const FeatureEnvironmentVariants = () => {
                 pushTitle && draftTitle ? '. ' : ''
             }${draftTitle}`;
             setToastData({
-                title,
+                text: title,
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -208,7 +202,7 @@ export const FeatureEnvironmentVariants = () => {
                 await updateVariants(selectedEnvironment, updatedVariants);
                 setModalOpen(false);
                 setToastData({
-                    title: selectedEnvironment.crEnabled
+                    text: selectedEnvironment.crEnabled
                         ? `Variant changes added to draft`
                         : 'Variants updated successfully',
                     type: 'success',
@@ -221,13 +215,13 @@ export const FeatureEnvironmentVariants = () => {
 
     const onCopyVariantsFrom = async (
         fromEnvironment: IFeatureEnvironmentWithCrEnabled,
-        toEnvironment: IFeatureEnvironmentWithCrEnabled
+        toEnvironment: IFeatureEnvironmentWithCrEnabled,
     ) => {
         try {
             const variants = fromEnvironment.variants ?? [];
             await updateVariants(toEnvironment, variants);
             setToastData({
-                title: toEnvironment.crEnabled
+                text: toEnvironment.crEnabled
                     ? 'Variants copy added to draft'
                     : 'Variants copied successfully',
                 type: 'success',
@@ -242,7 +236,7 @@ export const FeatureEnvironmentVariants = () => {
             isLoading={loading}
             header={
                 <PageHeader
-                    title="Variants"
+                    title='Variants'
                     actions={
                         <ConditionallyRender
                             condition={!isSmallScreen}
@@ -269,16 +263,11 @@ export const FeatureEnvironmentVariants = () => {
                 </PageHeader>
             }
         >
-            <StyledAlert severity="info">
-                Variants allows you to return a variant object if the feature
-                toggle is considered enabled for the current request. When using
-                variants you should use the <code>getVariant()</code> method in
-                the Client SDK.
-            </StyledAlert>
-            {environments.map(environment => {
+            <StrategyVariantsPreferredAlert />
+            {environments.map((environment) => {
                 const otherEnvsWithVariants = environments.filter(
                     ({ name, variants }) =>
-                        name !== environment.name && variants?.length
+                        name !== environment.name && variants?.length,
                 );
 
                 return (
@@ -293,10 +282,10 @@ export const FeatureEnvironmentVariants = () => {
                                 environments={environments}
                                 permission={UPDATE_FEATURE_ENVIRONMENT_VARIANTS}
                                 projectId={projectId}
-                                onSubmit={selected =>
+                                onSubmit={(selected) =>
                                     pushToEnvironments(
                                         environment.variants ?? [],
-                                        selected
+                                        selected,
                                     )
                                 }
                             />
@@ -310,11 +299,11 @@ export const FeatureEnvironmentVariants = () => {
                             />
                             <ConditionallyRender
                                 condition={Boolean(
-                                    environment.variants?.length
+                                    environment.variants?.length,
                                 )}
                                 show={
                                     <PermissionIconButton
-                                        data-testid="EDIT_VARIANTS_BUTTON"
+                                        data-testid='EDIT_VARIANTS_BUTTON'
                                         onClick={() =>
                                             editVariants(environment)
                                         }
@@ -332,11 +321,11 @@ export const FeatureEnvironmentVariants = () => {
                                 }
                                 elseShow={
                                     <PermissionButton
-                                        data-testid="ADD_VARIANT_BUTTON"
+                                        data-testid='ADD_VARIANT_BUTTON'
                                         onClick={() =>
                                             editVariants(environment)
                                         }
-                                        variant="outlined"
+                                        variant='outlined'
                                         permission={
                                             UPDATE_FEATURE_ENVIRONMENT_VARIANTS
                                         }

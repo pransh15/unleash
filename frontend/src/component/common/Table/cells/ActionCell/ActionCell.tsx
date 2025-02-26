@@ -1,5 +1,5 @@
 import { Box, Divider, styled } from '@mui/material';
-import { FC, VFC } from 'react';
+import type { FC, VFC } from 'react';
 
 const StyledContainer = styled(Box)(({ theme }) => ({
     display: 'flex',
@@ -15,10 +15,10 @@ const StyledDivider = styled(Divider)(({ theme }) => ({
 }));
 
 const ActionCellDivider: VFC = () => (
-    <StyledDivider orientation="vertical" variant="middle" />
+    <StyledDivider orientation='vertical' variant='middle' />
 );
 
-const ActionCellComponent: FC & {
+const ActionCellComponent: FC<{ children?: React.ReactNode }> & {
     Divider: typeof ActionCellDivider;
 } = ({ children }) => {
     return <StyledContainer>{children}</StyledContainer>;

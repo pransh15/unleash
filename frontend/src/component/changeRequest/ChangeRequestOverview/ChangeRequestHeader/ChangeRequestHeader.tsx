@@ -1,8 +1,8 @@
 import { Box } from '@mui/material';
-import React, { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { Typography, Tooltip } from '@mui/material';
-import TimeAgo from 'react-timeago';
-import { IChangeRequest } from 'component/changeRequest/changeRequest.types';
+import { TimeAgo } from 'component/common/TimeAgo/TimeAgo';
+import type { ChangeRequestType } from 'component/changeRequest/changeRequest.types';
 import { ChangeRequestStatusBadge } from 'component/changeRequest/ChangeRequestStatusBadge/ChangeRequestStatusBadge';
 import {
     StyledPaper,
@@ -13,8 +13,9 @@ import {
 } from './ChangeRequestHeader.styles';
 import { Separator } from '../../ChangeRequestSidebar/ChangeRequestSidebar';
 import { ChangeRequestTitle } from '../../ChangeRequestSidebar/EnvironmentChangeRequest/ChangeRequestTitle';
+import { UpdateCount } from 'component/changeRequest/UpdateCount';
 
-export const ChangeRequestHeader: FC<{ changeRequest: IChangeRequest }> = ({
+export const ChangeRequestHeader: FC<{ changeRequest: ChangeRequestType }> = ({
     changeRequest,
 }) => {
     const [title, setTitle] = useState(changeRequest.title);
@@ -25,66 +26,53 @@ export const ChangeRequestHeader: FC<{ changeRequest: IChangeRequest }> = ({
                 title={title}
                 setTitle={setTitle}
             >
-                <StyledHeader variant="h1" sx={{ mr: 1.5 }}>
+                <StyledHeader variant='h1' sx={{ mr: 1.5 }}>
                     {title}
                 </StyledHeader>
             </ChangeRequestTitle>
             <StyledInnerContainer>
-                <ChangeRequestStatusBadge state={changeRequest.state} />
+                <ChangeRequestStatusBadge changeRequest={changeRequest} />
                 <Typography
-                    variant="body2"
-                    sx={theme => ({
+                    variant='body2'
+                    sx={(theme) => ({
                         margin: theme.spacing('auto', 0, 'auto', 2),
                     })}
                 >
-                    Created{' '}
-                    <TimeAgo
-                        minPeriod={60}
-                        date={new Date(changeRequest.createdAt)}
-                    />{' '}
-                    by
+                    Created <TimeAgo date={changeRequest.createdAt} /> by
                 </Typography>
                 <Box
-                    sx={theme => ({
+                    sx={(theme) => ({
                         marginLeft: theme.spacing(1),
                     })}
                 >
                     <Tooltip title={changeRequest?.createdBy?.username}>
-                        <StyledAvatar
-                            src={changeRequest?.createdBy?.imageUrl}
-                        />
+                        <StyledAvatar user={changeRequest?.createdBy} />
                     </Tooltip>
                 </Box>
                 <Typography
-                    variant="body2"
-                    sx={theme => ({ marginLeft: theme.spacing(0.5) })}
+                    variant='body2'
+                    sx={(theme) => ({ marginLeft: theme.spacing(0.5) })}
                 >
                     {changeRequest?.createdBy?.username}
                 </Typography>
-                <Box sx={theme => ({ marginLeft: theme.spacing(1.5) })}>
-                    <StyledCard variant="outlined">
-                        <Typography variant="body2" sx={{ lineHeight: 1 }}>
+                <Box sx={(theme) => ({ marginLeft: theme.spacing(1.5) })}>
+                    <StyledCard variant='outlined'>
+                        <Typography variant='body2' sx={{ lineHeight: 1 }}>
                             Environment:{' '}
                             <Typography
-                                display="inline"
-                                fontWeight="bold"
-                                variant="body2"
-                                component="span"
+                                display='inline'
+                                fontWeight='bold'
+                                variant='body2'
+                                component='span'
                             >
                                 {changeRequest?.environment}
                             </Typography>{' '}
-                            <Separator /> Updates:{' '}
-                            <Typography
-                                variant="body2"
-                                display="inline"
-                                fontWeight="bold"
-                                component="span"
-                            >
-                                {changeRequest.features.length}{' '}
-                                {changeRequest.features.length === 1
-                                    ? 'feature toggle'
-                                    : 'feature toggles'}
-                            </Typography>
+                            <Separator />
+                            Updates:
+                            <UpdateCount
+                                featuresCount={changeRequest.features.length}
+                                segmentsCount={changeRequest.segments.length}
+                            />
                         </Typography>
                     </StyledCard>
                 </Box>

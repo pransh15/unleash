@@ -4,18 +4,17 @@ import PermissionButton from 'component/common/PermissionButton/PermissionButton
 import { DeleteProjectDialogue } from '../../DeleteProject/DeleteProjectDialogue';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useUiFlag } from 'hooks/useUiFlag';
+import { useActions } from 'hooks/api/getters/useActions/useActions';
+import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
+import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 
 const StyledContainer = styled('div')(({ theme }) => ({
+    display: 'flex',
+    flexDirection: 'column',
     borderTop: `1px solid ${theme.palette.divider}`,
-}));
-
-const StyledTitle = styled('div')(({ theme }) => ({
     paddingTop: theme.spacing(4),
-    lineHeight: 2,
-}));
-
-const StyledCounter = styled('div')(({ theme }) => ({
-    paddingTop: theme.spacing(3),
+    gap: theme.spacing(2),
 }));
 
 const StyledButtonContainer = styled('div')(({ theme }) => ({
@@ -26,28 +25,72 @@ const StyledButtonContainer = styled('div')(({ theme }) => ({
 
 interface IDeleteProjectProps {
     projectId: string;
+    projectName?: string;
     featureCount: number;
 }
 
 export const DeleteProject = ({
     projectId,
+    projectName,
     featureCount,
 }: IDeleteProjectProps) => {
+    const { isEnterprise } = useUiConfig();
+    const automatedActionsEnabled = useUiFlag('automatedActions');
+    const { actions } = useActions(projectId);
     const [showDelDialog, setShowDelDialog] = useState(false);
+    const actionsCount = actions.filter(({ enabled }) => enabled).length;
     const navigate = useNavigate();
     return (
         <StyledContainer>
-            <StyledTitle>Delete project</StyledTitle>
-            <div>
+            <p>
                 Before you can delete a project, you must first archive all the
-                feature toggles associated with it. Keep in mind that deleting a
-                project will permanently remove all the archived feature
-                toggles, and they cannot be recovered once deleted.
-            </div>
-            <StyledCounter>
-                Currently there are{' '}
-                <strong>{featureCount} feature toggles active</strong>
-            </StyledCounter>
+                feature flags associated with it
+                {isEnterprise() && automatedActionsEnabled
+                    ? ' and disable all actions that are in it'
+                    : ''}
+                .
+            </p>
+            <ConditionallyRender
+                condition={featureCount > 0}
+                show={
+                    <p>
+                        Currently there {featureCount <= 1 ? 'is' : 'are'}{' '}
+                        <strong>
+                            {featureCount} active feature{' '}
+                            {featureCount === 1 ? 'flag' : 'flags'}.
+                        </strong>
+                    </p>
+                }
+            />
+            <ConditionallyRender
+                condition={
+                    isEnterprise() &&
+                    automatedActionsEnabled &&
+                    actionsCount > 0
+                }
+                show={
+                    <p>
+                        Currently there {actionsCount <= 1 ? 'is' : 'are'}{' '}
+                        <strong>
+                            {actionsCount} enabled{' '}
+                            {actionsCount === 1 ? 'action' : 'actions'}.
+                        </strong>
+                    </p>
+                }
+            />
+            <p>
+                Keep in mind that deleting a project{' '}
+                <strong>will permanently remove</strong>
+                <ul>
+                    <li>all archived feature flags in this project</li>
+                    <li>API keys configured to access only this project</li>
+                    <ConditionallyRender
+                        condition={isEnterprise() && automatedActionsEnabled}
+                        show={<li>all actions configured for this project</li>}
+                    />
+                </ul>
+                and they <strong>cannot be recovered</strong> once deleted.
+            </p>
             <StyledButtonContainer>
                 <PermissionButton
                     permission={DELETE_PROJECT}
@@ -65,7 +108,8 @@ export const DeleteProject = ({
                 </PermissionButton>
             </StyledButtonContainer>
             <DeleteProjectDialogue
-                project={projectId}
+                projectId={projectId}
+                projectName={projectName}
                 open={showDelDialog}
                 onClose={() => {
                     setShowDelDialog(false);

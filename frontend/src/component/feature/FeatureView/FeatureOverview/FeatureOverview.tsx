@@ -1,7 +1,5 @@
 import FeatureOverviewMetaData from './FeatureOverviewMetaData/FeatureOverviewMetaData';
-import FeatureOverviewEnvironments from './FeatureOverviewEnvironments/FeatureOverviewEnvironments';
-import { Routes, Route, useNavigate } from 'react-router-dom';
-import { FeatureStrategyCreate } from 'component/feature/FeatureStrategy/FeatureStrategyCreate/FeatureStrategyCreate';
+import { Route, Routes, useNavigate } from 'react-router-dom';
 import { SidebarModal } from 'component/common/SidebarModal/SidebarModal';
 import {
     FeatureStrategyEdit,
@@ -9,14 +7,20 @@ import {
 } from 'component/feature/FeatureStrategy/FeatureStrategyEdit/FeatureStrategyEdit';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
 import { usePageTitle } from 'hooks/usePageTitle';
-import { FeatureOverviewSidePanel } from 'component/feature/FeatureView/FeatureOverview/FeatureOverviewSidePanel/FeatureOverviewSidePanel';
-import { useHiddenEnvironments } from 'hooks/useHiddenEnvironments';
 import { styled } from '@mui/material';
+import { FeatureStrategyCreate } from 'component/feature/FeatureStrategy/FeatureStrategyCreate/FeatureStrategyCreate';
+import { useEffect } from 'react';
+import { useLastViewedFlags } from 'hooks/useLastViewedFlags';
+import { useUiFlag } from 'hooks/useUiFlag';
+import { FeatureOverviewEnvironments } from './FeatureOverviewEnvironments/FeatureOverviewEnvironments';
+import { default as LegacyFleatureOverview } from './LegacyFeatureOverview';
+import { useEnvironmentVisibility } from './FeatureOverviewMetaData/EnvironmentVisibilityMenu/hooks/useEnvironmentVisibility';
 
 const StyledContainer = styled('div')(({ theme }) => ({
     display: 'flex',
     width: '100%',
-    [theme.breakpoints.down(1000)]: {
+    gap: theme.spacing(2),
+    [theme.breakpoints.down('md')]: {
         flexDirection: 'column',
     },
 }));
@@ -24,40 +28,50 @@ const StyledContainer = styled('div')(({ theme }) => ({
 const StyledMainContent = styled('div')(({ theme }) => ({
     display: 'flex',
     flexDirection: 'column',
-    width: `calc(100% - (350px + 1rem))`,
-    [theme.breakpoints.down(1000)]: {
-        width: '100%',
-    },
+    flexGrow: 1,
+    gap: theme.spacing(2),
 }));
 
-const FeatureOverview = () => {
+export const FeatureOverview = () => {
     const navigate = useNavigate();
     const projectId = useRequiredPathParam('projectId');
     const featureId = useRequiredPathParam('featureId');
     const featurePath = formatFeaturePath(projectId, featureId);
-    const { hiddenEnvironments, setHiddenEnvironments } =
-        useHiddenEnvironments();
+    const { hiddenEnvironments, onEnvironmentVisibilityChange } =
+        useEnvironmentVisibility();
     const onSidebarClose = () => navigate(featurePath);
     usePageTitle(featureId);
+    const { setLastViewed } = useLastViewedFlags();
+    useEffect(() => {
+        setLastViewed({ featureId, projectId });
+    }, [featureId]);
+    const flagOverviewRedesign = useUiFlag('flagOverviewRedesign');
+
+    if (!flagOverviewRedesign) {
+        return <LegacyFleatureOverview />;
+    }
 
     return (
         <StyledContainer>
             <div>
-                <FeatureOverviewMetaData />
-                <FeatureOverviewSidePanel
+                <FeatureOverviewMetaData
                     hiddenEnvironments={hiddenEnvironments}
-                    setHiddenEnvironments={setHiddenEnvironments}
+                    onEnvironmentVisibilityChange={
+                        onEnvironmentVisibilityChange
+                    }
                 />
             </div>
             <StyledMainContent>
-                <FeatureOverviewEnvironments />
+                <FeatureOverviewEnvironments
+                    hiddenEnvironments={hiddenEnvironments}
+                />
             </StyledMainContent>
             <Routes>
                 <Route
-                    path="strategies/create"
+                    path='strategies/create'
                     element={
                         <SidebarModal
-                            label="Create feature strategy"
+                            label='Create feature strategy'
                             onClose={onSidebarClose}
                             open
                         >
@@ -66,10 +80,10 @@ const FeatureOverview = () => {
                     }
                 />
                 <Route
-                    path="strategies/edit"
+                    path='strategies/edit'
                     element={
                         <SidebarModal
-                            label="Edit feature strategy"
+                            label='Edit feature strategy'
                             onClose={onSidebarClose}
                             open
                         >
@@ -81,5 +95,3 @@ const FeatureOverview = () => {
         </StyledContainer>
     );
 };
-
-export default FeatureOverview;

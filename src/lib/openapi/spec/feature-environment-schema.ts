@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { constraintSchema } from './constraint-schema';
 import { parametersSchema } from './parameters-schema';
 import { featureStrategySchema } from './feature-strategy-schema';
@@ -70,6 +70,15 @@ export const featureEnvironmentSchema = {
             example: '2023-01-28T16:21:39.975Z',
             description:
                 'The date when metrics where last collected for the feature environment',
+        },
+        hasStrategies: {
+            type: 'boolean',
+            description: 'Whether the feature has any strategies defined.',
+        },
+        hasEnabledStrategies: {
+            type: 'boolean',
+            description:
+                'Whether the feature has any enabled strategies defined.',
         },
     },
     components: {

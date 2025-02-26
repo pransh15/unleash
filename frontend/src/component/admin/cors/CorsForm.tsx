@@ -1,30 +1,37 @@
-import { ADMIN } from 'component/providers/AccessProvider/permissions';
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { TextField, Box } from '@mui/material';
 import { UpdateButton } from 'component/common/UpdateButton/UpdateButton';
 import { useUiConfigApi } from 'hooks/api/actions/useUiConfigApi/useUiConfigApi';
 import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { useId } from 'hooks/useId';
+import { ADMIN, UPDATE_CORS } from '@server/types/permissions';
+import { useUiFlag } from 'hooks/useUiFlag';
 
 interface ICorsFormProps {
     frontendApiOrigins: string[] | undefined;
 }
 
 export const CorsForm = ({ frontendApiOrigins }: ICorsFormProps) => {
-    const { setFrontendSettings } = useUiConfigApi();
+    const { setFrontendSettings, setCors } = useUiConfigApi();
     const { setToastData, setToastApiError } = useToast();
     const [value, setValue] = useState(formatInputValue(frontendApiOrigins));
     const inputFieldId = useId();
     const helpTextId = useId();
+    const isGranularPermissionsEnabled = useUiFlag('granularAdminPermissions');
 
     const onSubmit = async (event: React.FormEvent) => {
         try {
             const split = parseInputValue(value);
             event.preventDefault();
-            await setFrontendSettings(split);
+            if (isGranularPermissionsEnabled) {
+                await setCors(split);
+            } else {
+                await setFrontendSettings(split);
+            }
             setValue(formatInputValue(split));
-            setToastData({ title: 'Settings saved', type: 'success' });
+            setToastData({ text: 'Settings saved', type: 'success' });
         } catch (error) {
             setToastApiError(formatUnknownError(error));
         }
@@ -57,16 +64,16 @@ export const CorsForm = ({ frontendApiOrigins }: ICorsFormProps) => {
                     aria-describedby={helpTextId}
                     placeholder={textareaDomainsPlaceholder}
                     value={value}
-                    onChange={event => setValue(event.target.value)}
+                    onChange={(event) => setValue(event.target.value)}
                     multiline
                     rows={12}
-                    variant="outlined"
+                    variant='outlined'
                     fullWidth
                     InputProps={{
                         style: { fontFamily: 'monospace', fontSize: '0.8em' },
                     }}
                 />
-                <UpdateButton permission={ADMIN} />
+                <UpdateButton permission={[ADMIN, UPDATE_CORS]} />
             </Box>
         </form>
     );
@@ -75,7 +82,7 @@ export const CorsForm = ({ frontendApiOrigins }: ICorsFormProps) => {
 export const parseInputValue = (value: string): string[] => {
     return value
         .split(/[,\n\s]+/) // Split by commas/newlines/spaces.
-        .map(value => value.replace(/\/$/, '')) // Remove trailing slashes.
+        .map((value) => value.replace(/\/$/, '')) // Remove trailing slashes.
         .filter(Boolean); // Remove empty values from (e.g.) double newlines.
 };
 

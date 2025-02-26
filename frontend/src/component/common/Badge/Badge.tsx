@@ -1,11 +1,12 @@
-import { styled, SxProps, Theme } from '@mui/material';
-import React, {
+import { styled, type SxProps, type Theme } from '@mui/material';
+import type React from 'react';
+import {
     cloneElement,
-    FC,
-    ForwardedRef,
+    type FC,
+    type ForwardedRef,
     forwardRef,
-    ReactElement,
-    ReactNode,
+    type ReactElement,
+    type ReactNode,
 } from 'react';
 import { ConditionallyRender } from '../ConditionallyRender/ConditionallyRender';
 
@@ -28,6 +29,7 @@ interface IBadgeProps {
     children?: ReactNode;
     title?: string;
     onClick?: (event: React.SyntheticEvent) => void;
+    tabIndex?: number;
 }
 
 interface IBadgeIconProps {
@@ -35,10 +37,11 @@ interface IBadgeIconProps {
     iconRight?: boolean;
 }
 
-const StyledBadge = styled('div')<IBadgeProps>(
+const StyledBadge = styled('span')<IBadgeProps>(
     ({ theme, color = 'neutral', icon }) => ({
         display: 'inline-flex',
         alignItems: 'center',
+        gap: theme.spacing(0.5),
         padding: theme.spacing(icon ? 0.375 : 0.625, 1),
         borderRadius: theme.shape.borderRadius,
         fontSize: theme.fontSizes.smallerBody,
@@ -55,31 +58,30 @@ const StyledBadge = styled('div')<IBadgeProps>(
                   color: theme.palette[color].contrastText,
                   border: `1px solid ${theme.palette[color].border}`,
               }),
-    })
+    }),
 );
 
-const StyledBadgeIcon = styled('div')<IBadgeIconProps>(
-    ({ theme, color = 'neutral', iconRight = false }) => ({
-        display: 'flex',
-        color:
-            color === 'disabled'
-                ? theme.palette.action.disabled
-                : theme.palette[color].main,
-        margin: iconRight
-            ? theme.spacing(0, 0, 0, 0.5)
-            : theme.spacing(0, 0.5, 0, 0),
-    })
-);
+const StyledBadgeIcon = styled('span')<
+    IBadgeIconProps & { hasChildren?: boolean }
+>(({ theme, color = 'neutral' }) => ({
+    display: 'flex',
+    color:
+        color === 'disabled'
+            ? theme.palette.action.disabled
+            : theme.palette[color].main,
+}));
 
-const BadgeIcon = (color: Color, icon: ReactElement, iconRight = false) => (
-    <StyledBadgeIcon color={color} iconRight={iconRight}>
+const BadgeIcon = (color: Color, icon?: ReactElement) => (
+    <StyledBadgeIcon color={color}>
         <ConditionallyRender
             condition={Boolean(icon?.props.sx)}
             show={icon}
-            elseShow={() =>
-                cloneElement(icon!, {
-                    sx: { fontSize: '16px' },
-                })
+            elseShow={
+                icon
+                    ? cloneElement(icon, {
+                          sx: { fontSize: '16px' },
+                      })
+                    : null
             }
         />
     </StyledBadgeIcon>
@@ -88,20 +90,21 @@ const BadgeIcon = (color: Color, icon: ReactElement, iconRight = false) => (
 export const Badge: FC<IBadgeProps> = forwardRef(
     (
         {
-            as = 'div',
+            as = 'span',
             color = 'neutral',
             icon,
             iconRight,
             className,
             sx,
             children,
+            tabIndex = 0,
             ...props
         }: IBadgeProps,
-        ref: ForwardedRef<HTMLDivElement>
+        ref: ForwardedRef<HTMLDivElement>,
     ) => (
         <StyledBadge
             as={as}
-            tabIndex={0}
+            tabIndex={tabIndex}
             color={color}
             icon={icon}
             className={className}
@@ -110,14 +113,21 @@ export const Badge: FC<IBadgeProps> = forwardRef(
             ref={ref}
         >
             <ConditionallyRender
-                condition={Boolean(icon) && !Boolean(iconRight)}
-                show={BadgeIcon(color, icon!)}
+                condition={Boolean(icon) && !iconRight}
+                show={BadgeIcon(color, icon)}
             />
-            {children}
+            <ConditionallyRender
+                condition={
+                    children !== null &&
+                    children !== undefined &&
+                    children !== ''
+                }
+                show={<span>{children}</span>}
+            />
             <ConditionallyRender
                 condition={Boolean(icon) && Boolean(iconRight)}
-                show={BadgeIcon(color, icon!, true)}
+                show={BadgeIcon(color, icon)}
             />
         </StyledBadge>
-    )
+    ),
 );

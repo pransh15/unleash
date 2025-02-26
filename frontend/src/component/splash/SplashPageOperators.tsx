@@ -1,7 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, IconButton, styled } from '@mui/material';
-import { CloseOutlined } from '@mui/icons-material';
-import { OperatorUpgradeAlert } from 'component/common/OperatorUpgradeAlert/OperatorUpgradeAlert';
+import CloseOutlined from '@mui/icons-material/CloseOutlined';
 
 const StyledContainer = styled('section')(({ theme }) => ({
     backgroundColor: theme.palette.primary.light,
@@ -92,9 +91,9 @@ export const SplashPageOperators = () => {
                     <StyledTitle>New strategy operators</StyledTitle>
                     <StyledCloseButton
                         onClick={() => navigate('/')}
-                        size="large"
+                        size='large'
                     >
-                        <CloseOutlined titleAccess="Close" />
+                        <CloseOutlined titleAccess='Close' />
                     </StyledCloseButton>
                     <StyledIngress>
                         We've added some new feature strategy constraint
@@ -140,9 +139,9 @@ export const SplashPageOperators = () => {
                 <StyledFooter>
                     <p>
                         <StyledLink
-                            href="https://docs.getunleash.io/reference/strategy-constraints#numeric-operators"
-                            target="_blank"
-                            rel="noreferrer"
+                            href='https://docs.getunleash.io/reference/activation-strategies#numeric-operators'
+                            target='_blank'
+                            rel='noreferrer'
                         >
                             Read all about operators in our in-depth{' '}
                             <strong>docs</strong>
@@ -151,20 +150,19 @@ export const SplashPageOperators = () => {
                     </p>
                     <p>
                         <Button
-                            sx={theme => ({
+                            sx={(theme) => ({
                                 background: 'white !important',
                                 color: theme.palette.primary.main,
                             })}
-                            variant="contained"
+                            variant='contained'
                             component={Link}
-                            to="/"
+                            to='/'
                         >
                             Fine, whatever, I have work to do!
                         </Button>
                     </p>
                 </StyledFooter>
             </StyledContent>
-            <OperatorUpgradeAlert />
         </StyledContainer>
     );
 };

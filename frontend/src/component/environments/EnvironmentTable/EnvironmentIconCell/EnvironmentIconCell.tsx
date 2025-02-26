@@ -1,8 +1,9 @@
-import { VFC } from 'react';
+import type { VFC } from 'react';
 import { styled } from '@mui/material';
 import { Box, IconButton } from '@mui/material';
-import { CloudCircle, DragIndicator } from '@mui/icons-material';
-import { IEnvironment } from 'interfaces/environments';
+import CloudCircle from '@mui/icons-material/CloudCircle';
+import DragIndicator from '@mui/icons-material/DragIndicator';
+import type { IEnvironment } from 'interfaces/environments';
 
 const StyledCell = styled(Box)(({ theme }) => ({
     display: 'flex',
@@ -21,7 +22,7 @@ const DragIcon = styled(IconButton)(({ theme }) => ({
 }));
 
 const StyledCloudCircle = styled(CloudCircle, {
-    shouldForwardProp: prop => prop !== 'deprecated',
+    shouldForwardProp: (prop) => prop !== 'deprecated',
 })<{ deprecated?: boolean }>(({ theme, deprecated }) => ({
     color: deprecated
         ? theme.palette.neutral.border
@@ -36,8 +37,8 @@ export const EnvironmentIconCell: VFC<IEnvironmentIconCellProps> = ({
     environment,
 }) => (
     <StyledCell>
-        <DragIcon size="large" disableRipple className="drag-icon">
-            <DragIndicator titleAccess="Drag to reorder" />
+        <DragIcon size='large' disableRipple className='drag-icon'>
+            <DragIndicator titleAccess='Drag to reorder' />
         </DragIcon>
         <StyledCloudCircle deprecated={!environment.enabled} />
     </StyledCell>

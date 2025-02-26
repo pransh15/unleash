@@ -1,4 +1,4 @@
-import { FormEventHandler, useState, VFC } from 'react';
+import { type FormEventHandler, useState, type VFC } from 'react';
 import { Button, styled, TextField } from '@mui/material';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { useNavigate } from 'react-router';
@@ -10,13 +10,14 @@ import { LOGIN_BUTTON, LOGIN_EMAIL_ID, LOGIN_PASSWORD_ID } from 'utils/testIds';
 import PasswordField from 'component/common/PasswordField/PasswordField';
 import { useAuthApi } from 'hooks/api/actions/useAuthApi/useAuthApi';
 import { useAuthUser } from 'hooks/api/getters/useAuth/useAuthUser';
-import { IAuthEndpointDetailsResponse } from 'hooks/api/getters/useAuth/useAuthEndpoint';
+import type { IAuthEndpointDetailsResponse } from 'hooks/api/getters/useAuth/useAuthEndpoint';
 import {
     AuthenticationError,
     BadRequestError,
     NotFoundError,
 } from 'utils/apiUtils';
 import { contentSpacingY } from 'themes/themeStyles';
+import useToast from 'hooks/useToast';
 
 interface IPasswordAuthProps {
     authDetails: IAuthEndpointDetailsResponse;
@@ -46,18 +47,19 @@ const PasswordAuth: VFC<IPasswordAuthProps> = ({ authDetails, redirect }) => {
         passwordError?: string;
         apiError?: string;
     }>({});
+    const { setToastData } = useToast();
 
-    const handleSubmit: FormEventHandler<HTMLFormElement> = async evt => {
+    const handleSubmit: FormEventHandler<HTMLFormElement> = async (evt) => {
         evt.preventDefault();
 
         if (!username) {
-            setErrors(prev => ({
+            setErrors((prev) => ({
                 ...prev,
                 usernameError: 'This is a required field',
             }));
         }
         if (!password) {
-            setErrors(prev => ({
+            setErrors((prev) => ({
                 ...prev,
                 passwordError: 'This is a required field',
             }));
@@ -68,7 +70,18 @@ const PasswordAuth: VFC<IPasswordAuthProps> = ({ authDetails, redirect }) => {
         }
 
         try {
-            await passwordAuth(authDetails.path, username, password);
+            const data = await passwordAuth(
+                authDetails.path,
+                username,
+                password,
+            );
+            if (data.deletedSessions && data.activeSessions) {
+                setToastData({
+                    type: 'success',
+                    text: `Maximum session limit of ${data.activeSessions} reached`,
+                });
+            }
+
             refetchUser();
             navigate(redirect, { replace: true });
         } catch (error: any) {
@@ -76,7 +89,7 @@ const PasswordAuth: VFC<IPasswordAuthProps> = ({ authDetails, redirect }) => {
                 error instanceof NotFoundError ||
                 error instanceof BadRequestError
             ) {
-                setErrors(prev => ({
+                setErrors((prev) => ({
                     ...prev,
                     apiError: 'Invalid login details',
                 }));
@@ -105,7 +118,7 @@ const PasswordAuth: VFC<IPasswordAuthProps> = ({ authDetails, redirect }) => {
                         <ConditionallyRender
                             condition={Boolean(apiError)}
                             show={
-                                <StyledAlert severity="error">
+                                <StyledAlert severity='error'>
                                     {apiError}
                                 </StyledAlert>
                             }
@@ -113,35 +126,39 @@ const PasswordAuth: VFC<IPasswordAuthProps> = ({ authDetails, redirect }) => {
 
                         <StyledDiv>
                             <TextField
-                                label="Username or email"
-                                name="username"
-                                id="username"
-                                type="text"
-                                onChange={evt => setUsername(evt.target.value)}
+                                label='Username or email'
+                                name='username'
+                                id='username'
+                                type='text'
+                                onChange={(evt) =>
+                                    setUsername(evt.target.value)
+                                }
                                 value={username}
                                 error={Boolean(usernameError)}
                                 helperText={usernameError}
-                                autoComplete="username"
+                                autoComplete='username'
                                 data-testid={LOGIN_EMAIL_ID}
-                                variant="outlined"
-                                size="small"
+                                variant='outlined'
+                                size='small'
                                 autoFocus
                             />
                             <PasswordField
-                                label="Password"
-                                onChange={evt => setPassword(evt.target.value)}
-                                name="password"
-                                id="password"
+                                label='Password'
+                                onChange={(evt) =>
+                                    setPassword(evt.target.value)
+                                }
+                                name='password'
+                                id='password'
                                 value={password}
                                 error={Boolean(passwordError)}
                                 helperText={passwordError}
-                                autoComplete="off"
+                                autoComplete='off'
                                 data-testid={LOGIN_PASSWORD_ID}
                             />
                             <Button
-                                variant="contained"
-                                color="primary"
-                                type="submit"
+                                variant='contained'
+                                color='primary'
+                                type='submit'
                                 style={{ width: '150px', margin: '1rem auto' }}
                                 data-testid={LOGIN_BUTTON}
                             >
@@ -166,7 +183,7 @@ const PasswordAuth: VFC<IPasswordAuthProps> = ({ authDetails, redirect }) => {
                         <ConditionallyRender
                             condition={!authDetails.defaultHidden}
                             show={
-                                <DividerText text="Or sign in with username" />
+                                <DividerText text='Or sign in with username' />
                             }
                         />
                         {renderLoginForm()}

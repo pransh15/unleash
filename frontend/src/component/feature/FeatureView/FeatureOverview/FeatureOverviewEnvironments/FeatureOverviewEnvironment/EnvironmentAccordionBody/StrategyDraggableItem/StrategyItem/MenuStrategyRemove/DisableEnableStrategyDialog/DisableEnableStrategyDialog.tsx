@@ -5,7 +5,7 @@ import { useSuggestEnableDisable } from './hooks/useSuggestEnableDisable';
 import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { FeatureStrategyChangeRequestAlert } from 'component/feature/FeatureStrategy/FeatureStrategyForm/FeatureStrategyChangeRequestAlert/FeatureStrategyChangeRequestAlert';
-import { IDisableEnableStrategyProps } from './IDisableEnableStrategyProps';
+import type { IDisableEnableStrategyProps } from './IDisableEnableStrategyProps';
 
 export const DisableEnableStrategyDialog = ({
     isOpen,
@@ -59,7 +59,7 @@ export const DisableEnableStrategyDialog = ({
                     ? 'Add to draft'
                     : `${disabled ? 'Enable' : 'Disable'} strategy`
             }
-            secondaryButtonText="Cancel"
+            secondaryButtonText='Cancel'
             onClick={onClick}
             onClose={() => onClose()}
         >
@@ -71,7 +71,7 @@ export const DisableEnableStrategyDialog = ({
                     />
                 }
                 elseShow={
-                    <Alert severity="error">
+                    <Alert severity='error'>
                         {disabled ? 'Enabling' : 'Disabling'} the strategy will
                         change which users receive access to the feature.
                     </Alert>

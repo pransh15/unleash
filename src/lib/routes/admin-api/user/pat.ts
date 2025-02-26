@@ -1,7 +1,7 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import Controller from '../../controller';
-import { Logger } from '../../../logger';
-import {
+import type { Logger } from '../../../logger';
+import type {
     IFlagResolver,
     IUnleashConfig,
     IUnleashServices,
@@ -11,16 +11,23 @@ import {
     createResponseSchema,
     resourceCreatedResponseSchema,
 } from '../../../openapi/util/create-response-schema';
-import { getStandardResponses } from '../../../openapi/util/standard-responses';
-import { OpenApiService } from '../../../services/openapi-service';
-import { emptyResponse } from '../../../openapi/util/standard-responses';
+import {
+    emptyResponse,
+    getStandardResponses,
+} from '../../../openapi/util/standard-responses';
+import type { OpenApiService } from '../../../services/openapi-service';
 
-import PatService from '../../../services/pat-service';
+import type PatService from '../../../services/pat-service';
 import { NONE } from '../../../types/permissions';
-import { IAuthRequest } from '../../unleash-types';
+import type { IAuthRequest } from '../../unleash-types';
 import { serializeDates } from '../../../types/serialize-dates';
-import { patSchema } from '../../../openapi/spec/pat-schema';
-import { PatsSchema, patsSchema } from '../../../openapi/spec/pats-schema';
+import { type PatSchema, patSchema } from '../../../openapi/spec/pat-schema';
+import { type PatsSchema, patsSchema } from '../../../openapi/spec/pats-schema';
+import {
+    type CreatePatSchema,
+    createPatSchema,
+} from '../../../openapi/spec/create-pat-schema';
+import { ForbiddenError, NotFoundError } from '../../../error';
 
 export default class PatController extends Controller {
     private patService: PatService;
@@ -53,11 +60,11 @@ export default class PatController extends Controller {
                     tags: ['Personal access tokens'],
                     operationId: 'getPats',
                     summary:
-                        'Get all Personal Access Tokens for the current user.',
+                        'Get all personal access tokens (PATs) for the current user.',
                     description:
-                        'Returns all of the [Personal Access Tokens](https://docs.getunleash.io/how-to/how-to-create-personal-access-tokens) belonging to the current user.',
+                        'Returns all of the [personal access tokens](https://docs.getunleash.io/reference/api-tokens-and-client-keys#personal-access-tokens) (PATs) belonging to the current user.',
                     responses: {
-                        200: createResponseSchema('patsSchema'),
+                        200: createResponseSchema(patsSchema.$id),
                         ...getStandardResponses(401, 403, 404),
                     },
                 }),
@@ -72,12 +79,13 @@ export default class PatController extends Controller {
                 openApiService.validPath({
                     tags: ['Personal access tokens'],
                     operationId: 'createPat',
-                    summary: 'Create a new Personal Access Token.',
+                    summary:
+                        'Create a new personal access token (PAT) for the current user.',
                     description:
-                        'Creates a new [Personal Access Token](https://docs.getunleash.io/how-to/how-to-create-personal-access-tokens) for the current user.',
-                    requestBody: createRequestSchema('patSchema'),
+                        'Creates a new [personal access token](https://docs.getunleash.io/reference/api-tokens-and-client-keys#personal-access-tokens (PAT) belonging to the current user.',
+                    requestBody: createRequestSchema(createPatSchema.$id),
                     responses: {
-                        201: resourceCreatedResponseSchema('patSchema'),
+                        201: resourceCreatedResponseSchema(patSchema.$id),
                         ...getStandardResponses(401, 403, 404),
                     },
                 }),
@@ -94,9 +102,21 @@ export default class PatController extends Controller {
                 openApiService.validPath({
                     tags: ['Personal access tokens'],
                     operationId: 'deletePat',
-                    summary: 'Delete a Personal Access Token.',
+                    summary:
+                        'Delete a personal access token (PAT) for the current user.',
                     description:
-                        'This endpoint allows for deleting a [Personal Access Token](https://docs.getunleash.io/how-to/how-to-create-personal-access-tokens) belonging to the current user.',
+                        'Deletes a [personal access token](https://docs.getunleash.io/reference/api-tokens-and-client-keys#personal-access-tokens) (PAT) belonging to the current user.',
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            schema: {
+                                type: 'integer',
+                            },
+                            description: 'a personal access token id',
+                        },
+                    ],
                     responses: {
                         200: emptyResponse,
                         ...getStandardResponses(401, 403, 404),
@@ -106,17 +126,23 @@ export default class PatController extends Controller {
         });
     }
 
-    async createPat(req: IAuthRequest, res: Response): Promise<void> {
+    async createPat(
+        req: IAuthRequest<unknown, unknown, CreatePatSchema>,
+        res: Response<PatSchema>,
+    ): Promise<void> {
         if (this.flagResolver.isEnabled('personalAccessTokensKillSwitch')) {
-            res.status(404).send({ message: 'PAT is disabled' });
-            return;
+            throw new NotFoundError('PATs are disabled.');
+        }
+
+        if (!req.user.id) {
+            throw new ForbiddenError('PATs require an authenticated user.');
         }
 
         const pat = req.body;
         const createdPat = await this.patService.createPat(
             pat,
             req.user.id,
-            req.user,
+            req.audit,
         );
         this.openApiService.respondWithValidation(
             201,
@@ -128,9 +154,13 @@ export default class PatController extends Controller {
 
     async getPats(req: IAuthRequest, res: Response<PatsSchema>): Promise<void> {
         if (this.flagResolver.isEnabled('personalAccessTokensKillSwitch')) {
-            res.status(404).send({ message: 'PAT is disabled' });
-            return;
+            throw new NotFoundError('PATs are disabled.');
         }
+
+        if (!req.user.id) {
+            throw new ForbiddenError('PATs require an authenticated user.');
+        }
+
         const pats = await this.patService.getAll(req.user.id);
         this.openApiService.respondWithValidation(200, res, patsSchema.$id, {
             pats: serializeDates(pats),
@@ -142,7 +172,7 @@ export default class PatController extends Controller {
         res: Response,
     ): Promise<void> {
         const { id } = req.params;
-        await this.patService.deletePat(id, req.user.id, req.user);
+        await this.patService.deletePat(id, req.user.id, req.audit);
         res.status(200).end();
     }
 }

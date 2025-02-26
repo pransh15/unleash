@@ -25,8 +25,6 @@ export const ApiTokenPage = () => {
     const { deleteToken } = useApiTokensApi();
 
     const {
-        getTableProps,
-        getTableBodyProps,
         headerGroups,
         rows,
         prepareRow,
@@ -34,19 +32,19 @@ export const ApiTokenPage = () => {
         setGlobalFilter,
         setHiddenColumns,
         columns,
-    } = useApiTokenTable(tokens, props => {
+    } = useApiTokenTable(tokens, (props) => {
         const READ_PERMISSION =
             props.row.original.type === 'client'
                 ? READ_CLIENT_API_TOKEN
                 : props.row.original.type === 'frontend'
-                ? READ_FRONTEND_API_TOKEN
-                : ADMIN;
+                  ? READ_FRONTEND_API_TOKEN
+                  : ADMIN;
         const DELETE_PERMISSION =
             props.row.original.type === 'client'
                 ? DELETE_CLIENT_API_TOKEN
                 : props.row.original.type === 'frontend'
-                ? DELETE_FRONTEND_API_TOKEN
-                : ADMIN;
+                  ? DELETE_FRONTEND_API_TOKEN
+                  : ADMIN;
 
         return (
             <ActionCell>
@@ -91,7 +89,7 @@ export const ApiTokenPage = () => {
                                         CREATE_CLIENT_API_TOKEN,
                                         ADMIN,
                                     ]}
-                                    path="/admin/api/create-token"
+                                    path='/admin/api/create-token'
                                 />
                             </>
                         }
@@ -103,8 +101,6 @@ export const ApiTokenPage = () => {
                     headerGroups={headerGroups}
                     setHiddenColumns={setHiddenColumns}
                     prepareRow={prepareRow}
-                    getTableBodyProps={getTableBodyProps}
-                    getTableProps={getTableProps}
                     rows={rows}
                     columns={columns}
                     globalFilter={globalFilter}

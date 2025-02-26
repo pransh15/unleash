@@ -1,44 +1,66 @@
-import { styled, Tooltip, TooltipProps } from '@mui/material';
-import { HelpOutline } from '@mui/icons-material';
-import { HtmlTooltip } from 'component/common/HtmlTooltip/HtmlTooltip';
+import { styled, Tooltip, type TooltipProps } from '@mui/material';
+import HelpOutline from '@mui/icons-material/HelpOutline';
+import {
+    HtmlTooltip,
+    type IHtmlTooltipProps,
+} from 'component/common/HtmlTooltip/HtmlTooltip';
 
-const StyledContainer = styled('span')(({ theme }) => ({
-    display: 'inline-grid',
-    alignItems: 'center',
-    outline: 0,
-    cursor: 'pointer',
-    '&:is(:focus-visible, :active) > *, &:hover > *': {
-        outlineStyle: 'solid',
-        outlineWidth: 2,
-        outlineOffset: 0,
-        outlineColor: theme.palette.primary.main,
-        borderRadius: '100%',
-        color: theme.palette.primary.main,
-    },
-    '& svg': {
-        fontSize: theme.fontSizes.mainHeader,
-        color: theme.palette.action.active,
-        marginLeft: theme.spacing(0.5),
-    },
-}));
+const StyledContainer = styled('span')<{ size: string | undefined }>(
+    ({ theme, size }) => ({
+        display: 'inline-grid',
+        alignItems: 'center',
+        outline: 0,
+        cursor: 'pointer',
+        '&:is(:focus-visible, :active) > *, &:hover > *': {
+            outlineStyle: 'solid',
+            outlineWidth: 2,
+            outlineOffset: 0,
+            outlineColor: theme.palette.primary.main,
+            borderRadius: '100%',
+            color: theme.palette.primary.main,
+        },
+        '& svg': {
+            fontSize: size || theme.fontSizes.mainHeader,
+            color: theme.palette.action.active,
+            marginLeft: theme.spacing(0.5),
+        },
+    }),
+);
 
-interface IHelpIconProps {
+type IHelpIconProps = {
     tooltip: React.ReactNode;
-    htmlTooltip?: boolean;
     placement?: TooltipProps['placement'];
     children?: React.ReactNode;
-}
+    size?: string;
+} & (
+    | {
+          htmlTooltip: true;
+          htmlTooltipMaxWidth?: IHtmlTooltipProps['maxWidth'];
+      }
+    | { htmlTooltip?: false }
+);
 
 export const HelpIcon = ({
     tooltip,
     htmlTooltip,
     placement,
     children,
+    size,
+    ...props
 }: IHelpIconProps) => {
     if (htmlTooltip) {
+        const { htmlTooltipMaxWidth } = props as {
+            htmlTooltipMaxWidth?: IHtmlTooltipProps['maxWidth'];
+        };
+
         return (
-            <HtmlTooltip title={tooltip} placement={placement} arrow>
-                <StyledContainer tabIndex={0} aria-label="Help">
+            <HtmlTooltip
+                title={tooltip}
+                placement={placement}
+                arrow
+                maxWidth={htmlTooltipMaxWidth}
+            >
+                <StyledContainer size={size} tabIndex={0} aria-label='Help'>
                     {children ?? <HelpOutline />}
                 </StyledContainer>
             </HtmlTooltip>
@@ -47,7 +69,7 @@ export const HelpIcon = ({
 
     return (
         <Tooltip title={tooltip} placement={placement} arrow>
-            <StyledContainer tabIndex={0} aria-label="Help">
+            <StyledContainer size={size} tabIndex={0} aria-label='Help'>
                 {children ?? <HelpOutline />}
             </StyledContainer>
         </Tooltip>

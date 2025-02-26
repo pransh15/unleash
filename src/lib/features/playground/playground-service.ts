@@ -1,25 +1,34 @@
-import FeatureToggleService from '../../services/feature-toggle-service';
-import { SdkContextSchema } from 'lib/openapi/spec/sdk-context-schema';
-import { IUnleashServices } from 'lib/types/services';
+import type FeatureToggleService from '../feature-toggle/feature-toggle-service';
+import type { SdkContextSchema } from '../../openapi/spec/sdk-context-schema';
+import type { IUnleashServices } from '../../types/services';
 import { ALL } from '../../types/models/api-token';
-import { PlaygroundFeatureSchema } from 'lib/openapi/spec/playground-feature-schema';
-import { Logger } from '../../logger';
-import { ISegment, IUnleashConfig } from 'lib/types';
+import type { PlaygroundFeatureSchema } from '../../openapi/spec/playground-feature-schema';
+import type { Logger } from '../../logger';
+import type {
+    IFlagResolver,
+    ISegment,
+    ISegmentReadModel,
+    IUnleashConfig,
+} from '../../types';
 import { offlineUnleashClient } from './offline-unleash-client';
-import { FeatureInterface } from 'lib/features/playground/feature-evaluator/feature';
-import {
+import type { FeatureInterface } from '../../features/playground/feature-evaluator/feature';
+import type {
     EvaluatedPlaygroundStrategy,
     FeatureStrategiesEvaluationResult,
-} from 'lib/features/playground/feature-evaluator/client';
-import { ISegmentService } from 'lib/segments/segment-service-interface';
-import { FeatureConfigurationClient } from '../../types/stores/feature-strategies-store';
+} from '../../features/playground/feature-evaluator/client';
+import type { FeatureConfigurationClient } from '../feature-toggle/types/feature-toggle-strategies-store-type';
 import { generateObjectCombinations } from './generateObjectCombinations';
 import groupBy from 'lodash.groupby';
 import { omitKeys } from '../../util';
-import { AdvancedPlaygroundFeatureSchema } from '../../openapi/spec/advanced-playground-feature-schema';
-import { AdvancedPlaygroundEnvironmentFeatureSchema } from '../../openapi/spec/advanced-playground-environment-feature-schema';
+import type {
+    AdvancedPlaygroundFeatureSchema,
+    playgroundStrategyEvaluation,
+} from '../../openapi';
+import type { AdvancedPlaygroundEnvironmentFeatureSchema } from '../../openapi/spec/advanced-playground-environment-feature-schema';
 import { validateQueryComplexity } from './validateQueryComplexity';
-import { playgroundStrategyEvaluation } from 'lib/openapi';
+import type { IPrivateProjectChecker } from '../private-project/privateProjectCheckerType';
+import { getDefaultVariant } from './feature-evaluator/variant';
+import { cleanContext } from './clean-context';
 
 type EvaluationInput = {
     features: FeatureConfigurationClient[];
@@ -64,31 +73,71 @@ export class PlaygroundService {
 
     private readonly featureToggleService: FeatureToggleService;
 
-    private readonly segmentService: ISegmentService;
+    private readonly flagResolver: IFlagResolver;
+
+    private readonly privateProjectChecker: IPrivateProjectChecker;
+
+    private readonly segmentReadModel: ISegmentReadModel;
 
     constructor(
         config: IUnleashConfig,
         {
             featureToggleServiceV2,
-            segmentService,
-        }: Pick<IUnleashServices, 'featureToggleServiceV2' | 'segmentService'>,
+            privateProjectChecker,
+        }: Pick<
+            IUnleashServices,
+            'featureToggleServiceV2' | 'privateProjectChecker'
+        >,
+        segmentReadModel: ISegmentReadModel,
     ) {
         this.logger = config.getLogger('services/playground-service.ts');
+        this.flagResolver = config.flagResolver;
         this.featureToggleService = featureToggleServiceV2;
-        this.segmentService = segmentService;
+        this.privateProjectChecker = privateProjectChecker;
+        this.segmentReadModel = segmentReadModel;
     }
 
     async evaluateAdvancedQuery(
         projects: typeof ALL | string[],
         environments: string[],
         context: SdkContextSchema,
-        limit: number,
-    ): Promise<AdvancedPlaygroundFeatureEvaluationResult[]> {
-        const segments = await this.segmentService.getActive();
+        userId: number,
+    ): Promise<{
+        result: AdvancedPlaygroundFeatureEvaluationResult[];
+        invalidContextProperties: string[];
+    }> {
+        // used for runtime control, do not remove
+        const { payload } = this.flagResolver.getVariant('advancedPlayground');
+        const limit =
+            payload?.value && Number.isInteger(Number.parseInt(payload?.value))
+                ? Number.parseInt(payload?.value)
+                : 15000;
+
+        const segments = await this.segmentReadModel.getActive();
+
+        let filteredProjects: typeof projects = projects;
+
+        const projectAccess =
+            await this.privateProjectChecker.getUserAccessibleProjects(userId);
+        if (projectAccess.mode === 'all') {
+            filteredProjects = projects;
+        } else if (projects === ALL) {
+            filteredProjects = projectAccess.projects;
+        } else {
+            filteredProjects = projects.filter((project) =>
+                projectAccess.projects.includes(project),
+            );
+        }
+
         const environmentFeatures = await Promise.all(
-            environments.map((env) => this.resolveFeatures(projects, env)),
+            environments.map((env) =>
+                this.resolveFeatures(filteredProjects, env),
+            ),
         );
-        const contexts = generateObjectCombinations(context);
+
+        const { context: cleanedContext, removedProperties } =
+            cleanContext(context);
+        const contexts = generateObjectCombinations(cleanedContext);
 
         validateQueryComplexity(
             environments.length,
@@ -113,7 +162,7 @@ export class PlaygroundService {
         );
         const items = results.flat();
         const itemsByName = groupBy(items, (item) => item.name);
-        return Object.values(itemsByName).map((entries) => {
+        const result = Object.values(itemsByName).map((entries) => {
             const groupedEnvironments = groupBy(
                 entries,
                 (entry) => entry.environment,
@@ -124,6 +173,11 @@ export class PlaygroundService {
                 environments: groupedEnvironments,
             };
         });
+
+        return {
+            result,
+            invalidContextProperties: removedProperties,
+        };
     }
 
     private async evaluate({
@@ -164,23 +218,34 @@ export class PlaygroundService {
                     const strategyEvaluationResult: FeatureStrategiesEvaluationResult =
                         client.isEnabled(feature.name, clientContext);
 
+                    const hasUnsatisfiedDependency =
+                        strategyEvaluationResult.hasUnsatisfiedDependency;
                     const isEnabled =
                         strategyEvaluationResult.result === true &&
-                        feature.enabled;
+                        feature.enabled &&
+                        !hasUnsatisfiedDependency;
+
+                    const variant = {
+                        ...(isEnabled
+                            ? client.forceGetVariant(
+                                  feature.name,
+                                  strategyEvaluationResult,
+                                  clientContext,
+                              )
+                            : getDefaultVariant()),
+                        feature_enabled: isEnabled,
+                    };
 
                     return {
                         isEnabled,
                         isEnabledInCurrentEnvironment: feature.enabled,
+                        hasUnsatisfiedDependency,
                         strategies: {
                             result: strategyEvaluationResult.result,
                             data: strategyEvaluationResult.strategies,
                         },
                         projectId: featureProject[feature.name],
-                        variant: client.forceGetVariant(
-                            feature.name,
-                            strategyEvaluationResult,
-                            clientContext,
-                        ),
+                        variant,
                         name: feature.name,
                         environment,
                         context,
@@ -223,7 +288,7 @@ export class PlaygroundService {
     ): Promise<PlaygroundFeatureEvaluationResult[]> {
         const [{ features, featureProject }, segments] = await Promise.all([
             this.resolveFeatures(projects, environment),
-            this.segmentService.getActive(),
+            this.segmentReadModel.getActive(),
         ]);
 
         const result = await this.evaluate({

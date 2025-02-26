@@ -1,8 +1,8 @@
-import {
+import type {
     FeatureEnvironmentKey,
     IFeatureEnvironmentStore,
 } from '../../lib/types/stores/feature-environment-store';
-import { IFeatureEnvironment, IVariant } from '../../lib/types/model';
+import type { IFeatureEnvironment, IVariant } from '../../lib/types/model';
 import NotFoundError from '../../lib/error/notfound-error';
 
 export default class FakeFeatureEnvironmentStore
@@ -41,7 +41,9 @@ export default class FakeFeatureEnvironmentStore
                     fe.featureName === featureName &&
                     environments.includes(fe.environment),
             )
-            .map((fe) => (fe.variants = variants));
+            .forEach((fe) => {
+                fe.variants = variants;
+            });
     }
 
     async delete(key: FeatureEnvironmentKey): Promise<void> {
@@ -222,21 +224,25 @@ export default class FakeFeatureEnvironmentStore
         throw new Error('Method not implemented.');
     }
 
-    clonePreviousVariants(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        environment: string,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        project: string,
-    ): Promise<void> {
-        throw new Error('Method not implemented.');
-    }
-
-    getAllByFeatures(
+    async getAllByFeatures(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         features: string[],
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         environment?: string,
     ): Promise<IFeatureEnvironment[]> {
-        throw new Error('Method not implemented.');
+        return this.featureEnvironments.filter(
+            (featureEnv) =>
+                (environment ? featureEnv.environment === environment : true) &&
+                features.includes(featureEnv.featureName),
+        );
+    }
+
+    async variantExists(featureName: string) {
+        return this.featureEnvironments.some(
+            (featureEnvironment) =>
+                featureEnvironment.featureName === featureName &&
+                featureEnvironment.variants &&
+                featureEnvironment.variants.length > 0,
+        );
     }
 }

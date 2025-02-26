@@ -1,50 +1,35 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { Button } from '@mui/material';
-import { Delete, Undo } from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
+import Undo from '@mui/icons-material/Undo';
 import {
     DELETE_FEATURE,
     UPDATE_FEATURE,
 } from 'component/providers/AccessProvider/permissions';
 import { PermissionHOC } from 'component/common/PermissionHOC/PermissionHOC';
-import useProjectApi from 'hooks/api/actions/useProjectApi/useProjectApi';
-import { formatUnknownError } from 'utils/formatUnknownError';
 import { useFeaturesArchive } from 'hooks/api/getters/useFeaturesArchive/useFeaturesArchive';
-import useToast from 'hooks/useToast';
 import { ArchivedFeatureDeleteConfirm } from './ArchivedFeatureActionCell/ArchivedFeatureDeleteConfirm/ArchivedFeatureDeleteConfirm';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
+import { ArchivedFeatureReviveConfirm } from './ArchivedFeatureActionCell/ArchivedFeatureReviveConfirm/ArchivedFeatureReviveConfirm';
 
 interface IArchiveBatchActionsProps {
     selectedIds: string[];
     projectId: string;
+    onConfirm?: () => void;
 }
 
 export const ArchiveBatchActions: FC<IArchiveBatchActionsProps> = ({
     selectedIds,
     projectId,
+    onConfirm,
 }) => {
-    const { reviveFeatures } = useProjectApi();
-    const { setToastData, setToastApiError } = useToast();
     const { refetchArchived } = useFeaturesArchive(projectId);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [reviveModalOpen, setReviveModalOpen] = useState(false);
     const { trackEvent } = usePlausibleTracker();
 
     const onRevive = async () => {
-        try {
-            await reviveFeatures(projectId, selectedIds);
-            await refetchArchived();
-            setToastData({
-                type: 'success',
-                title: "And we're back!",
-                text: 'The feature toggles have been revived.',
-            });
-            trackEvent('batch_operations', {
-                props: {
-                    eventType: 'features revived',
-                },
-            });
-        } catch (error: unknown) {
-            setToastApiError(formatUnknownError(error));
-        }
+        setReviveModalOpen(true);
     };
 
     const onDelete = async () => {
@@ -57,9 +42,10 @@ export const ArchiveBatchActions: FC<IArchiveBatchActionsProps> = ({
                     <Button
                         disabled={!hasAccess}
                         startIcon={<Undo />}
-                        variant="outlined"
-                        size="small"
+                        variant='outlined'
+                        size='small'
                         onClick={onRevive}
+                        date-testid={'batch_revive'}
                     >
                         Revive
                     </Button>
@@ -70,8 +56,8 @@ export const ArchiveBatchActions: FC<IArchiveBatchActionsProps> = ({
                     <Button
                         disabled={!hasAccess}
                         startIcon={<Delete />}
-                        variant="outlined"
-                        size="small"
+                        variant='outlined'
+                        size='small'
                         onClick={onDelete}
                     >
                         Delete
@@ -85,9 +71,25 @@ export const ArchiveBatchActions: FC<IArchiveBatchActionsProps> = ({
                 setOpen={setDeleteModalOpen}
                 refetch={() => {
                     refetchArchived();
+                    onConfirm?.();
                     trackEvent('batch_operations', {
                         props: {
                             eventType: 'features deleted',
+                        },
+                    });
+                }}
+            />
+            <ArchivedFeatureReviveConfirm
+                revivedFeatures={selectedIds}
+                projectId={projectId}
+                open={reviveModalOpen}
+                setOpen={setReviveModalOpen}
+                refetch={() => {
+                    refetchArchived();
+                    onConfirm?.();
+                    trackEvent('batch_operations', {
+                        props: {
+                            eventType: 'features revived',
                         },
                     });
                 }}

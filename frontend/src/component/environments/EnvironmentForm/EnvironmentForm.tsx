@@ -1,5 +1,5 @@
-import { Button, styled } from '@mui/material';
-import React from 'react';
+import { Box, Button, styled } from '@mui/material';
+import type React from 'react';
 import Input from 'component/common/Input/Input';
 import EnvironmentTypeSelector from './EnvironmentTypeSelector/EnvironmentTypeSelector';
 import { trim } from 'component/common/util';
@@ -15,6 +15,8 @@ interface IEnvironmentForm {
     errors: { [key: string]: string };
     mode: 'Create' | 'Edit';
     clearErrors: () => void;
+    children?: React.ReactNode;
+    Limit?: React.ReactNode;
 }
 
 const StyledForm = styled('form')({
@@ -51,6 +53,14 @@ const StyledCancelButton = styled(Button)(({ theme }) => ({
     marginLeft: theme.spacing(3),
 }));
 
+const LimitContainer = styled(Box)(({ theme }) => ({
+    flex: 1,
+    display: 'flex',
+    alignItems: 'flex-end',
+    marginTop: theme.spacing(3),
+    marginBottom: theme.spacing(3),
+}));
+
 const EnvironmentForm: React.FC<IEnvironmentForm> = ({
     children,
     handleSubmit,
@@ -63,6 +73,7 @@ const EnvironmentForm: React.FC<IEnvironmentForm> = ({
     errors,
     mode,
     clearErrors,
+    Limit,
 }) => {
     return (
         <StyledForm onSubmit={handleSubmit}>
@@ -73,9 +84,9 @@ const EnvironmentForm: React.FC<IEnvironmentForm> = ({
                     What is your environment name? (Can't be changed later)
                 </StyledInputDescription>
                 <StyledInput
-                    label="Environment name"
+                    label='Environment name'
                     value={name}
-                    onChange={e => setName(trim(e.target.value))}
+                    onChange={(e) => setName(trim(e.target.value))}
                     error={Boolean(errors.name)}
                     errorText={errors.name}
                     onFocus={() => clearErrors()}
@@ -88,10 +99,13 @@ const EnvironmentForm: React.FC<IEnvironmentForm> = ({
                     What type of environment do you want to create?
                 </StyledInputDescription>
                 <EnvironmentTypeSelector
-                    onChange={e => setType(e.currentTarget.value)}
+                    onChange={(e) => setType(e.currentTarget.value)}
                     value={type}
                 />
             </StyledContainer>
+
+            <LimitContainer>{Limit}</LimitContainer>
+
             <StyledButtonContainer>
                 {children}
                 <StyledCancelButton onClick={handleCancel}>

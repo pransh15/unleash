@@ -1,12 +1,12 @@
-import { Typography } from '@mui/material';
-import { IFeatureStrategyParameters } from 'interfaces/strategy';
+import { useEffect, useMemo } from 'react';
+import { Box, styled } from '@mui/material';
+import type { IFeatureStrategyParameters } from 'interfaces/strategy';
 import RolloutSlider from '../RolloutSlider/RolloutSlider';
 import Input from 'component/common/Input/Input';
 import {
     FLEXIBLE_STRATEGY_GROUP_ID,
     FLEXIBLE_STRATEGY_STICKINESS_ID,
 } from 'utils/testIds';
-import { HelpIcon } from 'component/common/HelpIcon/HelpIcon';
 import {
     parseParameterNumber,
     parseParameterString,
@@ -14,30 +14,56 @@ import {
 import { StickinessSelect } from './StickinessSelect/StickinessSelect';
 import { useDefaultProjectSettings } from 'hooks/useDefaultProjectSettings';
 import Loader from '../../../common/Loader/Loader';
-import { useEffect, useMemo } from 'react';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
+import { useOptionalPathParam } from 'hooks/useOptionalPathParam';
 import { useLocation } from 'react-router';
+import type { IFormErrors } from 'hooks/useFormErrors';
 
 interface IFlexibleStrategyProps {
     parameters: IFeatureStrategyParameters;
     updateParameter: (field: string, value: string) => void;
     context: any;
     editable: boolean;
+    errors?: IFormErrors;
 }
+
+const StyledBox = styled(Box)(({ theme }) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: theme.palette.background.elevation1,
+    padding: theme.spacing(2),
+    borderRadius: `${theme.shape.borderRadiusMedium}px`,
+}));
+
+const StyledOuterBox = styled(Box)(({ theme }) => ({
+    marginTop: theme.spacing(1),
+    display: 'flex',
+    width: '100%',
+    justifyContent: 'space-between',
+}));
+
+const StyledInnerBox1 = styled(Box)(({ theme }) => ({
+    width: '50%',
+    marginRight: theme.spacing(0.5),
+}));
+
+const StyledInnerBox2 = styled(Box)(({ theme }) => ({
+    width: '50%',
+    marginLeft: theme.spacing(0.5),
+}));
 
 const FlexibleStrategy = ({
     updateParameter,
     parameters,
     editable = true,
+    errors,
 }: IFlexibleStrategyProps) => {
     const projectId = useRequiredPathParam('projectId');
+    const featureId = useOptionalPathParam('featureId');
     const { defaultStickiness, loading } = useDefaultProjectSettings(projectId);
     const { pathname } = useLocation();
 
     const isDefaultStrategyEdit = pathname.includes('default-strategy');
-    const onUpdate = (field: string) => (newValue: string) => {
-        updateParameter(field, newValue);
-    };
 
     const updateRollout = (e: Event, value: number | number[]) => {
         updateParameter('rollout', value.toString());
@@ -49,82 +75,69 @@ const FlexibleStrategy = ({
             : 100;
 
     const stickiness = useMemo(() => {
-        if (parameters.stickiness === '' && !loading) {
-            return defaultStickiness;
+        if (!parameters.stickiness && !loading) {
+            updateParameter('stickiness', defaultStickiness);
         }
 
         return parseParameterString(parameters.stickiness);
-    }, [loading, parameters.stickiness]);
-
-    if (parameters.stickiness === '') {
-        onUpdate('stickiness')(stickiness);
-    }
+    }, [loading, defaultStickiness, parameters.stickiness]);
 
     useEffect(() => {
-        if (isDefaultStrategyEdit && !parameters.groupId) {
-            onUpdate('groupId')('');
+        if (!parameters.groupId && !loading) {
+            if (isDefaultStrategyEdit || !featureId) {
+                updateParameter('groupId', '');
+            } else {
+                updateParameter('groupId', featureId);
+            }
         }
-    }, [isDefaultStrategyEdit]);
+    }, [isDefaultStrategyEdit, featureId, loading]);
+
+    const groupId = parseParameterString(parameters.groupId);
 
     if (loading) {
         return <Loader />;
     }
 
     return (
-        <div>
+        <StyledBox>
             <RolloutSlider
-                name="Rollout"
+                name='Rollout'
                 value={rollout}
                 disabled={!editable}
                 onChange={updateRollout}
             />
-
-            <br />
-            <div>
-                <Typography
-                    variant="subtitle2"
-                    style={{
-                        marginBottom: '1rem',
-                        display: 'flex',
-                        gap: '1ch',
-                    }}
-                    component="h2"
-                >
-                    Stickiness
-                    <HelpIcon tooltip="Stickiness defines what parameter should be used to ensure that your users get consistency in features. By default unleash will use the first value present in the context in the order of userId, sessionId and random." />
-                </Typography>
-                <StickinessSelect
-                    label="Stickiness"
-                    value={stickiness}
-                    editable={editable}
-                    dataTestId={FLEXIBLE_STRATEGY_STICKINESS_ID}
-                    onChange={e => onUpdate('stickiness')(e.target.value)}
-                />
-                &nbsp;
-                <br />
-                <br />
-                <Typography
-                    variant="subtitle2"
-                    style={{
-                        marginBottom: '1rem',
-                        display: 'flex',
-                        gap: '1ch',
-                    }}
-                    component="h2"
-                >
-                    GroupId
-                    <HelpIcon tooltip="GroupId is used to ensure that different toggles will hash differently for the same user. The groupId defaults to feature toggle name, but you can override it to correlate rollout of multiple feature toggles." />
-                </Typography>
-                <Input
-                    label="groupId"
-                    id="groupId-input"
-                    value={parseParameterString(parameters.groupId)}
-                    disabled={!editable}
-                    onChange={e => onUpdate('groupId')(e.target.value)}
-                    data-testid={FLEXIBLE_STRATEGY_GROUP_ID}
-                />
-            </div>
-        </div>
+            <StyledOuterBox>
+                <StyledInnerBox1>
+                    <StickinessSelect
+                        label='Stickiness'
+                        value={stickiness}
+                        editable={editable}
+                        dataTestId={FLEXIBLE_STRATEGY_STICKINESS_ID}
+                        onChange={(e) =>
+                            updateParameter('stickiness', e.target.value)
+                        }
+                    />
+                </StyledInnerBox1>
+                <StyledInnerBox2>
+                    <Input
+                        label='groupId'
+                        sx={{ width: '100%' }}
+                        id='groupId-input'
+                        value={groupId}
+                        disabled={!editable}
+                        onChange={(e) =>
+                            updateParameter(
+                                'groupId',
+                                parseParameterString(e.target.value),
+                            )
+                        }
+                        data-testid={FLEXIBLE_STRATEGY_GROUP_ID}
+                        error={Boolean(errors?.getFormError('groupId'))}
+                        helperText={errors?.getFormError('groupId')}
+                    />
+                </StyledInnerBox2>
+            </StyledOuterBox>
+        </StyledBox>
     );
 };
 

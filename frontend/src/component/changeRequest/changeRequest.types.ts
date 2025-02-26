@@ -1,11 +1,12 @@
-import { IFeatureVariant } from 'interfaces/featureToggle';
-import { IFeatureStrategy } from '../../interfaces/strategy';
-import { IUser } from '../../interfaces/user';
-import { SetStrategySortOrderSchema } from '../../openapi';
+import type { IFeatureVariant } from 'interfaces/featureToggle';
+import type { ISegment } from 'interfaces/segment';
+import type { IFeatureStrategy } from '../../interfaces/strategy';
+import type { IUser } from '../../interfaces/user';
+import type { SetStrategySortOrderSchema } from '../../openapi';
+import type { IReleasePlan } from 'interfaces/releasePlans';
 
-export interface IChangeRequest {
+type BaseChangeRequest = {
     id: number;
-    state: ChangeRequestState;
     title: string;
     project: string;
     environment: string;
@@ -13,10 +14,48 @@ export interface IChangeRequest {
     createdBy: Pick<IUser, 'id' | 'username' | 'imageUrl'>;
     createdAt: Date;
     features: IChangeRequestFeature[];
+    segments: ISegmentChange[];
     approvals: IChangeRequestApproval[];
+    rejections: IChangeRequestApproval[];
     comments: IChangeRequestComment[];
     conflict?: string;
-}
+};
+
+export type UnscheduledChangeRequest = BaseChangeRequest & {
+    state: Exclude<ChangeRequestState, 'Scheduled'>;
+};
+
+export type ScheduledChangeRequest = BaseChangeRequest & {
+    state: 'Scheduled';
+    schedule: ChangeRequestSchedule;
+};
+
+export type ChangeRequestType =
+    | UnscheduledChangeRequest
+    | ScheduledChangeRequest;
+
+export type ChangeRequestSchedulePending = {
+    status: 'pending';
+    scheduledAt: string;
+};
+
+export type ChangeRequestScheduleFailed = {
+    status: 'failed';
+    scheduledAt: string;
+    failureReason?: string | null;
+    reason: string;
+};
+
+export type ChangeRequestScheduleSuspended = {
+    status: 'suspended';
+    scheduledAt: string;
+    reason: string;
+};
+
+export type ChangeRequestSchedule =
+    | ChangeRequestSchedulePending
+    | ChangeRequestScheduleFailed
+    | ChangeRequestScheduleSuspended;
 
 export interface IChangeRequestEnvironmentConfig {
     environment: string;
@@ -28,7 +67,14 @@ export interface IChangeRequestEnvironmentConfig {
 export interface IChangeRequestFeature {
     name: string;
     conflict?: string;
-    changes: IChange[];
+    changes: IFeatureChange[];
+    defaultChange?: IChangeRequestAddStrategy | IChangeRequestEnabled;
+}
+
+export interface IChangeRequestSegment {
+    name: string;
+    conflict?: string;
+    changes: IFeatureChange[];
     defaultChange?: IChangeRequestAddStrategy | IChangeRequestEnabled;
 }
 
@@ -44,21 +90,32 @@ export interface IChangeRequestComment {
     id: string;
 }
 
-export interface IChangeRequestBase {
+export interface IChangeRequestChangeBase {
     id: number;
     action: ChangeRequestAction;
     payload: ChangeRequestPayload;
     conflict?: string;
     createdBy?: Pick<IUser, 'id' | 'username' | 'imageUrl'>;
     createdAt?: Date;
+    scheduleConflicts?: {
+        changeRequests: { id: number; title?: string }[];
+    };
 }
+
+export type PlausibleChangeRequestState =
+    | Exclude<ChangeRequestState, 'Scheduled'>
+    | 'Scheduled pending'
+    | 'Scheduled failed'
+    | 'Scheduled suspended';
 
 export type ChangeRequestState =
     | 'Draft'
     | 'Approved'
     | 'In review'
     | 'Applied'
-    | 'Cancelled';
+    | 'Scheduled'
+    | 'Cancelled'
+    | 'Rejected';
 
 type ChangeRequestPayload =
     | ChangeRequestEnabled
@@ -66,64 +123,171 @@ type ChangeRequestPayload =
     | ChangeRequestEditStrategy
     | ChangeRequestDeleteStrategy
     | ChangeRequestVariantPatch
-    | SetStrategySortOrderSchema;
+    | IChangeRequestUpdateSegment
+    | IChangeRequestDeleteSegment
+    | SetStrategySortOrderSchema
+    | IChangeRequestArchiveFeature
+    | ChangeRequestAddDependency
+    | ChangeRequestAddReleasePlan
+    | ChangeRequestDeleteReleasePlan
+    | ChangeRequestStartMilestone;
 
-export interface IChangeRequestAddStrategy extends IChangeRequestBase {
+export interface IChangeRequestAddStrategy extends IChangeRequestChangeBase {
     action: 'addStrategy';
     payload: ChangeRequestAddStrategy;
 }
 
-export interface IChangeRequestDeleteStrategy extends IChangeRequestBase {
+export interface IChangeRequestDeleteStrategy extends IChangeRequestChangeBase {
     action: 'deleteStrategy';
     payload: ChangeRequestDeleteStrategy;
 }
 
-export interface IChangeRequestUpdateStrategy extends IChangeRequestBase {
+export interface IChangeRequestUpdateStrategy extends IChangeRequestChangeBase {
     action: 'updateStrategy';
     payload: ChangeRequestEditStrategy;
 }
 
-export interface IChangeRequestEnabled extends IChangeRequestBase {
+export interface IChangeRequestEnabled extends IChangeRequestChangeBase {
     action: 'updateEnabled';
     payload: ChangeRequestEnabled;
 }
 
-export interface IChangeRequestPatchVariant extends IChangeRequestBase {
+export interface IChangeRequestPatchVariant extends IChangeRequestChangeBase {
     action: 'patchVariant';
     payload: ChangeRequestVariantPatch;
 }
 
-export interface IChangeRequestReorderStrategy extends IChangeRequestBase {
+export interface IChangeRequestArchiveFeature extends IChangeRequestChangeBase {
+    action: 'archiveFeature';
+}
+
+export interface IChangeRequestAddDependency extends IChangeRequestChangeBase {
+    action: 'addDependency';
+    payload: ChangeRequestAddDependency;
+}
+
+export interface IChangeRequestDeleteDependency
+    extends IChangeRequestChangeBase {
+    action: 'deleteDependency';
+}
+
+export interface IChangeRequestAddReleasePlan extends IChangeRequestChangeBase {
+    action: 'addReleasePlan';
+    payload: ChangeRequestAddReleasePlan;
+}
+
+export interface IChangeRequestDeleteReleasePlan
+    extends IChangeRequestChangeBase {
+    action: 'deleteReleasePlan';
+    payload: ChangeRequestDeleteReleasePlan;
+}
+
+export interface IChangeRequestStartMilestone extends IChangeRequestChangeBase {
+    action: 'startMilestone';
+    payload: ChangeRequestStartMilestone;
+}
+
+export interface IChangeRequestReorderStrategy
+    extends IChangeRequestChangeBase {
     action: 'reorderStrategy';
     payload: SetStrategySortOrderSchema;
 }
 
-export type IChange =
+export interface IChangeRequestUpdateSegment {
+    id: number;
+    action: 'updateSegment';
+    conflict?: string;
+    name: string;
+    payload: {
+        id: number;
+        name: string;
+        description?: string;
+        project?: string;
+        constraints: IFeatureStrategy['constraints'];
+        snapshot?: ISegment;
+    };
+}
+
+export interface IChangeRequestDeleteSegment {
+    id: number;
+    action: 'deleteSegment';
+    conflict?: string;
+    name: string;
+    payload: {
+        id: number;
+        name: string;
+        snapshot?: ISegment;
+    };
+}
+
+export type IChange = IFeatureChange | ISegmentChange;
+
+export type IFeatureChange =
     | IChangeRequestAddStrategy
     | IChangeRequestDeleteStrategy
     | IChangeRequestUpdateStrategy
     | IChangeRequestEnabled
     | IChangeRequestPatchVariant
-    | IChangeRequestReorderStrategy;
+    | IChangeRequestReorderStrategy
+    | IChangeRequestArchiveFeature
+    | IChangeRequestAddDependency
+    | IChangeRequestDeleteDependency
+    | IChangeRequestAddReleasePlan
+    | IChangeRequestDeleteReleasePlan
+    | IChangeRequestStartMilestone;
+
+export type ISegmentChange =
+    | IChangeRequestUpdateSegment
+    | IChangeRequestDeleteSegment;
 
 type ChangeRequestVariantPatch = {
     variants: IFeatureVariant[];
+    snapshot?: IFeatureVariant[];
 };
 
 type ChangeRequestEnabled = { enabled: boolean };
 
-type ChangeRequestAddStrategy = Pick<
+type ChangeRequestAddDependency = {
+    feature: string;
+    enabled: boolean;
+    variants?: string[];
+};
+
+type ChangeRequestAddReleasePlan = {
+    templateId: string;
+};
+
+type ChangeRequestDeleteReleasePlan = {
+    planId: string;
+    snapshot?: IReleasePlan;
+};
+
+type ChangeRequestStartMilestone = {
+    milestoneId: string;
+    snapshot?: IReleasePlan;
+};
+
+export type ChangeRequestAddStrategy = Pick<
     IFeatureStrategy,
-    'parameters' | 'constraints' | 'segments' | 'title' | 'disabled'
+    | 'parameters'
+    | 'constraints'
+    | 'segments'
+    | 'title'
+    | 'disabled'
+    | 'variants'
 > & { name: string };
 
-type ChangeRequestEditStrategy = ChangeRequestAddStrategy & { id: string };
+export type ChangeRequestEditStrategy = ChangeRequestAddStrategy & {
+    id: string;
+    snapshot?: IFeatureStrategy;
+};
 
 type ChangeRequestDeleteStrategy = {
     id: string;
-    name: string;
+    name?: string;
     title?: string;
     disabled?: boolean;
+    snapshot?: IFeatureStrategy;
 };
 
 export type ChangeRequestAction =
@@ -132,4 +296,12 @@ export type ChangeRequestAction =
     | 'updateStrategy'
     | 'deleteStrategy'
     | 'patchVariant'
-    | 'reorderStrategy';
+    | 'reorderStrategy'
+    | 'updateSegment'
+    | 'deleteSegment'
+    | 'archiveFeature'
+    | 'addDependency'
+    | 'deleteDependency'
+    | 'addReleasePlan'
+    | 'deleteReleasePlan'
+    | 'startMilestone';

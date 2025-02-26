@@ -5,7 +5,6 @@ import { PageHeader } from 'component/common/PageHeader/PageHeader';
 import AccessContext from 'contexts/AccessContext';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
 import { usePageTitle } from 'hooks/usePageTitle';
-import { useProjectNameOrId } from 'hooks/api/getters/useProject/useProject';
 import { CreateProjectApiToken } from 'component/project/Project/ProjectSettings/ProjectApiAccess/CreateProjectApiToken';
 import { Routes, Route } from 'react-router-dom';
 import { ApiTokenTable } from 'component/common/ApiTokenTable/ApiTokenTable';
@@ -24,10 +23,11 @@ import { ActionCell } from 'component/common/Table/cells/ActionCell/ActionCell';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
 import useProjectApiTokensApi from 'hooks/api/actions/useProjectApiTokensApi/useProjectApiTokensApi';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
+import { useProjectOverviewNameOrId } from 'hooks/api/getters/useProjectOverview/useProjectOverview';
 
 export const ProjectApiAccess = () => {
     const projectId = useRequiredPathParam('projectId');
-    const projectName = useProjectNameOrId(projectId);
+    const projectName = useProjectOverviewNameOrId(projectId);
     const { hasAccess } = useContext(AccessContext);
     const {
         tokens,
@@ -49,7 +49,7 @@ export const ProjectApiAccess = () => {
         setGlobalFilter,
         setHiddenColumns,
         columns,
-    } = useApiTokenTable(tokens, props => (
+    } = useApiTokenTable(tokens, (props) => (
         <ActionCell>
             <CopyApiTokenButton
                 token={props.row.original}
@@ -68,7 +68,7 @@ export const ProjectApiAccess = () => {
                 onRemove={async () => {
                     await deleteProjectToken(
                         props.row.original.secret,
-                        projectId
+                        projectId,
                     );
                     trackEvent('project_api_tokens', {
                         props: { eventType: 'api_key_deleted' },
@@ -94,7 +94,7 @@ export const ProjectApiAccess = () => {
                                 <PageHeader.Divider />
                                 <CreateApiTokenButton
                                     permission={CREATE_PROJECT_API_TOKEN}
-                                    path="create"
+                                    path='create'
                                     project={projectId}
                                 />
                             </>
@@ -105,7 +105,7 @@ export const ProjectApiAccess = () => {
                 <ConditionallyRender
                     condition={!hasAccess(READ_PROJECT_API_TOKEN, projectId)}
                     show={
-                        <Alert severity="warning">
+                        <Alert severity='warning'>
                             You need to have the correct permissions to read API
                             tokens
                         </Alert>
@@ -117,8 +117,6 @@ export const ProjectApiAccess = () => {
                             headerGroups={headerGroups}
                             setHiddenColumns={setHiddenColumns}
                             prepareRow={prepareRow}
-                            getTableBodyProps={getTableBodyProps}
-                            getTableProps={getTableProps}
                             rows={rows}
                             columns={columns}
                             globalFilter={globalFilter}
@@ -128,7 +126,7 @@ export const ProjectApiAccess = () => {
             </PageContent>
 
             <Routes>
-                <Route path="create" element={<CreateProjectApiToken />} />
+                <Route path='create' element={<CreateProjectApiToken />} />
             </Routes>
         </div>
     );

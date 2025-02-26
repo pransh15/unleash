@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import {
     useFlexLayout,
     useGlobalFilter,
@@ -8,7 +8,7 @@ import {
 
 import { VirtualizedTable } from 'component/common/Table';
 import { sortTypes } from 'utils/sortTypes';
-import {
+import type {
     AdvancedPlaygroundEnvironmentFeatureSchema,
     PlaygroundFeatureSchema,
 } from 'openapi';
@@ -31,12 +31,13 @@ export const PlaygroundEnvironmentTable = ({
     const isExtraSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
     const dynamicHeaders = Object.keys(features[0].context).map(
-        contextField => ({
+        (contextField) => ({
             Header: capitalizeFirst(contextField),
-            accessor: `context.${contextField}`,
+            accessor: (row: { context: Record<string, unknown> }) =>
+                row.context[contextField],
             minWidth: 160,
             Cell: HighlightCell,
-        })
+        }),
     );
 
     const COLUMNS = useMemo(() => {
@@ -71,8 +72,8 @@ export const PlaygroundEnvironmentTable = ({
                     row?.isEnabled
                         ? 'true'
                         : row?.strategies?.result === 'unknown'
-                        ? 'unknown'
-                        : 'false',
+                          ? 'unknown'
+                          : 'false',
                 Cell: ({ row }: any) => (
                     <FeatureStatusCell feature={row.original} />
                 ),
@@ -110,7 +111,7 @@ export const PlaygroundEnvironmentTable = ({
         },
         useGlobalFilter,
         useFlexLayout,
-        useSortBy
+        useSortBy,
     );
 
     useConditionallyHiddenColumns(
@@ -121,7 +122,7 @@ export const PlaygroundEnvironmentTable = ({
             },
         ],
         setHiddenColumns,
-        COLUMNS
+        COLUMNS,
     );
 
     const parentRef = useRef<HTMLElement | null>(null);

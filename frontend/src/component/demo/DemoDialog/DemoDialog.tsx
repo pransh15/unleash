@@ -1,6 +1,6 @@
 import {
     Dialog,
-    DialogProps,
+    type DialogProps,
     IconButton,
     Typography,
     styled,
@@ -51,7 +51,7 @@ export const DemoDialog = ({
         }}
         {...props}
     >
-        <StyledCloseButton aria-label="close" onClick={onClose}>
+        <StyledCloseButton aria-label='close' onClick={onClose}>
             <CloseIcon />
         </StyledCloseButton>
         {children}

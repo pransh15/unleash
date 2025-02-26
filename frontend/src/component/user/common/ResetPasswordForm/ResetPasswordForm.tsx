@@ -1,5 +1,6 @@
 import { Button, styled } from '@mui/material';
-import React, { SyntheticEvent, useCallback, useEffect, useState } from 'react';
+import type React from 'react';
+import { type SyntheticEvent, useCallback, useEffect, useState } from 'react';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import PasswordChecker from './PasswordChecker';
 import PasswordMatcher from './PasswordMatcher';
@@ -63,22 +64,22 @@ const ResetPasswordForm = ({ onSubmit }: IResetPasswordProps) => {
     return (
         <StyledForm onSubmit={handleSubmit}>
             <PasswordField
-                placeholder="Password"
+                placeholder='Password'
                 value={password || ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setPassword(e.target.value)
                 }
                 onFocus={() => setShowPasswordChecker(true)}
-                autoComplete="new-password"
+                autoComplete='new-password'
                 data-loading
             />
             <PasswordField
                 value={confirmPassword || ''}
-                placeholder="Confirm password"
+                placeholder='Confirm password'
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setConfirmPassword(e.target.value)
                 }
-                autoComplete="new-password"
+                autoComplete='new-password'
                 data-loading
             />
             <ConditionallyRender
@@ -94,12 +95,12 @@ const ResetPasswordForm = ({ onSubmit }: IResetPasswordProps) => {
 
             <PasswordMatcher
                 started={started}
-                matchingPasswords={matchingPasswords}
+                passwordsDoNotMatch={!matchingPasswords}
             />
             <StyledButton
-                variant="contained"
-                color="primary"
-                type="submit"
+                variant='contained'
+                color='primary'
+                type='submit'
                 data-loading
                 disabled={!submittable}
             >

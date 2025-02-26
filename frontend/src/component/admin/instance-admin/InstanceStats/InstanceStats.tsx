@@ -1,4 +1,4 @@
-import { Download } from '@mui/icons-material';
+import Download from '@mui/icons-material/Download';
 import {
     Button,
     Table,
@@ -8,17 +8,17 @@ import {
     TableRow,
 } from '@mui/material';
 import { Box } from '@mui/system';
-import { VFC } from 'react';
-import { useInstanceStats } from '../../../../hooks/api/getters/useInstanceStats/useInstanceStats';
+import type { FC } from 'react';
+import { useInstanceStats } from 'hooks/api/getters/useInstanceStats/useInstanceStats';
 import { formatApiPath } from '../../../../utils/formatPath';
 import { PageContent } from '../../../common/PageContent/PageContent';
 import { PageHeader } from '../../../common/PageHeader/PageHeader';
 
-export const InstanceStats: VFC = () => {
+export const InstanceStats: FC = () => {
     const { stats } = useInstanceStats();
 
-    let versionTitle;
-    let version;
+    let versionTitle: string;
+    let version: string | undefined;
 
     if (stats?.versionEnterprise) {
         versionTitle = 'Unleash Enterprise version';
@@ -28,11 +28,16 @@ export const InstanceStats: VFC = () => {
         version = stats?.versionOSS;
     }
 
+    const apiTokensTotal = Object.values(stats?.apiTokens ?? {}).reduce(
+        (acc, val) => acc + val,
+        0,
+    );
+
     const rows = [
-        { title: 'Instance Id', value: stats?.instanceId },
+        { title: 'Instance Id', value: stats?.instanceId, offset: false },
         { title: versionTitle, value: version },
         { title: 'Users', value: stats?.users },
-        { title: 'Feature toggles', value: stats?.featureToggles },
+        { title: 'Feature flags', value: stats?.featureToggles },
         { title: 'Projects', value: stats?.projects },
         { title: 'Environments', value: stats?.environments },
         { title: 'Roles', value: stats?.roles },
@@ -41,32 +46,58 @@ export const InstanceStats: VFC = () => {
         { title: 'Strategies', value: stats?.strategies },
         { title: 'Feature exports', value: stats?.featureExports },
         { title: 'Feature imports', value: stats?.featureImports },
+        { title: 'Admin API tokens', value: stats?.apiTokens?.admin },
+        { title: 'Client API tokens', value: stats?.apiTokens?.client },
+        { title: 'Frontend API tokens', value: stats?.apiTokens?.frontend },
+        { title: 'API tokens total', value: apiTokensTotal },
+        { title: 'Segments', value: stats?.segments },
+        {
+            title: 'Highest number of strategies used for a single flag in a single environment',
+            value: stats?.maxEnvironmentStrategies,
+        },
+        {
+            title: 'Highest number of constraints used on a single strategy',
+            value: stats?.maxConstraints,
+        },
+        {
+            title: 'Highest number of values used for a single constraint',
+            value: stats?.maxConstraintValues,
+        },
     ];
 
     if (stats?.versionEnterprise) {
         rows.push(
             { title: 'SAML enabled', value: stats?.SAMLenabled ? 'Yes' : 'No' },
-            { title: 'OIDC enabled', value: stats?.OIDCenabled ? 'Yes' : 'No' }
+            { title: 'OIDC enabled', value: stats?.OIDCenabled ? 'Yes' : 'No' },
         );
     }
 
     return (
-        <PageContent header={<PageHeader title="Instance Statistics" />}>
+        <PageContent header={<PageHeader title='Instance Statistics' />}>
             <Box sx={{ display: 'grid', gap: 4 }}>
-                <Table aria-label="Instance statistics">
+                <Table aria-label='Instance statistics'>
                     <TableHead>
                         <TableRow>
                             <TableCell>Field</TableCell>
-                            <TableCell align="right">Value</TableCell>
+                            <TableCell align='right'>Value</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {rows.map(row => (
+                        {rows.map((row) => (
                             <TableRow key={row.title}>
-                                <TableCell component="th" scope="row">
-                                    {row.title}
+                                <TableCell component='th' scope='row'>
+                                    <Box
+                                        component='span'
+                                        sx={(theme) => ({
+                                            marginLeft: row.offset
+                                                ? theme.spacing(2)
+                                                : 0,
+                                        })}
+                                    >
+                                        {row.title}
+                                    </Box>
                                 </TableCell>
-                                <TableCell align="right">{row.value}</TableCell>
+                                <TableCell align='right'>{row.value}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -74,13 +105,13 @@ export const InstanceStats: VFC = () => {
                 <span style={{ textAlign: 'center' }}>
                     <Button
                         startIcon={<Download />}
-                        aria-label="Download instance statistics"
-                        color="primary"
-                        variant="contained"
-                        target="_blank"
-                        rel="noreferrer"
+                        aria-label='Download instance statistics'
+                        color='primary'
+                        variant='contained'
+                        target='_blank'
+                        rel='noreferrer'
                         href={formatApiPath(
-                            '/api/admin/instance-admin/statistics/csv'
+                            '/api/admin/instance-admin/statistics/csv',
                         )}
                     >
                         Download

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useUsers } from 'hooks/api/getters/useUsers/useUsers';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
-import { IRole } from 'interfaces/role';
+import type { IRole } from 'interfaces/role';
 
 const useCreateUserForm = (
     initialName = '',
     initialEmail = '',
-    initialRootRole = null
+    initialRootRole = null,
 ) => {
     const { uiConfig } = useUiConfig();
     const { users, roles } = useUsers();
@@ -14,7 +14,7 @@ const useCreateUserForm = (
     const [email, setEmail] = useState(initialEmail);
     const [sendEmail, setSendEmail] = useState(false);
     const [rootRole, setRootRole] = useState<IRole | null>(
-        roles.find(({ id }) => id === initialRootRole) || null
+        roles.find(({ id }) => id === initialRootRole) || null,
     );
     const [errors, setErrors] = useState({});
 
@@ -45,19 +45,22 @@ const useCreateUserForm = (
 
     const validateName = () => {
         if (name.length === 0) {
-            setErrors(prev => ({ ...prev, name: 'Name can not be empty.' }));
+            setErrors((prev) => ({ ...prev, name: 'Name can not be empty.' }));
             return false;
         }
         if (email.length === 0) {
-            setErrors(prev => ({ ...prev, email: 'Email can not be empty.' }));
+            setErrors((prev) => ({
+                ...prev,
+                email: 'Email can not be empty.',
+            }));
             return false;
         }
         return true;
     };
 
     const validateEmail = () => {
-        if (users.some(user => user['email'] === email)) {
-            setErrors(prev => ({ ...prev, email: 'Email already exists' }));
+        if (users.some((user) => user.email === email)) {
+            setErrors((prev) => ({ ...prev, email: 'Email already exists' }));
             return false;
         }
         return true;

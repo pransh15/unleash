@@ -1,12 +1,15 @@
 import {
+    ADMIN,
     CREATE_FEATURE,
     DELETE_FEATURE,
-    ADMIN,
     UPDATE_FEATURE,
+    UPDATE_PROJECT_SEGMENT,
 } from '../types/permissions';
-import { IUnleashConfig } from '../types/option';
-import { IUnleashStores } from '../types/stores';
-import User from '../types/user';
+import type { IUnleashConfig } from '../types/option';
+import type { IUnleashStores } from '../types/stores';
+import type User from '../types/user';
+import type { Request } from 'express';
+import { extractUserId } from '../util';
 
 interface PermissionChecker {
     hasPermission(
@@ -17,9 +20,9 @@ interface PermissionChecker {
     ): Promise<boolean>;
 }
 
-function findParam(
+export function findParam(
     name: string,
-    { params, body }: any,
+    { params, body }: Request,
     defaultValue?: string,
 ): string | undefined {
     let found = params ? params[name] : undefined;
@@ -30,8 +33,11 @@ function findParam(
 }
 
 const rbacMiddleware = (
-    config: Pick<IUnleashConfig, 'getLogger'>,
-    { featureToggleStore }: Pick<IUnleashStores, 'featureToggleStore'>,
+    config: Pick<IUnleashConfig, 'getLogger' | 'isOss'>,
+    {
+        featureToggleStore,
+        segmentStore,
+    }: Pick<IUnleashStores, 'featureToggleStore' | 'segmentStore'>,
     accessService: PermissionChecker,
 ): any => {
     const logger = config.getLogger('/middleware/rbac-middleware.ts');
@@ -51,7 +57,14 @@ const rbacMiddleware = (
             }
 
             if (user.isAPI) {
-                return user.permissions.includes(ADMIN);
+                if (user.permissions.includes(ADMIN)) {
+                    if (!req.user.id) {
+                        req.user.id = extractUserId(req);
+                    }
+                    return true;
+                } else {
+                    return false;
+                }
             }
 
             if (!user.id) {
@@ -61,11 +74,11 @@ const rbacMiddleware = (
 
             let projectId =
                 findParam('projectId', req) || findParam('project', req);
-            let environment =
+            const environment =
                 findParam('environment', req) ||
                 findParam('environmentId', req);
 
-            // Temporary workaround to figure out projectId for feature toggle updates.
+            // Temporary workaround to figure out projectId for feature flag updates.
             // will be removed in Unleash v5.0
             if (
                 !projectId &&
@@ -79,11 +92,41 @@ const rbacMiddleware = (
                 projectId === undefined &&
                 permissionsArray.some(
                     (permission) =>
-                        permission == CREATE_FEATURE ||
+                        permission === CREATE_FEATURE ||
                         permission.endsWith('FEATURE_STRATEGY'),
                 )
             ) {
                 projectId = 'default';
+            }
+            if (config.isOss) {
+                if (projectId !== undefined && projectId !== 'default') {
+                    logger.error(
+                        'OSS is only allowed to work with default project.',
+                    );
+                    return false;
+                }
+                const ossEnvs = ['default', 'development', 'production'];
+                if (
+                    environment !== undefined &&
+                    !ossEnvs.includes(environment)
+                ) {
+                    logger.error(
+                        `OSS is only allowed to work with ${ossEnvs} environments.`,
+                    );
+                    return false;
+                }
+            }
+
+            // DELETE segment does not include information about the segment's project
+            // This is needed to check if the user has the right permissions on a project level
+            if (
+                !projectId &&
+                permissionsArray.includes(UPDATE_PROJECT_SEGMENT) &&
+                params.id
+            ) {
+                const { id } = params;
+                const { project } = await segmentStore.get(id);
+                projectId = project;
             }
 
             return accessService.hasPermission(

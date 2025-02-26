@@ -49,7 +49,7 @@ const EditEnvironment = () => {
             navigate('/environments');
             setToastData({
                 type: 'success',
-                title: 'Successfully updated environment.',
+                text: 'Successfully updated environment.',
             });
         } catch (error: unknown) {
             setToastApiError(formatUnknownError(error));
@@ -62,19 +62,19 @@ const EditEnvironment = () => {
 
     return (
         <FormTemplate
-            title="Edit environment"
-            description="Environments allow you to manage your
+            title='Edit environment'
+            description='Environments allow you to manage your
             product lifecycle from local development
             through production. Your projects and
-            feature toggles are accessible in all your
+            feature flags are accessible in all your
             environments, but they can take different
             configurations per environment. This means
-            that you can enable a feature toggle in a
+            that you can enable a feature flag in a
             development or test environment without
-            enabling the feature toggle in the
-            production environment."
-            documentationLink="https://docs.getunleash.io/reference/environments"
-            documentationLinkLabel="Environments documentation"
+            enabling the feature flag in the
+            production environment.'
+            documentationLink='https://docs.getunleash.io/reference/environments'
+            documentationLinkLabel='Environments documentation'
             formatApiCode={formatApiCode}
         >
             <EnvironmentForm
@@ -84,7 +84,7 @@ const EditEnvironment = () => {
                 type={type}
                 setName={setName}
                 setType={setType}
-                mode="Edit"
+                mode='Edit'
                 errors={errors}
                 clearErrors={clearErrors}
             >

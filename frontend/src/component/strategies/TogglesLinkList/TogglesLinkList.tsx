@@ -5,11 +5,12 @@ import {
     ListItemText,
     Tooltip,
 } from '@mui/material';
-import { Pause, PlayArrow } from '@mui/icons-material';
+import Pause from '@mui/icons-material/Pause';
+import PlayArrow from '@mui/icons-material/PlayArrow';
 import styles from 'component/common/common.module.scss';
 import { Link } from 'react-router-dom';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
-import { FeatureSchema } from 'openapi';
+import type { FeatureSchema } from 'openapi';
 
 interface ITogglesLinkListProps {
     toggles: FeatureSchema[];
@@ -25,12 +26,12 @@ export const TogglesLinkList = ({ toggles }: ITogglesLinkListProps) => (
                         <ConditionallyRender
                             condition={Boolean(enabled)}
                             show={
-                                <Tooltip title="Enabled" arrow>
+                                <Tooltip title='Enabled' arrow>
                                     <PlayArrow aria-hidden={false} />
                                 </Tooltip>
                             }
                             elseShow={
-                                <Tooltip title="Disabled" arrow>
+                                <Tooltip title='Disabled' arrow>
                                     <Pause aria-hidden={false} />
                                 </Tooltip>
                             }

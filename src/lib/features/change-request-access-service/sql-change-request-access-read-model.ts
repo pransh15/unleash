@@ -1,8 +1,8 @@
 import { SKIP_CHANGE_REQUEST } from '../../types';
-import { Db } from '../../db/db';
-import { AccessService } from '../../services';
-import User from '../../types/user';
-import { IChangeRequestAccessReadModel } from './change-request-access-read-model';
+import type { Db } from '../../db/db';
+import type { AccessService } from '../../services';
+import type User from '../../types/user';
+import type { IChangeRequestAccessReadModel } from './change-request-access-read-model';
 
 export class ChangeRequestAccessReadModel
     implements IChangeRequestAccessReadModel
@@ -32,7 +32,24 @@ export class ChangeRequestAccessReadModel
                 : Promise.resolve(false),
             this.isChangeRequestsEnabled(project, environment),
         ]);
-        return !(changeRequestEnabled && !canSkipChangeRequest);
+        return canSkipChangeRequest || !changeRequestEnabled;
+    }
+
+    public async canBypassChangeRequestForProject(
+        project: string,
+        user?: User,
+    ): Promise<boolean> {
+        const [canSkipChangeRequest, changeRequestEnabled] = await Promise.all([
+            user
+                ? this.accessService.hasPermission(
+                      user,
+                      SKIP_CHANGE_REQUEST,
+                      project,
+                  )
+                : Promise.resolve(false),
+            this.isChangeRequestsEnabledForProject(project),
+        ]);
+        return canSkipChangeRequest || !changeRequestEnabled;
     }
 
     public async isChangeRequestsEnabled(
@@ -53,14 +70,20 @@ export class ChangeRequestAccessReadModel
     public async isChangeRequestsEnabledForProject(
         project: string,
     ): Promise<boolean> {
-        const result = await this.db.raw(
-            `SELECT EXISTS(SELECT 1
-                           FROM change_request_settings
-                           WHERE project = ?
-                           ) AS present`,
-            [project],
-        );
-        const { present } = result.rows[0];
-        return present;
+        const result = await this.db('change_request_settings')
+            .join('project_environments', function () {
+                return this.on(
+                    'change_request_settings.project',
+                    'project_environments.project_id',
+                ).andOn(
+                    'change_request_settings.environment',
+                    'project_environments.environment_name',
+                );
+            })
+            .where('change_request_settings.project', project)
+            .select('change_request_settings.project')
+            .first();
+
+        return Boolean(result);
     }
 }

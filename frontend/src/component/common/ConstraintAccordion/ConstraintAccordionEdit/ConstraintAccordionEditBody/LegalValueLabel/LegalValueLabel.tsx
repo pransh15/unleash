@@ -1,6 +1,6 @@
-import { ILegalValue } from 'interfaces/context';
+import type { ILegalValue } from 'interfaces/context';
 import { useStyles } from './LegalValueLabel.styles';
-import React from 'react';
+import type React from 'react';
 import { FormControlLabel } from '@mui/material';
 
 interface ILegalValueTextProps {
@@ -31,9 +31,9 @@ export const LegalValueLabel = ({ legal, control }: ILegalValueTextProps) => {
 
 export const filterLegalValues = (
     legalValues: ILegalValue[],
-    filter: string
+    filter: string,
 ): ILegalValue[] => {
-    return legalValues.filter(legalValue => {
+    return legalValues.filter((legalValue) => {
         return legalValue.value.includes(filter);
     });
 };

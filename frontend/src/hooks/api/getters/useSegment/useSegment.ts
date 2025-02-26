@@ -2,7 +2,7 @@ import useSWR, { mutate } from 'swr';
 import { useCallback } from 'react';
 import { formatApiPath } from 'utils/formatPath';
 import handleErrorResponses from '../httpErrorResponseHandler';
-import { ISegment } from 'interfaces/segment';
+import type { ISegment } from 'interfaces/segment';
 
 export interface IUseSegmentOutput {
     segment?: ISegment;
@@ -30,5 +30,5 @@ export const useSegment = (id: number): IUseSegmentOutput => {
 const fetchSegment = (path: string) => {
     return fetch(path, { method: 'GET' })
         .then(handleErrorResponses('Segment'))
-        .then(res => res.json());
+        .then((res) => res.json());
 };

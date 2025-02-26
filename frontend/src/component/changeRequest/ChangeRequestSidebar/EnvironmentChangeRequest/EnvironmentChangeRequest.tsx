@@ -1,4 +1,5 @@
-import React, { FC, useState } from 'react';
+import type React from 'react';
+import { type FC, useState } from 'react';
 import {
     Box,
     Button,
@@ -7,7 +8,7 @@ import {
     Typography,
     useTheme,
 } from '@mui/material';
-import { IChangeRequest } from '../../changeRequest.types';
+import type { ChangeRequestType } from '../../changeRequest.types';
 import { useNavigate } from 'react-router-dom';
 import { ChangeRequestStatusBadge } from '../../ChangeRequestStatusBadge/ChangeRequestStatusBadge';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
@@ -16,19 +17,26 @@ import {
     Separator,
     StyledFlexAlignCenterBox,
     StyledSuccessIcon,
-    UpdateCount,
 } from '../ChangeRequestSidebar';
-import { CloudCircle } from '@mui/icons-material';
+import CloudCircle from '@mui/icons-material/CloudCircle';
 import { AddCommentField } from '../../ChangeRequestOverview/ChangeRequestComments/AddCommentField';
 import { useAuthUser } from 'hooks/api/getters/useAuth/useAuthUser';
 import Input from 'component/common/Input/Input';
 import { ChangeRequestTitle } from './ChangeRequestTitle';
+import { UpdateCount } from 'component/changeRequest/UpdateCount';
+import { useChangeRequestApi } from 'hooks/api/actions/useChangeRequestApi/useChangeRequestApi';
 
-const SubmitChangeRequestButton: FC<{ onClick: () => void; count: number }> = ({
-    onClick,
-    count,
-}) => (
-    <Button sx={{ ml: 'auto' }} variant="contained" onClick={onClick}>
+const SubmitChangeRequestButton: FC<{
+    onClick: () => void;
+    count: number;
+    disabled?: boolean;
+}> = ({ onClick, count, disabled = false }) => (
+    <Button
+        sx={{ ml: 'auto' }}
+        variant='contained'
+        onClick={onClick}
+        disabled={disabled}
+    >
         Submit change request ({count})
     </Button>
 );
@@ -54,16 +62,30 @@ const ChangeRequestContent = styled(Box)(({ theme }) => ({
 }));
 
 export const EnvironmentChangeRequest: FC<{
-    environmentChangeRequest: IChangeRequest;
+    environmentChangeRequest: ChangeRequestType;
     onClose: () => void;
-    onReview: (id: number, comment?: string) => void;
+    onReview: (changeState: (project: string) => Promise<void>) => void;
     onDiscard: (id: number) => void;
+    children?: React.ReactNode;
 }> = ({ environmentChangeRequest, onClose, onReview, onDiscard, children }) => {
     const theme = useTheme();
     const navigate = useNavigate();
     const [commentText, setCommentText] = useState('');
     const { user } = useAuthUser();
     const [title, setTitle] = useState(environmentChangeRequest.title);
+    const { changeState } = useChangeRequestApi();
+    const [disabled, setDisabled] = useState(false);
+    const sendToReview = async (project: string) => {
+        setDisabled(true);
+        try {
+            await changeState(project, environmentChangeRequest.id, 'Draft', {
+                state: 'In review',
+                comment: commentText,
+            });
+        } catch (e) {
+            setDisabled(false);
+        }
+    };
 
     return (
         <Box key={environmentChangeRequest.id}>
@@ -76,22 +98,34 @@ export const EnvironmentChangeRequest: FC<{
                         }}
                     >
                         <CloudCircle
-                            sx={theme => ({
+                            sx={(theme) => ({
                                 color: theme.palette.primary.light,
                                 mr: 0.5,
                             })}
                         />
-                        <Typography component="span" variant="h2">
+                        <Typography component='span' variant='h2'>
                             {environmentChangeRequest.environment}
                         </Typography>
                         <Separator />
+                        <Typography
+                            component='span'
+                            variant='body2'
+                            color='text.secondary'
+                        >
+                            Updates:
+                        </Typography>
                         <UpdateCount
-                            count={environmentChangeRequest.features.length}
+                            featuresCount={
+                                environmentChangeRequest.features.length
+                            }
+                            segmentsCount={
+                                environmentChangeRequest.segments.length
+                            }
                         />
                     </Box>
                     <Box sx={{ ml: 'auto' }}>
                         <ChangeRequestStatusBadge
-                            state={environmentChangeRequest.state}
+                            changeRequest={environmentChangeRequest}
                         />
                     </Box>
                 </Box>
@@ -102,8 +136,8 @@ export const EnvironmentChangeRequest: FC<{
                     setTitle={setTitle}
                 >
                     <Input
-                        label="Change request title"
-                        id="group-name"
+                        label='Change request title'
+                        id='group-name'
                         fullWidth
                         value={title}
                         onChange={() => {}}
@@ -112,11 +146,7 @@ export const EnvironmentChangeRequest: FC<{
                 </ChangeRequestTitle>
             </ChangeRequestHeader>
             <ChangeRequestContent>
-                <Typography variant="body2" color="text.secondary">
-                    You request changes for these feature toggles:
-                </Typography>
                 {children}
-
                 <ConditionallyRender
                     condition={environmentChangeRequest?.state === 'Draft'}
                     show={
@@ -124,32 +154,30 @@ export const EnvironmentChangeRequest: FC<{
                             user={user}
                             commentText={commentText}
                             onTypeComment={setCommentText}
-                        ></AddCommentField>
+                        />
                     }
-                ></ConditionallyRender>
+                />
                 <Box sx={{ display: 'flex', mt: 3 }}>
                     <ConditionallyRender
                         condition={environmentChangeRequest?.state === 'Draft'}
                         show={
                             <>
                                 <SubmitChangeRequestButton
-                                    onClick={() =>
-                                        onReview(
-                                            environmentChangeRequest.id,
-                                            commentText
-                                        )
-                                    }
+                                    onClick={() => onReview(sendToReview)}
                                     count={changesCount(
-                                        environmentChangeRequest
+                                        environmentChangeRequest,
                                     )}
+                                    disabled={disabled}
                                 />
 
                                 <Button
                                     sx={{ ml: 2 }}
-                                    variant="outlined"
-                                    onClick={() =>
-                                        onDiscard(environmentChangeRequest.id)
-                                    }
+                                    variant='outlined'
+                                    disabled={disabled}
+                                    onClick={() => {
+                                        setDisabled(true);
+                                        onDiscard(environmentChangeRequest.id);
+                                    }}
                                 >
                                     Discard changes
                                 </Button>
@@ -172,11 +200,11 @@ export const EnvironmentChangeRequest: FC<{
                                     </Typography>
                                     <Button
                                         sx={{ marginLeft: 2 }}
-                                        variant="outlined"
+                                        variant='outlined'
                                         onClick={() => {
                                             onClose();
                                             navigate(
-                                                `/projects/${environmentChangeRequest.project}/change-requests/${environmentChangeRequest.id}`
+                                                `/projects/${environmentChangeRequest.project}/change-requests/${environmentChangeRequest.id}`,
                                             );
                                         }}
                                     >

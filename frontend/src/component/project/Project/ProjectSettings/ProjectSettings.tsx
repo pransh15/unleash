@@ -5,7 +5,10 @@ import {
     useLocation,
     useNavigate,
 } from 'react-router-dom';
-import { ITab, VerticalTabs } from 'component/common/VerticalTabs/VerticalTabs';
+import {
+    type ITab,
+    VerticalTabs,
+} from 'component/common/VerticalTabs/VerticalTabs';
 import { ProjectAccess } from 'component/project/ProjectAccess/ProjectAccess';
 import ProjectEnvironmentList from 'component/project/ProjectEnvironment/ProjectEnvironment';
 import { ChangeRequestConfiguration } from './ChangeRequestConfiguration/ChangeRequestConfiguration';
@@ -14,46 +17,76 @@ import { ProjectSegments } from './ProjectSegments/ProjectSegments';
 import { ProjectDefaultStrategySettings } from './ProjectDefaultStrategySettings/ProjectDefaultStrategySettings';
 import { Settings } from './Settings/Settings';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
+import { EnterpriseBadge } from 'component/common/EnterpriseBadge/EnterpriseBadge';
+import { Box, styled } from '@mui/material';
+import { ProjectActions } from './ProjectActions/ProjectActions';
+import { useUiFlag } from 'hooks/useUiFlag';
+
+const StyledBadgeContainer = styled(Box)({
+    marginLeft: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+});
 
 export const ProjectSettings = () => {
     const location = useLocation();
-    const { uiConfig } = useUiConfig();
+    const { isPro, isEnterprise } = useUiConfig();
     const navigate = useNavigate();
 
+    const actionsEnabled = useUiFlag('automatedActions');
+
+    const paidTabs = (...tabs: ITab[]) =>
+        isPro() || isEnterprise() ? tabs : [];
+
     const tabs: ITab[] = [
-        ...(uiConfig.flags.newProjectLayout
-            ? [
-                  {
-                      id: '',
-                      label: 'Settings',
-                  },
-              ]
-            : []),
+        ...paidTabs(
+            {
+                id: '',
+                label: 'Project settings',
+            },
+            {
+                id: 'access',
+                label: 'User access',
+            },
+        ),
         {
-            id: 'environments',
-            label: 'Environments',
-        },
-        {
-            id: 'access',
-            label: 'Access',
+            id: 'api-access',
+            label: 'API access',
         },
         {
             id: 'segments',
             label: 'Segments',
         },
         {
-            id: 'change-requests',
-            label: 'Change request configuration',
-        },
-        {
-            id: 'api-access',
-            label: 'API access',
+            id: 'environments',
+            label: 'Environments',
         },
         {
             id: 'default-strategy',
             label: 'Default strategy',
         },
+        ...paidTabs({
+            id: 'change-requests',
+            label: 'Change request configuration',
+            endIcon: isPro() ? (
+                <StyledBadgeContainer>
+                    <EnterpriseBadge />
+                </StyledBadgeContainer>
+            ) : undefined,
+        }),
     ];
+
+    if (actionsEnabled) {
+        tabs.push({
+            id: 'actions',
+            label: 'Actions',
+            endIcon: isPro() ? (
+                <StyledBadgeContainer>
+                    <EnterpriseBadge />
+                </StyledBadgeContainer>
+            ) : undefined,
+        });
+    }
 
     const onChange = (tab: ITab) => {
         navigate(tab.id);
@@ -64,32 +97,32 @@ export const ProjectSettings = () => {
             tabs={tabs}
             value={
                 tabs.find(
-                    ({ id }) => id && location.pathname?.includes(`/${id}`)
+                    ({ id }) =>
+                        id && location.pathname?.includes(`/settings/${id}`),
                 )?.id || tabs[0].id
             }
             onChange={onChange}
         >
             <Routes>
-                {uiConfig.flags.newProjectLayout ? (
-                    <Route path="/*" element={<Settings />} />
-                ) : null}
+                <Route path='/*' element={<Settings />} />
                 <Route
-                    path="environments/*"
+                    path='environments/*'
                     element={<ProjectEnvironmentList />}
                 />
-                <Route path="access/*" element={<ProjectAccess />} />
-                <Route path="segments/*" element={<ProjectSegments />} />
+                <Route path='access/*' element={<ProjectAccess />} />
+                <Route path='segments/*' element={<ProjectSegments />} />
                 <Route
-                    path="change-requests/*"
+                    path='change-requests/*'
                     element={<ChangeRequestConfiguration />}
                 />
-                <Route path="api-access/*" element={<ProjectApiAccess />} />
+                <Route path='api-access/*' element={<ProjectApiAccess />} />
                 <Route
-                    path="default-strategy/*"
+                    path='default-strategy/*'
                     element={<ProjectDefaultStrategySettings />}
                 />
+                <Route path='actions/*' element={<ProjectActions />} />
                 <Route
-                    path="*"
+                    path='*'
                     element={<Navigate replace to={tabs[0].id} />}
                 />
             </Routes>

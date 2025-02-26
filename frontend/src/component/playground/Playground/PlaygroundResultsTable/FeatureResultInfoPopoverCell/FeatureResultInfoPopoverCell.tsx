@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
-import { PlaygroundFeatureSchema, PlaygroundRequestSchema } from 'openapi';
+import type { PlaygroundFeatureSchema, PlaygroundRequestSchema } from 'openapi';
 import { IconButton, Popover, styled } from '@mui/material';
-import { InfoOutlined } from '@mui/icons-material';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import { FeatureDetails } from './FeatureDetails/FeatureDetails';
 import { PlaygroundResultFeatureStrategyList } from './FeatureStrategyList/PlaygroundResultFeatureStrategyList';
 
@@ -40,7 +40,7 @@ export const FeatureResultInfoPopoverCell = ({
                 onClose={() => setOpen(false)}
                 anchorEl={ref.current}
                 PaperProps={{
-                    sx: theme => ({
+                    sx: (theme) => ({
                         display: 'flex',
                         flexDirection: 'column',
                         padding: theme.spacing(6),

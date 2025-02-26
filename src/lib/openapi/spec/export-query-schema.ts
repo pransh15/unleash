@@ -1,28 +1,28 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
+
+const commonProps = {
+    environment: {
+        type: 'string',
+        example: 'development',
+        description: 'The environment to export from',
+    },
+    downloadFile: {
+        type: 'boolean',
+        example: true,
+        description: 'Whether to return a downloadable file',
+    },
+} as const;
 
 export const exportQuerySchema = {
     $id: '#/components/schemas/exportQuerySchema',
     type: 'object',
-    additionalProperties: true,
-    required: ['environment'],
     description:
         'Available query parameters for  the [deprecated export/import](https://docs.getunleash.io/reference/deploy/import-export) functionality.',
-    properties: {
-        environment: {
-            type: 'string',
-            example: 'development',
-            description: 'The environment to export from',
-        },
-        downloadFile: {
-            type: 'boolean',
-            example: true,
-            description: 'Whether to return a downloadable file',
-        },
-    },
-    oneOf: [
+    anyOf: [
         {
-            required: ['features'],
+            required: ['environment', 'features'],
             properties: {
+                ...commonProps,
                 features: {
                     type: 'array',
                     example: ['MyAwesomeFeature'],
@@ -30,18 +30,31 @@ export const exportQuerySchema = {
                         type: 'string',
                         minLength: 1,
                     },
-                    description: 'Selects features to export by name.',
+                    description:
+                        'Selects features to export by name. If the list is empty all features are returned.',
                 },
             },
         },
         {
-            required: ['tag'],
+            required: ['environment', 'tag'],
             properties: {
+                ...commonProps,
                 tag: {
                     type: 'string',
                     example: 'release',
+                    description: 'Selects features to export by tag.',
+                },
+            },
+        },
+        {
+            required: ['environment', 'project'],
+            properties: {
+                ...commonProps,
+                project: {
+                    type: 'string',
+                    example: 'my-project',
                     description:
-                        'Selects features to export by tag. Takes precedence over the features field.',
+                        'Selects project to export the features from. Used when no tags or features are provided.',
                 },
             },
         },

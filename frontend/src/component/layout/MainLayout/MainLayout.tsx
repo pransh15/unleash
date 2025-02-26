@@ -1,5 +1,5 @@
-import React, { forwardRef, ReactNode } from 'react';
-import { Grid, styled } from '@mui/material';
+import { forwardRef, type ReactNode } from 'react';
+import { Box, Grid, styled, useMediaQuery, useTheme } from '@mui/material';
 import Header from 'component/menu/Header/Header';
 import Footer from 'component/menu/Footer/Footer';
 import Proclamation from 'component/common/Proclamation/Proclamation';
@@ -14,7 +14,11 @@ import { ConditionallyRender } from 'component/common/ConditionallyRender/Condit
 import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
 import { DraftBanner } from './DraftBanner/DraftBanner';
 import { ThemeMode } from 'component/common/ThemeMode/ThemeMode';
-import { Demo } from 'component/demo/Demo';
+import { NavigationSidebar } from './NavigationSidebar/NavigationSidebar';
+import { MainLayoutEventTimeline } from './MainLayoutEventTimeline';
+import { EventTimelineProvider } from 'component/events/EventTimeline/EventTimelineProvider';
+import { NewInUnleash } from './NavigationSidebar/NewInUnleash/NewInUnleash';
+import { useUiFlag } from 'hooks/useUiFlag';
 
 interface IMainLayoutProps {
     children: ReactNode;
@@ -29,7 +33,7 @@ const MainLayoutContainer = styled(Grid)(() => ({
     position: 'relative',
 }));
 
-const MainLayoutContentWrapper = styled('main')(({ theme }) => ({
+const MainLayoutContentWrapper = styled('div')(({ theme }) => ({
     margin: theme.spacing(0, 'auto'),
     flexGrow: 1,
     width: '100%',
@@ -38,19 +42,31 @@ const MainLayoutContentWrapper = styled('main')(({ theme }) => ({
 }));
 
 const MainLayoutContent = styled(Grid)(({ theme }) => ({
-    width: '1250px',
+    minWidth: 0, // this is a fix for overflowing flex
+    maxWidth: '1512px',
     margin: '0 auto',
+    paddingLeft: theme.spacing(2),
+    paddingRight: theme.spacing(2),
+    [theme.breakpoints.up(1856)]: {
+        width: '100%',
+    },
+    [theme.breakpoints.down(1856)]: {
+        marginLeft: theme.spacing(7),
+        marginRight: theme.spacing(7),
+    },
     [theme.breakpoints.down('lg')]: {
-        width: '1024px',
+        maxWidth: '1250px',
+        paddingLeft: theme.spacing(1),
+        paddingRight: theme.spacing(1),
     },
     [theme.breakpoints.down(1024)]: {
-        width: '100%',
         marginLeft: 0,
         marginRight: 0,
     },
     [theme.breakpoints.down('sm')]: {
         minWidth: '100%',
     },
+    minHeight: '94vh',
 }));
 
 const StyledImg = styled('img')(() => ({
@@ -64,7 +80,7 @@ const StyledImg = styled('img')(() => ({
     userSelect: 'none',
 }));
 
-const MainLayoutContentContainer = styled('div')(({ theme }) => ({
+const MainLayoutContentContainer = styled('main')(({ theme }) => ({
     height: '100%',
     padding: theme.spacing(0, 0, 6.5, 0),
     position: 'relative',
@@ -78,58 +94,97 @@ export const MainLayout = forwardRef<HTMLDivElement, IMainLayoutProps>(
     ({ children }, ref) => {
         const { uiConfig } = useUiConfig();
         const projectId = useOptionalPathParam('projectId');
+        const frontendHeaderRedesign = useUiFlag('frontendHeaderRedesign');
         const { isChangeRequestConfiguredInAnyEnv } = useChangeRequestsEnabled(
-            projectId || ''
+            projectId || '',
         );
 
+        const theme = useTheme();
+        const isSmallScreen = useMediaQuery(theme.breakpoints.down('lg'));
+
         return (
-            <>
+            <EventTimelineProvider>
                 <SkipNavLink />
-                <Demo>
-                    <>
-                        <Header />
-                        <SkipNavTarget />
-                        <MainLayoutContainer>
-                            <MainLayoutContentWrapper>
+                <ConditionallyRender
+                    condition={!frontendHeaderRedesign}
+                    show={<Header />}
+                />
+
+                <MainLayoutContainer>
+                    <MainLayoutContentWrapper>
+                        <ConditionallyRender
+                            condition={Boolean(
+                                projectId &&
+                                    isChangeRequestConfiguredInAnyEnv(),
+                            )}
+                            show={<DraftBanner project={projectId || ''} />}
+                        />
+
+                        <Box
+                            sx={(theme) => ({
+                                display: 'flex',
+                                mt: frontendHeaderRedesign
+                                    ? 0
+                                    : theme.spacing(0.25),
+                            })}
+                        >
+                            <ConditionallyRender
+                                condition={!isSmallScreen}
+                                show={
+                                    <NavigationSidebar
+                                        NewInUnleash={NewInUnleash}
+                                    />
+                                }
+                            />
+
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    flexGrow: 1,
+                                    minWidth: 0,
+                                }}
+                            >
                                 <ConditionallyRender
-                                    condition={Boolean(
-                                        projectId &&
-                                            isChangeRequestConfiguredInAnyEnv()
-                                    )}
-                                    show={
-                                        <DraftBanner
-                                            project={projectId || ''}
-                                        />
-                                    }
+                                    condition={frontendHeaderRedesign}
+                                    show={<Header />}
                                 />
-                                <MainLayoutContent item xs={12} sm={12} my={2}>
+
+                                <ConditionallyRender
+                                    condition={!frontendHeaderRedesign}
+                                    show={<MainLayoutEventTimeline />}
+                                />
+
+                                <MainLayoutContent>
+                                    <SkipNavTarget />
                                     <MainLayoutContentContainer ref={ref}>
                                         <BreadcrumbNav />
                                         <Proclamation toast={uiConfig.toast} />
                                         {children}
                                     </MainLayoutContentContainer>
                                 </MainLayoutContent>
-                                <ThemeMode
-                                    darkmode={
-                                        <StyledImg
-                                            style={{ opacity: 0.06 }}
-                                            src={formatAssetPath(textureImage)}
-                                            alt=""
-                                        />
-                                    }
-                                    lightmode={
-                                        <StyledImg
-                                            src={formatAssetPath(textureImage)}
-                                            alt=""
-                                        />
-                                    }
+                            </Box>
+                        </Box>
+
+                        <ThemeMode
+                            darkmode={
+                                <StyledImg
+                                    style={{ opacity: 0.06 }}
+                                    src={formatAssetPath(textureImage)}
+                                    alt=''
                                 />
-                            </MainLayoutContentWrapper>
-                            <Footer />
-                        </MainLayoutContainer>
-                    </>
-                </Demo>
-            </>
+                            }
+                            lightmode={
+                                <StyledImg
+                                    src={formatAssetPath(textureImage)}
+                                    alt=''
+                                />
+                            }
+                        />
+                    </MainLayoutContentWrapper>
+                    <Footer />
+                </MainLayoutContainer>
+            </EventTimelineProvider>
         );
-    }
+    },
 );

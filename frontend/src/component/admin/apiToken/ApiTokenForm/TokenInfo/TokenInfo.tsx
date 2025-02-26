@@ -1,6 +1,6 @@
-import React from 'react';
+import type React from 'react';
 import { StyledInput, StyledInputDescription } from '../ApiTokenForm.styles';
-import { ApiTokenFormErrorType } from '../useApiTokenForm';
+import type { ApiTokenFormErrorType } from '../useApiTokenForm';
 
 interface ITokenInfoProps {
     username: string;
@@ -22,9 +22,9 @@ export const TokenInfo = ({
             </StyledInputDescription>
             <StyledInput
                 value={username}
-                name="username"
-                onChange={e => setUsername(e.target.value)}
-                label="Token name"
+                name='username'
+                onChange={(e) => setUsername(e.target.value)}
+                label='Token name'
                 error={errors.username !== undefined}
                 errorText={errors.username}
                 onFocus={() => clearErrors('username')}

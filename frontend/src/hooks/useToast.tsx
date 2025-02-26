@@ -1,6 +1,6 @@
 import { useCallback, useContext } from 'react';
 import UIContext from '../contexts/UIContext';
-import { IToast } from '../interfaces/toast';
+import type { IToast } from '../interfaces/toast';
 
 const useToast = () => {
     const { setToast } = useContext(UIContext);
@@ -14,15 +14,14 @@ const useToast = () => {
     const setToastApiError = useCallback(
         (text: string, overrides?: IToast) => {
             setToast({
-                title: 'Something went wrong',
-                text,
+                text: text || 'Something went wrong.',
                 type: 'error',
                 show: true,
                 autoHideDuration: 12000,
                 ...overrides,
             });
         },
-        [setToast]
+        [setToast],
     );
 
     const setToastData = useCallback(
@@ -33,7 +32,7 @@ const useToast = () => {
                 setToast({ autoHideDuration: 6000, ...toast, show: true });
             }
         },
-        [setToast]
+        [setToast],
     );
 
     return { setToastData, setToastApiError, hideToast };

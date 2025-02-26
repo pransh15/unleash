@@ -1,12 +1,12 @@
-import { Response } from 'express';
+import type { Response } from 'express';
 import Controller from '../../routes/controller';
-import { Logger } from '../../logger';
-import ExportImportService from './export-import-service';
-import { OpenApiService } from '../../services';
-import { TransactionCreator, UnleashTransaction } from '../../db/transaction';
+import type { Logger } from '../../logger';
+import type { IExportService, IImportService } from './export-import-service';
+import type { OpenApiService } from '../../services';
+import type { WithTransactional } from '../../db/transaction';
 import {
-    IUnleashConfig,
-    IUnleashServices,
+    type IUnleashConfig,
+    type IUnleashServices,
     NONE,
     serializeDates,
 } from '../../types';
@@ -14,50 +14,41 @@ import {
     createRequestSchema,
     createResponseSchema,
     emptyResponse,
-    ExportQuerySchema,
+    type ExportQuerySchema,
     exportResultSchema,
     getStandardResponses,
-    ImportTogglesSchema,
+    type ImportTogglesSchema,
     importTogglesValidateSchema,
 } from '../../openapi';
-import { IAuthRequest } from '../../routes/unleash-types';
+import type { IAuthRequest } from '../../routes/unleash-types';
 import { extractUsername } from '../../util';
-import { BadDataError, InvalidOperationError } from '../../error';
+import { BadDataError } from '../../error';
 import ApiUser from '../../types/api-user';
 
 class ExportImportController extends Controller {
     private logger: Logger;
 
-    private exportImportService: ExportImportService;
+    private exportService: IExportService;
 
-    private transactionalExportImportService: (
-        db: UnleashTransaction,
-    ) => ExportImportService;
+    private importService: WithTransactional<IImportService>;
 
     private openApiService: OpenApiService;
-
-    private readonly startTransaction: TransactionCreator<UnleashTransaction>;
 
     constructor(
         config: IUnleashConfig,
         {
-            exportImportService,
-            transactionalExportImportService,
+            exportService,
+            importService,
             openApiService,
         }: Pick<
             IUnleashServices,
-            | 'exportImportService'
-            | 'openApiService'
-            | 'transactionalExportImportService'
+            'exportService' | 'importService' | 'openApiService'
         >,
-        startTransaction: TransactionCreator<UnleashTransaction>,
     ) {
         super(config);
         this.logger = config.getLogger('/admin-api/export-import.ts');
-        this.exportImportService = exportImportService;
-        this.transactionalExportImportService =
-            transactionalExportImportService;
-        this.startTransaction = startTransaction;
+        this.exportService = exportService;
+        this.importService = importService;
         this.openApiService = openApiService;
         this.route({
             method: 'post',
@@ -75,7 +66,7 @@ class ExportImportController extends Controller {
                     },
                     description:
                         "Exports all features listed in the `features` property from the environment specified in the request body. If set to `true`, the `downloadFile` property will let you download a file with the exported data. Otherwise, the export data is returned directly as JSON. Refer to the documentation for more information about [Unleash's export functionality](https://docs.getunleash.io/reference/deploy/environment-import-export#export).",
-                    summary: 'Export feature toggles from an environment',
+                    summary: 'Export feature flags from an environment',
                 }),
             ],
         });
@@ -96,7 +87,7 @@ class ExportImportController extends Controller {
                         ...getStandardResponses(404),
                     },
                     summary: 'Validate feature import data',
-                    description: `Validates a feature toggle data set. Checks whether the data can be imported into the specified project and environment. The returned value is an object that contains errors, warnings, and permissions required to perform the import, as described in the [import documentation](https://docs.getunleash.io/reference/deploy/environment-import-export#import).`,
+                    description: `Validates a feature flag data set. Checks whether the data can be imported into the specified project and environment. The returned value is an object that contains errors, warnings, and permissions required to perform the import, as described in the [import documentation](https://docs.getunleash.io/reference/deploy/environment-import-export#import).`,
                 }),
             ],
         });
@@ -114,8 +105,8 @@ class ExportImportController extends Controller {
                         200: emptyResponse,
                         ...getStandardResponses(404),
                     },
-                    summary: 'Import feature toggles',
-                    description: `[Import feature toggles](https://docs.getunleash.io/reference/deploy/environment-import-export#import) into a specific project and environment.`,
+                    summary: 'Import feature flags',
+                    description: `[Import feature flags](https://docs.getunleash.io/reference/deploy/environment-import-export#import) into a specific project and environment.`,
                 }),
             ],
         });
@@ -125,10 +116,10 @@ class ExportImportController extends Controller {
         req: IAuthRequest<unknown, unknown, ExportQuerySchema, unknown>,
         res: Response,
     ): Promise<void> {
-        this.verifyExportImportEnabled();
         const query = req.body;
         const userName = extractUsername(req);
-        const data = await this.exportImportService.export(query, userName);
+
+        const data = await this.exportService.export(query, req.audit);
 
         this.openApiService.respondWithValidation(
             200,
@@ -142,11 +133,11 @@ class ExportImportController extends Controller {
         req: IAuthRequest<unknown, unknown, ImportTogglesSchema, unknown>,
         res: Response,
     ): Promise<void> {
-        this.verifyExportImportEnabled();
         const dto = req.body;
         const { user } = req;
-        const validation = await this.startTransaction(async (tx) =>
-            this.transactionalExportImportService(tx).validate(dto, user),
+
+        const validation = await this.importService.transactional((service) =>
+            service.validate(dto, user),
         );
 
         this.openApiService.respondWithValidation(
@@ -161,8 +152,7 @@ class ExportImportController extends Controller {
         req: IAuthRequest<unknown, unknown, ImportTogglesSchema, unknown>,
         res: Response,
     ): Promise<void> {
-        this.verifyExportImportEnabled();
-        const { user } = req;
+        const { user, audit } = req;
 
         if (user instanceof ApiUser && user.type === 'admin') {
             throw new BadDataError(
@@ -172,19 +162,11 @@ class ExportImportController extends Controller {
 
         const dto = req.body;
 
-        await this.startTransaction(async (tx) =>
-            this.transactionalExportImportService(tx).import(dto, user),
+        await this.importService.transactional((service) =>
+            service.import(dto, user, audit),
         );
 
         res.status(200).end();
-    }
-
-    private verifyExportImportEnabled() {
-        if (!this.config.flagResolver.isEnabled('featuresExportImport')) {
-            throw new InvalidOperationError(
-                'Feature export/import is not enabled',
-            );
-        }
     }
 }
 export default ExportImportController;

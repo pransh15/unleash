@@ -12,5 +12,7 @@ import type { ChangeRequestCreateFeatureSchemaOneOfPayload } from './changeReque
 export type ChangeRequestCreateFeatureSchemaOneOf = {
     /** The name of this action. */
     action: ChangeRequestCreateFeatureSchemaOneOfAction;
+    /** The name of the feature that this change applies to. */
+    feature: string;
     payload: ChangeRequestCreateFeatureSchemaOneOfPayload;
 };

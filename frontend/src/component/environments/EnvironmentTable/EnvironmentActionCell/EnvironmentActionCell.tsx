@@ -1,7 +1,7 @@
 import { ActionCell } from 'component/common/Table/cells/ActionCell/ActionCell';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { IEnvironment } from 'interfaces/environments';
+import type { IEnvironment } from 'interfaces/environments';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import useEnvironmentApi from 'hooks/api/actions/useEnvironmentApi/useEnvironmentApi';
 import usePermissions from 'hooks/api/getters/usePermissions/usePermissions';
@@ -9,11 +9,11 @@ import { useEnvironments } from 'hooks/api/getters/useEnvironments/useEnvironmen
 import useToast from 'hooks/useToast';
 import { EnvironmentActionCellPopover } from './EnvironmentActionCellPopover/EnvironmentActionCellPopover';
 import { EnvironmentCloneModal } from './EnvironmentCloneModal/EnvironmentCloneModal';
-import { IApiToken } from 'hooks/api/getters/useApiTokens/useApiTokens';
+import type { IApiToken } from 'hooks/api/getters/useApiTokens/useApiTokens';
 import { EnvironmentTokenDialog } from './EnvironmentTokenDialog/EnvironmentTokenDialog';
-import { ENV_LIMIT } from 'constants/values';
 import { EnvironmentDeprecateToggleDialog } from './EnvironmentDeprecateToggleDialog/EnvironmentDeprecateToggleDialog';
 import { EnvironmentDeleteDialog } from './EnvironmentDeleteDialog/EnvironmentDeleteDialog';
+import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 
 interface IEnvironmentTableActionsProps {
     environment: IEnvironment;
@@ -23,6 +23,8 @@ export const EnvironmentActionCell = ({
     environment,
 }: IEnvironmentTableActionsProps) => {
     const navigate = useNavigate();
+    const { uiConfig } = useUiConfig();
+    const environmentLimit = uiConfig.resourceLimits.environments;
     const { setToastApiError, setToastData } = useToast();
     const { environments, refetchEnvironments } = useEnvironments();
     const { refetch: refetchPermissions } = usePermissions();
@@ -41,8 +43,7 @@ export const EnvironmentActionCell = ({
             refetchPermissions();
             setToastData({
                 type: 'success',
-                title: 'Environment deleted',
-                text: `You have successfully deleted the ${environment.name} environment.`,
+                text: `Environment deleted`,
             });
         } catch (error: unknown) {
             setToastApiError(formatUnknownError(error));
@@ -58,13 +59,13 @@ export const EnvironmentActionCell = ({
                 await toggleEnvironmentOff(environment.name);
                 setToastData({
                     type: 'success',
-                    title: 'Environment deprecated successfully',
+                    text: 'Environment deprecated',
                 });
             } else {
                 await toggleEnvironmentOn(environment.name);
                 setToastData({
                     type: 'success',
-                    title: 'Environment undeprecated successfully',
+                    text: 'Environment undeprecated',
                 });
             }
         } catch (error: unknown) {
@@ -82,13 +83,12 @@ export const EnvironmentActionCell = ({
                 onEdit={() => navigate(`/environments/${environment.name}`)}
                 onDeprecateToggle={() => setDeprecateToggleDialog(true)}
                 onClone={() => {
-                    if (environments.length < ENV_LIMIT) {
+                    if (environments.length < environmentLimit) {
                         setCloneModal(true);
                     } else {
                         setToastData({
                             type: 'error',
-                            title: 'Environment limit reached',
-                            text: `You have reached the maximum number of environments (${ENV_LIMIT}). Please reach out if you need more.`,
+                            text: `Environment limit (${environmentLimit}) reached`,
                         });
                     }
                 }}

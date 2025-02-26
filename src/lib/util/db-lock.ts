@@ -1,9 +1,9 @@
 import { Client } from 'pg';
-import { IDBOption } from '../types';
-import { Logger } from '../logger';
+import type { IDBOption } from '../types';
+import type { Logger } from '../logger';
 
 export const defaultLockKey = 479341;
-export const defaultTimeout = 5000;
+export const defaultTimeout = 30 * 60000;
 
 interface IDbLockOptions {
     timeout: number;
@@ -23,21 +23,32 @@ export const withDbLock =
     async (...args: A): Promise<R> => {
         const client = new Client({
             ...dbConfig,
-            query_timeout: config.timeout,
         });
+        let lockAcquired = false;
         try {
             await client.connect();
             // wait to obtain a lock
             await client.query('SELECT pg_advisory_lock($1)', [config.lockKey]);
-            const result = await fn(...args);
+            lockAcquired = true;
+
+            const promise = fn(...args);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(
+                    () => reject(new Error('Query read timeout')),
+                    config.timeout,
+                ),
+            );
+            const result = (await Promise.race([promise, timeoutPromise])) as R;
             return result;
         } catch (e) {
             config.logger.error(`Locking error: ${e.message}`);
             throw e;
         } finally {
-            await client.query('SELECT pg_advisory_unlock($1)', [
-                config.lockKey,
-            ]);
+            if (lockAcquired) {
+                await client.query('SELECT pg_advisory_unlock($1)', [
+                    config.lockKey,
+                ]);
+            }
             await client.end();
         }
     };

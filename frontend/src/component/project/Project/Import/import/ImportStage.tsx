@@ -1,17 +1,19 @@
-import React, { FC, useEffect } from 'react';
+import { type FC, useEffect } from 'react';
 import { ImportLayoutContainer } from '../ImportLayoutContainer';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { useImportApi } from 'hooks/api/actions/useImportApi/useImportApi';
 import useToast from 'hooks/useToast';
 import { Avatar, Button, styled, Typography } from '@mui/material';
 import { ActionsContainer } from '../ActionsContainer';
-import { Pending, Check, Error } from '@mui/icons-material';
-import { PulsingAvatar } from '../PulsingAvatar';
+import Check from '@mui/icons-material/Check';
+import ErrorIcon from '@mui/icons-material/Error';
+import Pending from '@mui/icons-material/Pending';
+import { PulsingAvatar } from 'component/common/PulsingAvatar/PulsingAvatar';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { Box } from '@mui/system';
 import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
-import useProject from 'hooks/api/getters/useProject/useProject';
 import { usePendingChangeRequests } from 'hooks/api/getters/usePendingChangeRequests/usePendingChangeRequests';
+import { useProjectFeatureSearch } from '../../PaginatedProjectFeatureToggles/useProjectFeatureSearch';
 
 export const ImportStatusArea = styled(Box)(({ theme }) => ({
     padding: theme.spacing(4, 2, 2, 2),
@@ -49,7 +51,7 @@ type ApiStatus =
 
 const toApiStatus = (
     loading: boolean,
-    errors: Record<string, string>
+    errors: Record<string, string>,
 ): ApiStatus => {
     if (loading) return { status: 'loading' };
     if (Object.keys(errors).length > 0) return { status: 'error', errors };
@@ -63,7 +65,7 @@ export const ImportStage: FC<{
     onClose: () => void;
 }> = ({ environment, project, payload, onClose }) => {
     const { createImport, loading, errors } = useImportApi();
-    const { refetch: refreshProject } = useProject(project);
+    const { refetch: refreshProject } = useProjectFeatureSearch(project);
     const { refetch: refreshChangeRequests } =
         usePendingChangeRequests(project);
     const { setToastData } = useToast();
@@ -75,10 +77,10 @@ export const ImportStage: FC<{
                 refreshProject();
                 refreshChangeRequests();
             })
-            .catch(error => {
+            .catch((error) => {
                 setToastData({
                     type: 'error',
-                    title: formatUnknownError(error),
+                    text: formatUnknownError(error),
                 });
             });
     }, []);
@@ -99,7 +101,7 @@ export const ImportStage: FC<{
                             sx={{ width: 80, height: 80 }}
                             active={true}
                         >
-                            <Pending fontSize="large" />
+                            <Pending fontSize='large' />
                         </PulsingAvatar>
                     }
                 />
@@ -107,7 +109,7 @@ export const ImportStage: FC<{
                     condition={importStatus.status === 'success'}
                     show={
                         <SuccessAvatar sx={{ width: 80, height: 80 }}>
-                            <Check fontSize="large" />
+                            <Check fontSize='large' />
                         </SuccessAvatar>
                     }
                 />
@@ -115,7 +117,7 @@ export const ImportStage: FC<{
                     condition={importStatus.status === 'error'}
                     show={
                         <ErrorAvatar sx={{ width: 80, height: 80 }}>
-                            <Error fontSize="large" />
+                            <ErrorIcon fontSize='large' />
                         </ErrorAvatar>
                     }
                 />
@@ -149,8 +151,8 @@ export const ImportStage: FC<{
             <ActionsContainer>
                 <Button
                     sx={{ position: 'static' }}
-                    variant="contained"
-                    type="submit"
+                    variant='contained'
+                    type='submit'
                     onClick={onClose}
                 >
                     Close

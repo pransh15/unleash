@@ -1,6 +1,6 @@
-import { IStrategyConfig } from '../../../types';
-import { FeatureStrategiesEvaluationResult } from './client';
-import { Context } from './context';
+import type { IStrategyConfig } from '../../../types';
+import type { FeatureStrategiesEvaluationResult } from './client';
+import type { Context } from './context';
 
 export type FallbackFunction = (name: string, context: Context) => boolean;
 
@@ -30,7 +30,7 @@ export function resolveContextValue(
     if (context[field]) {
         return context[field] as string;
     }
-    if (context.properties && context.properties[field]) {
+    if (context.properties?.[field]) {
         return context.properties[field] as string;
     }
     return undefined;

@@ -1,4 +1,4 @@
-import { useState, VFC } from 'react';
+import { useState, type VFC } from 'react';
 import {
     IconButton,
     ListItemIcon,
@@ -11,11 +11,11 @@ import {
 } from '@mui/material';
 import { PermissionHOC } from 'component/common/PermissionHOC/PermissionHOC';
 import { UPDATE_FEATURE } from 'component/providers/AccessProvider/permissions';
-import { MoreVert, WatchLater } from '@mui/icons-material';
+import MoreVert from '@mui/icons-material/MoreVert';
+import WatchLater from '@mui/icons-material/WatchLater';
 import type { FeatureSchema } from 'openapi';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import useProjectApi from 'hooks/api/actions/useProjectApi/useProjectApi';
-import useProject from 'hooks/api/getters/useProject/useProject';
 import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
@@ -24,12 +24,16 @@ import { MORE_BATCH_ACTIONS } from 'utils/testIds';
 interface IMoreActionsProps {
     projectId: string;
     data: FeatureSchema[];
+    onChange?: () => void;
 }
 
 const menuId = 'selection-actions-menu';
 
-export const MoreActions: VFC<IMoreActionsProps> = ({ projectId, data }) => {
-    const { refetch } = useProject(projectId);
+export const MoreActions: VFC<IMoreActionsProps> = ({
+    projectId,
+    data,
+    onChange,
+}) => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const { staleFeatures } = useProjectApi();
     const { setToastData, setToastApiError } = useToast();
@@ -52,10 +56,9 @@ export const MoreActions: VFC<IMoreActionsProps> = ({ projectId, data }) => {
         try {
             handleClose();
             await staleFeatures(projectId, selectedIds);
-            await refetch();
+            onChange?.();
             setToastData({
-                title: 'State updated',
-                text: 'Feature toggles marked as stale',
+                text: 'Feature flags marked as stale',
                 type: 'success',
             });
             trackEvent('batch_operations', {
@@ -72,10 +75,9 @@ export const MoreActions: VFC<IMoreActionsProps> = ({ projectId, data }) => {
         try {
             handleClose();
             await staleFeatures(projectId, selectedIds, false);
-            await refetch();
+            onChange?.();
             setToastData({
-                title: 'State updated',
-                text: 'Feature toggles unmarked as stale',
+                text: 'Feature flags unmarked as stale',
                 type: 'success',
             });
             trackEvent('batch_operations', {
@@ -90,14 +92,14 @@ export const MoreActions: VFC<IMoreActionsProps> = ({ projectId, data }) => {
 
     return (
         <>
-            <Tooltip title="More bulk actions" arrow describeChild>
+            <Tooltip title='More bulk actions' arrow describeChild>
                 <IconButton
                     id={menuId}
                     aria-controls={open ? menuId : undefined}
-                    aria-haspopup="true"
+                    aria-haspopup='true'
                     aria-expanded={open ? 'true' : undefined}
                     onClick={handleClick}
-                    type="button"
+                    type='button'
                     data-testid={MORE_BATCH_ACTIONS}
                 >
                     <MoreVert />
@@ -112,7 +114,7 @@ export const MoreActions: VFC<IMoreActionsProps> = ({ projectId, data }) => {
                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                 disableScrollLock={true}
                 PaperProps={{
-                    sx: theme => ({
+                    sx: (theme) => ({
                         borderRadius: `${theme.shape.borderRadius}px`,
                         padding: theme.spacing(1, 1.5),
                     }),
@@ -132,7 +134,7 @@ export const MoreActions: VFC<IMoreActionsProps> = ({ projectId, data }) => {
                                             onClick={onMarkAsStale}
                                             disabled={!hasAccess}
                                             sx={{
-                                                borderRadius: theme =>
+                                                borderRadius: (theme) =>
                                                     `${theme.shape.borderRadius}px`,
                                             }}
                                         >
@@ -140,7 +142,7 @@ export const MoreActions: VFC<IMoreActionsProps> = ({ projectId, data }) => {
                                                 <WatchLater />
                                             </ListItemIcon>
                                             <ListItemText>
-                                                <Typography variant="body2">
+                                                <Typography variant='body2'>
                                                     Mark as stale
                                                 </Typography>
                                             </ListItemText>
@@ -154,7 +156,7 @@ export const MoreActions: VFC<IMoreActionsProps> = ({ projectId, data }) => {
                                             onClick={onUnmarkAsStale}
                                             disabled={!hasAccess}
                                             sx={{
-                                                borderRadius: theme =>
+                                                borderRadius: (theme) =>
                                                     `${theme.shape.borderRadius}px`,
                                             }}
                                         >
@@ -162,7 +164,7 @@ export const MoreActions: VFC<IMoreActionsProps> = ({ projectId, data }) => {
                                                 <WatchLater />
                                             </ListItemIcon>
                                             <ListItemText>
-                                                <Typography variant="body2">
+                                                <Typography variant='body2'>
                                                     Un-mark as stale
                                                 </Typography>
                                             </ListItemText>

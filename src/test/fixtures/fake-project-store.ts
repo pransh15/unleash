@@ -1,19 +1,26 @@
-import {
+import type {
+    IEnvironment,
+    IProject,
+    IProjectApplications,
+    IProjectStore,
+} from '../../lib/types';
+import NotFoundError from '../../lib/error/notfound-error';
+import type {
+    IEnvironmentProjectLink,
+    ProjectModeCount,
+} from '../../lib/features/project/project-store';
+import type { CreateFeatureStrategySchema } from '../../lib/openapi';
+import type {
+    IProjectApplicationsSearchParams,
     IProjectHealthUpdate,
     IProjectInsert,
-    IProjectStore,
     ProjectEnvironment,
-} from '../../lib/types/stores/project-store';
-import { IEnvironment, IProject, IProjectWithCount } from '../../lib/types';
-import NotFoundError from '../../lib/error/notfound-error';
-import {
-    IEnvironmentProjectLink,
-    IProjectMembersCount,
-} from 'lib/db/project-store';
-import { CreateFeatureStrategySchema } from '../../lib/openapi';
+} from '../../lib/features/project/project-store-type';
+
+type ArchivableProject = IProject & { archivedAt: null | Date };
 
 export default class FakeProjectStore implements IProjectStore {
-    projects: IProject[] = [];
+    projects: ArchivableProject[] = [];
 
     projectEnvironment: Map<string, Set<string>> = new Map();
 
@@ -39,19 +46,14 @@ export default class FakeProjectStore implements IProjectStore {
         this.projectEnvironment.set(id, environments);
     }
 
-    async getProjectsWithCounts(): Promise<IProjectWithCount[]> {
-        return this.projects.map((project) => {
-            return { ...project, memberCount: 0, featureCount: 0 };
-        });
-    }
-
     private createInternal(project: IProjectInsert): IProject {
-        const newProj: IProject = {
+        const newProj: ArchivableProject = {
             ...project,
             health: 100,
             createdAt: new Date(),
             mode: 'open',
             defaultStickiness: 'default',
+            archivedAt: null,
         };
         this.projects.push(newProj);
         return newProj;
@@ -86,11 +88,8 @@ export default class FakeProjectStore implements IProjectStore {
     destroy(): void {}
 
     async count(): Promise<number> {
-        return this.projects.length;
-    }
-
-    async exists(key: string): Promise<boolean> {
-        return this.projects.some((project) => project.id === key);
+        return this.projects.filter((project) => project.archivedAt === null)
+            .length;
     }
 
     async get(key: string): Promise<IProject> {
@@ -102,7 +101,7 @@ export default class FakeProjectStore implements IProjectStore {
     }
 
     async getAll(): Promise<IProject[]> {
-        return this.projects;
+        return this.projects.filter((project) => project.archivedAt === null);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -110,8 +109,18 @@ export default class FakeProjectStore implements IProjectStore {
         return Promise.resolve(0);
     }
 
+    async exists(key: string): Promise<boolean> {
+        return this.projects.some((project) => project.id === key);
+    }
+
     async hasProject(id: string): Promise<boolean> {
         return this.exists(id);
+    }
+
+    async hasActiveProject(id: string): Promise<boolean> {
+        return this.projects.some(
+            (project) => project.id === id && project.archivedAt === null,
+        );
     }
 
     async importProjects(
@@ -134,15 +143,6 @@ export default class FakeProjectStore implements IProjectStore {
         )!.health = healthUpdate.health;
     }
 
-    getMembersCount(): Promise<IProjectMembersCount[]> {
-        throw new Error('Method not implemented.');
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getProjectsByUser(userId: number): Promise<string[]> {
-        throw new Error('Method not implemented.');
-    }
-
     addEnvironmentToProjects(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         environment: string,
@@ -152,13 +152,13 @@ export default class FakeProjectStore implements IProjectStore {
         throw new Error('Method not implemented.');
     }
 
-    getMembersCountByProjectAfterDate(
+    async getMembersCountByProjectAfterDate(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         projectId: string,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         date: string,
     ): Promise<number> {
-        throw new Error('Method not implemented');
+        return 0;
     }
 
     updateDefaultStrategy(
@@ -177,12 +177,41 @@ export default class FakeProjectStore implements IProjectStore {
         projectId: string,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         environment: string,
-    ): Promise<CreateFeatureStrategySchema | undefined> {
+    ): Promise<CreateFeatureStrategySchema | null> {
         throw new Error('Method not implemented.');
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isFeatureLimitReached(id: string): Promise<boolean> {
         return Promise.resolve(false);
+    }
+
+    getProjectModeCounts(): Promise<ProjectModeCount[]> {
+        return Promise.resolve([]);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    updateProjectEnterpriseSettings(update: IProjectInsert): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    getApplicationsByProject(
+        searchParams: IProjectApplicationsSearchParams,
+    ): Promise<IProjectApplications> {
+        throw new Error('Method not implemented.');
+    }
+
+    async archive(id: string): Promise<void> {
+        this.projects = this.projects.map((project) =>
+            project.id === id
+                ? { ...project, archivedAt: new Date() }
+                : project,
+        );
+    }
+
+    async revive(id: string): Promise<void> {
+        this.projects = this.projects.map((project) =>
+            project.id === id ? { ...project, archivedAt: null } : project,
+        );
     }
 }

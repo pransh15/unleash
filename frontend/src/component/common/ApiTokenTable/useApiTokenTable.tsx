@@ -1,33 +1,47 @@
 import { useMemo } from 'react';
-import { IApiToken } from 'hooks/api/getters/useApiTokens/useApiTokens';
+import type { IApiToken } from 'hooks/api/getters/useApiTokens/useApiTokens';
 import { DateCell } from 'component/common/Table/cells/DateCell/DateCell';
 import { HighlightCell } from 'component/common/Table/cells/HighlightCell/HighlightCell';
-import { IconCell } from 'component/common/Table/cells/IconCell/IconCell';
 import { TimeAgoCell } from 'component/common/Table/cells/TimeAgoCell/TimeAgoCell';
-import { useTable, useGlobalFilter, useSortBy } from 'react-table';
+import {
+    useTable,
+    useGlobalFilter,
+    useSortBy,
+    useFlexLayout,
+} from 'react-table';
 import { sortTypes } from 'utils/sortTypes';
 import { ProjectsList } from 'component/admin/apiToken/ProjectsList/ProjectsList';
-import { Key } from '@mui/icons-material';
+import { ApiTokenIcon } from 'component/admin/apiToken/ApiTokenIcon/ApiTokenIcon';
 
 export const useApiTokenTable = (
     tokens: IApiToken[],
-    getActionCell: (props: any) => JSX.Element
+    getActionCell: (props: any) => JSX.Element,
 ) => {
-    const initialState = useMemo(() => ({ sortBy: [{ id: 'createdAt' }] }), []);
+    const initialState = useMemo(
+        () => ({ sortBy: [{ id: 'createdAt', desc: true }] }),
+        [],
+    );
 
     const COLUMNS = useMemo(() => {
         return [
             {
                 id: 'Icon',
-                width: '1%',
-                Cell: () => <IconCell icon={<Key color="disabled" />} />,
+                Cell: (props: any) => (
+                    <ApiTokenIcon
+                        secret={props.row.original.secret}
+                        project={props.row.original.project}
+                        projects={props.row.original.projects}
+                    />
+                ),
                 disableSortBy: true,
                 disableGlobalFilter: true,
+                width: 50,
             },
             {
                 Header: 'Username',
                 accessor: 'username',
                 Cell: HighlightCell,
+                minWidth: 35,
             },
             {
                 Header: 'Type',
@@ -40,9 +54,10 @@ export const useApiTokenTable = (
                     <HighlightCell
                         value={tokenDescriptions[value.toLowerCase()].label}
                         subtitle={tokenDescriptions[value.toLowerCase()].title}
+                        subtitleTooltip
                     />
                 ),
-                minWidth: 280,
+                width: 180,
             },
             {
                 Header: 'Project',
@@ -53,33 +68,33 @@ export const useApiTokenTable = (
                         projects={props.row.original.projects}
                     />
                 ),
-                minWidth: 120,
+                width: 160,
             },
             {
                 Header: 'Environment',
                 accessor: 'environment',
                 Cell: HighlightCell,
-                minWidth: 120,
+                width: 120,
             },
             {
                 Header: 'Created',
                 accessor: 'createdAt',
                 Cell: DateCell,
-                minWidth: 150,
+                width: 150,
                 disableGlobalFilter: true,
             },
             {
                 Header: 'Last seen',
                 accessor: 'seenAt',
                 Cell: TimeAgoCell,
-                minWidth: 150,
+                width: 140,
                 disableGlobalFilter: true,
             },
             {
                 Header: 'Actions',
+                width: 120,
                 id: 'Actions',
                 align: 'center',
-                width: '1%',
                 disableSortBy: true,
                 disableGlobalFilter: true,
                 Cell: getActionCell,
@@ -106,7 +121,8 @@ export const useApiTokenTable = (
             disableSortRemove: true,
         },
         useGlobalFilter,
-        useSortBy
+        useSortBy,
+        useFlexLayout,
     );
 
     return {
@@ -127,7 +143,7 @@ const tokenDescriptions: {
 } = {
     client: {
         label: 'CLIENT',
-        title: 'Connect server-side SDK or Unleash Proxy',
+        title: 'Connect server-side SDK or Unleash Proxy/Edge',
     },
     frontend: {
         label: 'FRONTEND',

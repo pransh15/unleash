@@ -1,5 +1,7 @@
-import { FC, useState } from 'react';
-import { Close, HelpOutline } from '@mui/icons-material';
+import type React from 'react';
+import { type FC, useState } from 'react';
+import Close from '@mui/icons-material/Close';
+import HelpOutline from '@mui/icons-material/HelpOutline';
 import {
     Box,
     IconButton,
@@ -12,6 +14,7 @@ import { Feedback } from 'component/common/Feedback/Feedback';
 
 interface IHelpPopperProps {
     id: string;
+    children?: React.ReactNode;
 }
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -36,13 +39,15 @@ export const HelpPopper: FC<IHelpPopperProps> = ({ children, id }) => {
         <Box
             sx={{
                 position: 'absolute',
-                top: theme => theme.spacing(0.5),
-                right: theme => theme.spacing(0.5),
+                top: (theme) => theme.spacing(0.5),
+                right: (theme) => theme.spacing(0.5),
             }}
         >
-            <IconButton onClick={onOpen} aria-describedby={id} size="small">
+            <IconButton onClick={onOpen} aria-describedby={id} size='small'>
                 <HelpOutline
-                    sx={{ fontSize: theme => theme.typography.body1.fontSize }}
+                    sx={{
+                        fontSize: (theme) => theme.typography.body1.fontSize,
+                    }}
                 />
             </IconButton>
 
@@ -50,7 +55,7 @@ export const HelpPopper: FC<IHelpPopperProps> = ({ children, id }) => {
                 id={id}
                 open={open}
                 anchorEl={anchor}
-                sx={theme => ({ zIndex: theme.zIndex.tooltip })}
+                sx={(theme) => ({ zIndex: theme.zIndex.tooltip })}
             >
                 <ClickAwayListener onClickAway={onClose}>
                     <StyledPaper elevation={3}>
@@ -60,7 +65,7 @@ export const HelpPopper: FC<IHelpPopperProps> = ({ children, id }) => {
                         >
                             <Close
                                 sx={{
-                                    fontSize: theme =>
+                                    fontSize: (theme) =>
                                         theme.typography.body1.fontSize,
                                 }}
                             />
@@ -68,8 +73,8 @@ export const HelpPopper: FC<IHelpPopperProps> = ({ children, id }) => {
                         {children}
                         <Feedback
                             id={id}
-                            eventName="project_overview"
-                            localStorageKey="ProjectOverviewFeedback"
+                            eventName='project_overview'
+                            localStorageKey='ProjectOverviewFeedback'
                         />
                     </StyledPaper>
                 </ClickAwayListener>

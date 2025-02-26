@@ -1,10 +1,14 @@
-/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { ApiTokenType } from '../types/models/api-token';
-import { IUnleashConfig } from '../types/option';
-import { IAuthRequest } from '../routes/unleash-types';
+import type { IUnleashConfig } from '../types/option';
+import type { IApiRequest, IAuthRequest } from '../routes/unleash-types';
+import type { IUnleashServices } from '../server-impl';
 
 const isClientApi = ({ path }) => {
     return path && path.indexOf('/api/client') > -1;
+};
+
+const isEdgeMetricsApi = ({ path }) => {
+    return path && path.indexOf('/edge/metrics') > -1;
 };
 
 const isProxyApi = ({ path }) => {
@@ -33,7 +37,7 @@ const apiAccessMiddleware = (
         authentication,
         flagResolver,
     }: Pick<IUnleashConfig, 'getLogger' | 'authentication' | 'flagResolver'>,
-    { apiTokenService }: any,
+    { apiTokenService }: Pick<IUnleashServices, 'apiTokenService'>,
 ): any => {
     const logger = getLogger('/middleware/api-token.ts');
     logger.debug('Enabling api-token middleware');
@@ -42,7 +46,7 @@ const apiAccessMiddleware = (
         return (req, res, next) => next();
     }
 
-    return (req: IAuthRequest, res, next) => {
+    return async (req: IAuthRequest | IApiRequest, res, next) => {
         if (req.user) {
             return next();
         }
@@ -50,12 +54,16 @@ const apiAccessMiddleware = (
         try {
             const apiToken = req.header('authorization');
             if (!apiToken?.startsWith('user:')) {
-                const apiUser = apiTokenService.getUserForToken(apiToken);
+                const apiUser = apiToken
+                    ? await apiTokenService.getUserForToken(apiToken)
+                    : undefined;
                 const { CLIENT, FRONTEND } = ApiTokenType;
 
                 if (apiUser) {
                     if (
-                        (apiUser.type === CLIENT && !isClientApi(req)) ||
+                        (apiUser.type === CLIENT &&
+                            !isClientApi(req) &&
+                            !isEdgeMetricsApi(req)) ||
                         (apiUser.type === FRONTEND && !isProxyApi(req)) ||
                         (apiUser.type === FRONTEND &&
                             !flagResolver.isEnabled('embedProxy'))
@@ -79,7 +87,6 @@ const apiAccessMiddleware = (
         } catch (error) {
             logger.warn(error);
         }
-
         next();
     };
 };

@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { exportResultSchema } from './export-result-schema';
 import { featureSchema } from './feature-schema';
 import { featureStrategySchema } from './feature-strategy-schema';
@@ -14,6 +14,8 @@ import { legalValueSchema } from './legal-value-schema';
 import { tagTypeSchema } from './tag-type-schema';
 import { featureEnvironmentSchema } from './feature-environment-schema';
 import { strategyVariantSchema } from './strategy-variant-schema';
+import { featureDependenciesSchema } from './feature-dependencies-schema';
+import { dependentFeatureSchema } from './dependent-feature-schema';
 
 export const importTogglesSchema = {
     $id: '#/components/schemas/importTogglesSchema',
@@ -56,6 +58,8 @@ export const importTogglesSchema = {
             parametersSchema,
             legalValueSchema,
             tagTypeSchema,
+            featureDependenciesSchema,
+            dependentFeatureSchema,
         },
     },
 } as const;

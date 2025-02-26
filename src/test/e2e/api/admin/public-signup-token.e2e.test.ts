@@ -1,14 +1,15 @@
 import { setupAppWithCustomAuth } from '../../helpers/test-helper';
-import dbInit from '../../helpers/database-init';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
 import getLogger from '../../../fixtures/no-logger';
 import { RoleName } from '../../../../lib/types/model';
-import { PublicSignupTokenCreateSchema } from '../../../../lib/openapi/spec/public-signup-token-create-schema';
+import type { PublicSignupTokenCreateSchema } from '../../../../lib/openapi/spec/public-signup-token-create-schema';
+import type { IUnleashStores } from '../../../../lib/types';
 
-let stores;
-let db;
+let stores: IUnleashStores;
+let db: ITestDb;
 
-beforeEach(async () => {
-    db = await dbInit('test', getLogger);
+beforeAll(async () => {
+    db = await dbInit('public_signup_test', getLogger);
     stores = db.stores;
 });
 
@@ -25,7 +26,7 @@ afterAll(async () => {
 });
 
 const expireAt = (addDays: number = 7): Date => {
-    let now = new Date();
+    const now = new Date();
     now.setDate(now.getDate() + addDays);
     return now;
 };
@@ -35,7 +36,7 @@ test('admin users should be able to create a token', async () => {
 
     const preHook = (app, config, { userService, accessService }) => {
         app.use('/api/admin/', async (req, res, next) => {
-            const role = await accessService.getRootRole(RoleName.ADMIN);
+            const role = await accessService.getPredefinedRole(RoleName.ADMIN);
             const user = await userService.createUser({
                 email: 'admin@example.com',
                 rootRole: role.id,
@@ -69,7 +70,7 @@ test('admin users should be able to create a token', async () => {
 test('no permission to validate a token', async () => {
     const preHook = (app, config, { userService, accessService }) => {
         app.use('/api/admin/', async (req, res, next) => {
-            const admin = await accessService.getRootRole(RoleName.ADMIN);
+            const admin = await accessService.getPredefinedRole(RoleName.ADMIN);
             await userService.createUser({
                 email: 'admin@example.com',
                 username: 'admin@example.com',
@@ -82,10 +83,10 @@ test('no permission to validate a token', async () => {
     const { request, destroy } = await setupAppWithCustomAuth(stores, preHook);
 
     await stores.publicSignupTokenStore.insert({
+        url: 'http://localhost:4242/invite/some-secret/signup',
         name: 'some-name',
         expiresAt: expireAt(),
         secret: 'some-secret',
-        createAt: new Date(),
         createdBy: 'admin@example.com',
         roleId: 3,
     });
@@ -97,7 +98,7 @@ test('no permission to validate a token', async () => {
 test('should return 400 if token can not be validate', async () => {
     const preHook = (app, config, { userService, accessService }) => {
         app.use('/api/admin/', async (req, res, next) => {
-            const admin = await accessService.getRootRole(RoleName.ADMIN);
+            const admin = await accessService.getPredefinedRole(RoleName.ADMIN);
             await userService.createUser({
                 email: 'admin@example.com',
                 username: 'admin@example.com',
@@ -119,7 +120,7 @@ test('users can signup with invite-link', async () => {
 
     const preHook = (app, config, { userService, accessService }) => {
         app.use('/api/admin/', async (req, res, next) => {
-            const admin = await accessService.getRootRole(RoleName.ADMIN);
+            const admin = await accessService.getPredefinedRole(RoleName.ADMIN);
             await userService.createUser({
                 email: 'admin@example.com',
                 username: 'admin@example.com',
@@ -136,7 +137,6 @@ test('users can signup with invite-link', async () => {
         expiresAt: expireAt(),
         secret: 'some-secret',
         url: 'http://localhost:4242/invite/some-secret/signup',
-        createAt: new Date(),
         createdBy: 'admin@example.com',
         roleId: 3,
     });
@@ -164,7 +164,7 @@ test('can get a token with users', async () => {
 
     const preHook = (app, config, { userService, accessService }) => {
         app.use('/api/admin/', async (req, res, next) => {
-            const role = await accessService.getRootRole(RoleName.ADMIN);
+            const role = await accessService.getPredefinedRole(RoleName.ADMIN);
             const user = await userService.createUser({
                 email: 'admin@example.com',
                 rootRole: role.id,
@@ -177,10 +177,10 @@ test('can get a token with users', async () => {
     const { request, destroy } = await setupAppWithCustomAuth(stores, preHook);
 
     await stores.publicSignupTokenStore.insert({
+        url: 'http://localhost:4242/invite/some-secret',
         name: 'some-name',
         expiresAt: expireAt(),
         secret: 'some-secret',
-        createAt: new Date(),
         createdBy: 'admin@example.com',
         roleId: 3,
     });
@@ -188,9 +188,6 @@ test('can get a token with users', async () => {
     const user = await stores.userStore.insert({
         username: 'some-username',
         email: 'some@example.com',
-        password: 'eweggwEG',
-        sendEmail: false,
-        rootRole: 3,
     });
 
     await stores.publicSignupTokenStore.addTokenUser('some-secret', user.id);
@@ -209,7 +206,7 @@ test('can get a token with users', async () => {
 test('should not be able to set expiry further than 1 month', async () => {
     const preHook = (app, config, { userService, accessService }) => {
         app.use('/api/admin/', async (req, res, next) => {
-            const role = await accessService.getRootRole(RoleName.ADMIN);
+            const role = await accessService.getPredefinedRole(RoleName.ADMIN);
             const user = await userService.createUser({
                 email: 'admin@example.com',
                 rootRole: role.id,

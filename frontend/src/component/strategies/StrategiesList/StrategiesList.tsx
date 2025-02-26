@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback, FC } from 'react';
+import { useState, useMemo, useCallback, type FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Link, Typography, styled } from '@mui/material';
-import { Extension } from '@mui/icons-material';
+import { Alert, Box, Link, Typography, styled } from '@mui/material';
+import Extension from '@mui/icons-material/Extension';
 import {
     Table,
     SortableTableHeader,
@@ -20,7 +20,7 @@ import { useStrategies } from 'hooks/api/getters/useStrategies/useStrategies';
 import useStrategiesApi from 'hooks/api/actions/useStrategiesApi/useStrategiesApi';
 import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
-import { IStrategy } from 'interfaces/strategy';
+import type { IStrategy } from 'interfaces/strategy';
 import { LinkCell } from 'component/common/Table/cells/LinkCell/LinkCell';
 import { sortTypes } from 'utils/sortTypes';
 import { useTable, useSortBy } from 'react-table';
@@ -66,13 +66,13 @@ const Subtitle: FC<{
             tooltip={
                 <>
                     <Typography
-                        variant="body2"
-                        component="p"
-                        sx={theme => ({ marginBottom: theme.spacing(1) })}
+                        variant='body2'
+                        component='p'
+                        sx={(theme) => ({ marginBottom: theme.spacing(1) })}
                     >
                         {description}
                     </Typography>
-                    <Link href={link} target="_blank" variant="body2">
+                    <Link href={link} target='_blank' variant='body2'>
                         Read more in the documentation
                     </Link>
                 </>
@@ -83,7 +83,7 @@ const Subtitle: FC<{
 
 const CustomStrategyTitle: FC = () => (
     <Box
-        sx={theme => ({
+        sx={(theme) => ({
             display: 'flex',
             flexDirection: 'row',
             justifyContent: 'space-between',
@@ -92,9 +92,9 @@ const CustomStrategyTitle: FC = () => (
         })}
     >
         <Subtitle
-            title="Custom strategies"
-            description="Custom activation strategies let you define your own activation strategies to use with Unleash."
-            link="https://docs.getunleash.io/reference/custom-activation-strategies"
+            title='Custom strategies'
+            description='Custom activation strategies let you define your own activation strategies to use with Unleash.'
+            link='https://docs.getunleash.io/reference/custom-activation-strategies'
         />
         <AddStrategyButton />
     </Box>
@@ -103,11 +103,30 @@ const CustomStrategyTitle: FC = () => (
 const PredefinedStrategyTitle = () => (
     <Box>
         <Subtitle
-            title="Predefined strategies"
-            description="Activation strategies let you enable a feature only for a specified audience. Different strategies use different parameters. Predefined strategies are bundled with Unleash."
-            link="https://docs.getunleash.io/reference/activation-strategies"
+            title='Predefined strategies'
+            description='Activation strategies let you enable a feature only for a specified audience. Different strategies use different parameters. Predefined strategies are bundled with Unleash.'
+            link='https://docs.getunleash.io/reference/activation-strategies'
         />
     </Box>
+);
+
+const StrategyDeprecationWarning = () => (
+    <Alert severity='warning' sx={{ mb: 2 }}>
+        Custom strategies are deprecated and may be removed in a future major
+        version. We recommend not using custom strategies going forward and
+        instead using the predefined strategies with{' '}
+        <Link
+            href={
+                'https://docs.getunleash.io/reference/activation-strategies#constraints'
+            }
+            target='_blank'
+            variant='body2'
+        >
+            constraints
+        </Link>
+        . If you have a need for custom strategies that you cannot support with
+        constraints, please reach out to us.
+    </Alert>
 );
 
 export const StrategiesList = () => {
@@ -117,7 +136,7 @@ export const StrategiesList = () => {
             show: false,
             title: '',
             onConfirm: () => {},
-        }
+        },
     );
 
     const { strategies, refetchStrategies, loading } = useStrategies();
@@ -144,12 +163,12 @@ export const StrategiesList = () => {
                 description,
                 editable,
                 deprecated,
-            })
+            }),
         );
         return {
             all,
-            predefined: all.filter(strategy => !strategy.editable),
-            custom: all.filter(strategy => strategy.editable),
+            predefined: all.filter((strategy) => !strategy.editable),
+            custom: all.filter((strategy) => strategy.editable),
         };
     }, [strategies, loading]);
 
@@ -165,8 +184,7 @@ export const StrategiesList = () => {
                             refetchStrategies();
                             setToastData({
                                 type: 'success',
-                                title: 'Success',
-                                text: 'Strategy reactivated successfully',
+                                text: 'Strategy reactivated',
                             });
                         } catch (error: unknown) {
                             setToastApiError(formatUnknownError(error));
@@ -183,8 +201,7 @@ export const StrategiesList = () => {
                             refetchStrategies();
                             setToastData({
                                 type: 'success',
-                                title: 'Success',
-                                text: 'Strategy deprecated successfully',
+                                text: 'Strategy deprecated',
                             });
                         } catch (error: unknown) {
                             setToastApiError(formatUnknownError(error));
@@ -199,7 +216,7 @@ export const StrategiesList = () => {
             refetchStrategies,
             setToastApiError,
             setToastData,
-        ]
+        ],
     );
 
     const onDeleteStrategy = useCallback(
@@ -213,8 +230,7 @@ export const StrategiesList = () => {
                         refetchStrategies();
                         setToastData({
                             type: 'success',
-                            title: 'Success',
-                            text: 'Strategy deleted successfully',
+                            text: 'Strategy deleted',
                         });
                     } catch (error: unknown) {
                         setToastApiError(formatUnknownError(error));
@@ -222,14 +238,14 @@ export const StrategiesList = () => {
                 },
             });
         },
-        [removeStrategy, refetchStrategies, setToastApiError, setToastData]
+        [removeStrategy, refetchStrategies, setToastApiError, setToastData],
     );
 
     const onEditStrategy = useCallback(
         (strategy: IStrategy) => {
             navigate(`/strategies/${strategy.name}/edit`);
         },
-        [navigate]
+        [navigate],
     );
 
     const columns = useMemo(
@@ -246,7 +262,7 @@ export const StrategiesList = () => {
                             alignItems: 'center',
                         }}
                     >
-                        <Extension color="disabled" />
+                        <Extension color='disabled' />
                     </Box>
                 ),
             },
@@ -270,7 +286,7 @@ export const StrategiesList = () => {
                             <ConditionallyRender
                                 condition={deprecated}
                                 show={() => (
-                                    <StyledBadge color="disabled">
+                                    <StyledBadge color='disabled'>
                                         Disabled
                                     </StyledBadge>
                                 )}
@@ -323,7 +339,7 @@ export const StrategiesList = () => {
                 sortType: 'number',
             },
         ],
-        [onToggle, onEditStrategy, onDeleteStrategy]
+        [onToggle, onEditStrategy, onDeleteStrategy],
     );
 
     const initialState = useMemo(
@@ -331,7 +347,7 @@ export const StrategiesList = () => {
             sortBy: [{ id: 'Name', desc: false }],
             hiddenColumns: ['description', 'sortOrder'],
         }),
-        []
+        [],
     );
 
     const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
@@ -343,8 +359,9 @@ export const StrategiesList = () => {
                 sortTypes,
                 autoResetSortBy: false,
                 disableSortRemove: true,
+                autoResetHiddenColumns: false,
             },
-            useSortBy
+            useSortBy,
         );
 
     const {
@@ -361,8 +378,9 @@ export const StrategiesList = () => {
             sortTypes,
             autoResetSortBy: false,
             disableSortRemove: true,
+            autoResetHiddenColumns: false,
         },
-        useSortBy
+        useSortBy,
     );
 
     const onDialogConfirm = () => {
@@ -378,24 +396,34 @@ export const StrategiesList = () => {
             <PageContent
                 isLoading={loading}
                 header={
-                    <PageHeader>
-                        <PredefinedStrategyTitle />
-                    </PageHeader>
+                    <PageHeader
+                        titleElement={<PredefinedStrategyTitle />}
+                        title='Strategy types'
+                    />
                 }
             >
                 <Box>
                     <Table {...getTableProps()}>
                         <SortableTableHeader headerGroups={headerGroups} />
                         <TableBody {...getTableBodyProps()}>
-                            {rows.map(row => {
+                            {rows.map((row) => {
                                 prepareRow(row);
+                                const { key, ...rowProps } = row.getRowProps();
                                 return (
-                                    <TableRow hover {...row.getRowProps()}>
-                                        {row.cells.map(cell => (
-                                            <TableCell {...cell.getCellProps()}>
-                                                {cell.render('Cell')}
-                                            </TableCell>
-                                        ))}
+                                    <TableRow hover key={key} {...rowProps}>
+                                        {row.cells.map((cell) => {
+                                            const { key, ...cellProps } =
+                                                cell.getCellProps();
+
+                                            return (
+                                                <TableCell
+                                                    key={key}
+                                                    {...cellProps}
+                                                >
+                                                    {cell.render('Cell')}
+                                                </TableCell>
+                                            );
+                                        })}
                                     </TableRow>
                                 );
                             })}
@@ -432,20 +460,30 @@ export const StrategiesList = () => {
                 }
             >
                 <Box>
+                    <StrategyDeprecationWarning />
                     <Table {...customGetTableProps()}>
                         <SortableTableHeader
                             headerGroups={customHeaderGroups}
                         />
                         <TableBody {...customGetTableBodyProps()}>
-                            {customRows.map(row => {
+                            {customRows.map((row) => {
                                 customPrepareRow(row);
+                                const { key, ...rowProps } = row.getRowProps();
                                 return (
-                                    <TableRow hover {...row.getRowProps()}>
-                                        {row.cells.map(cell => (
-                                            <TableCell {...cell.getCellProps()}>
-                                                {cell.render('Cell')}
-                                            </TableCell>
-                                        ))}
+                                    <TableRow hover key={key} {...rowProps}>
+                                        {row.cells.map((cell) => {
+                                            const { key, ...cellProps } =
+                                                cell.getCellProps();
+
+                                            return (
+                                                <TableCell
+                                                    key={key}
+                                                    {...cellProps}
+                                                >
+                                                    {cell.render('Cell')}
+                                                </TableCell>
+                                            );
+                                        })}
                                     </TableRow>
                                 );
                             })}

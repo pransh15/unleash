@@ -1,10 +1,12 @@
-import React from 'react';
+import type React from 'react';
 import { Link } from 'react-router-dom';
-import { ISegment } from 'interfaces/segment';
-import { Clear, VisibilityOff, Visibility } from '@mui/icons-material';
+import type { ISegment } from 'interfaces/segment';
+import Clear from '@mui/icons-material/Clear';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import Visibility from '@mui/icons-material/Visibility';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { constraintAccordionListId } from 'component/common/ConstraintAccordion/ConstraintAccordionList/ConstraintAccordionList';
-import { styled, Theme, Tooltip } from '@mui/material';
+import { styled, type Theme, Tooltip } from '@mui/material';
 
 interface IFeatureStrategySegmentListProps {
     segment: ISegment;
@@ -47,16 +49,16 @@ export const FeatureStrategySegmentChip = ({
     setPreview,
 }: IFeatureStrategySegmentListProps) => {
     const onRemove = () => {
-        setSegments(prev => {
-            return prev.filter(s => s.id !== segment.id);
+        setSegments((prev) => {
+            return prev.filter((s) => s.id !== segment.id);
         });
-        setPreview(prev => {
+        setPreview((prev) => {
             return prev === segment ? undefined : prev;
         });
     };
 
     const onTogglePreview = () => {
-        setPreview(prev => {
+        setPreview((prev) => {
             return prev === segment ? undefined : segment;
         });
     };
@@ -64,8 +66,8 @@ export const FeatureStrategySegmentChip = ({
     const togglePreviewIcon = (
         <ConditionallyRender
             condition={segment === preview}
-            show={<VisibilityOff titleAccess="Hide" sx={styledIcon} />}
-            elseShow={<Visibility titleAccess="Show" sx={styledIcon} />}
+            show={<VisibilityOff titleAccess='Hide' sx={styledIcon} />}
+            elseShow={<Visibility titleAccess='Show' sx={styledIcon} />}
         />
     );
 
@@ -78,14 +80,14 @@ export const FeatureStrategySegmentChip = ({
         <StyledChip>
             <StyledLink
                 to={`/segments/edit/${segment.id}`}
-                target="_blank"
-                rel="noreferrer"
+                target='_blank'
+                rel='noreferrer'
             >
                 {segment.name}
             </StyledLink>
             <Tooltip title={previewIconTooltip} arrow>
                 <StyledButton
-                    type="button"
+                    type='button'
                     onClick={onTogglePreview}
                     aria-expanded={segment === preview}
                     aria-controls={constraintAccordionListId}
@@ -93,9 +95,9 @@ export const FeatureStrategySegmentChip = ({
                     {togglePreviewIcon}
                 </StyledButton>
             </Tooltip>
-            <Tooltip title="Remove segment" arrow>
-                <StyledButton type="button" onClick={onRemove}>
-                    <Clear titleAccess="Remove" sx={styledIcon} />
+            <Tooltip title='Remove segment' arrow>
+                <StyledButton type='button' onClick={onRemove}>
+                    <Clear titleAccess='Remove' sx={styledIcon} />
                 </StyledButton>
             </Tooltip>
         </StyledChip>

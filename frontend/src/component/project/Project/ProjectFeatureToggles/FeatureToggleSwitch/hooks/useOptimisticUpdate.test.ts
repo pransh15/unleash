@@ -1,5 +1,6 @@
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { useOptimisticUpdate } from './useOptimisticUpdate';
+import { act } from 'react';
 
 describe('useOptimisticUpdate', () => {
     it('should return state, setter, and rollback function', () => {
@@ -13,7 +14,7 @@ describe('useOptimisticUpdate', () => {
     });
 
     it('should have working setter', () => {
-        const { result } = renderHook(state => useOptimisticUpdate(state), {
+        const { result } = renderHook((state) => useOptimisticUpdate(state), {
             initialProps: 'initial',
         });
 
@@ -26,10 +27,10 @@ describe('useOptimisticUpdate', () => {
 
     it('should update reset state if input changed', () => {
         const { result, rerender } = renderHook(
-            state => useOptimisticUpdate(state),
+            (state) => useOptimisticUpdate(state),
             {
                 initialProps: 'A',
-            }
+            },
         );
 
         rerender('B');
@@ -38,7 +39,7 @@ describe('useOptimisticUpdate', () => {
     });
 
     it('should have working rollback', () => {
-        const { result } = renderHook(state => useOptimisticUpdate(state), {
+        const { result } = renderHook((state) => useOptimisticUpdate(state), {
             initialProps: 'initial',
         });
 

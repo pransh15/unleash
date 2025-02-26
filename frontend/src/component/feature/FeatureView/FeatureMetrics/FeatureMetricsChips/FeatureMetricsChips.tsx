@@ -1,12 +1,13 @@
-import { Chip, styled } from '@mui/material';
+import { Chip, Button, styled } from '@mui/material';
 import { useMemo } from 'react';
 import { focusable } from 'themes/themeStyles';
 
 interface IFeatureMetricsChipsProps {
     title: string;
     values: Set<string>;
-    value?: string;
-    setValue: (value: string) => void;
+    selectedValues: string[];
+    toggleValue: (value: string) => void;
+    toggleValues?: () => void;
 }
 
 const StyledTitle = styled('h2')(({ theme }) => ({
@@ -24,6 +25,9 @@ const StyledList = styled('ul')(({ theme }) => ({
     listStyleType: 'none',
     padding: 0,
     minHeight: '100%',
+    alignItems: 'center',
+    maxHeight: '200px',
+    overflowY: 'auto',
 }));
 
 const StyledItem = styled('li')(({ theme }) => ({
@@ -39,14 +43,16 @@ const StyledItem = styled('li')(({ theme }) => ({
 export const FeatureMetricsChips = ({
     title,
     values,
-    value,
-    setValue,
+    selectedValues,
+    toggleValue,
+    toggleValues,
 }: IFeatureMetricsChipsProps) => {
     const onClick = (value: string) => () => {
-        if (values.has(value)) {
-            setValue(value);
-        }
+        toggleValue(value);
     };
+    const allSelected = [...values].every((element) =>
+        selectedValues.includes(element),
+    );
 
     const sortedValues = useMemo(() => {
         return Array.from(values).sort((valueA, valueB) => {
@@ -58,12 +64,21 @@ export const FeatureMetricsChips = ({
         <div>
             <StyledTitle>{title}</StyledTitle>
             <StyledList>
-                {sortedValues.map(val => (
+                {toggleValues && values.size > 1 && (
+                    <Button
+                        size={'small'}
+                        onClick={toggleValues}
+                        aria-pressed={allSelected}
+                    >
+                        {allSelected ? 'Unselect' : 'Select all'}
+                    </Button>
+                )}
+                {sortedValues.map((val) => (
                     <StyledItem key={val}>
                         <Chip
                             label={val}
                             onClick={onClick(val)}
-                            aria-pressed={val === value}
+                            aria-pressed={selectedValues?.includes(val)}
                             sx={focusable}
                         />
                     </StyledItem>

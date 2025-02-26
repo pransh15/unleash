@@ -1,41 +1,50 @@
-import { getDbConfig } from './helpers/database-config';
-import { createTestConfig } from '../config/test-config';
-import { getInstance } from 'db-migrate';
-import { Client } from 'pg';
-import { IDBOption } from 'lib/types';
+import dbInit, { type ITestDb } from '../../test/e2e/helpers/database-init';
 
-async function initSchema(db: IDBOption): Promise<void> {
+import getLogger from '../../test/fixtures/no-logger';
+
+import { log } from 'db-migrate-shared';
+import { Client } from 'pg';
+import type { IDBOption } from '../../lib/types';
+import { resetDb } from '../../migrator';
+
+log.setLogLevel('error');
+
+async function validateTablesHavePrimaryKeys(db: IDBOption) {
     const client = new Client(db);
     await client.connect();
-    await client.query(`DROP SCHEMA IF EXISTS ${db.schema} CASCADE`);
-    await client.query(`CREATE SCHEMA IF NOT EXISTS ${db.schema}`);
+    const tables = await client.query<{ table_name: string }>(
+        `SELECT 
+        t.table_name
+    FROM 
+        information_schema.tables t
+    LEFT JOIN 
+        information_schema.table_constraints tc ON t.table_schema = tc.table_schema
+        AND t.table_name = tc.table_name
+        AND tc.constraint_type = 'PRIMARY KEY'
+    WHERE 
+        t.table_type = 'BASE TABLE'
+        AND t.table_schema NOT IN ('pg_catalog', 'information_schema')
+        AND tc.constraint_name IS NULL;
+    `,
+    );
     await client.end();
+    if ((tables.rowCount ?? 0) > 0) {
+        throw new Error(
+            `The following tables do not have a primary key defined: ${tables.rows
+                .map((r) => r.table_name)
+                .join(', ')}`,
+        );
+    }
 }
-
+let db: ITestDb;
+afterAll(async () => {
+    await db.destroy();
+});
 test('Up & down migrations work', async () => {
-    jest.setTimeout(15000);
-    const config = createTestConfig({
-        db: {
-            ...getDbConfig(),
-            pool: { min: 1, max: 4 },
-            schema: 'up_n_down_migrations_test',
-            ssl: false,
-        },
-    });
-
-    await initSchema(config.db);
-
-    const e2e = {
-        ...config.db,
-        connectionTimeoutMillis: 2000,
-    };
-
-    const dbm = getInstance(true, {
-        cwd: `${__dirname}/../../`, // relative to src/test/e2e
-        config: { e2e },
-        env: 'e2e',
-    });
-
-    await dbm.up();
-    await dbm.reset();
+    db = await dbInit('system_user_migration', getLogger);
+    // up migration is performed at the beginning of tests
+    // here we just validate that the tables have primary keys
+    await validateTablesHavePrimaryKeys(db.config.db);
+    // then we test down migrations
+    await resetDb(db.config);
 });

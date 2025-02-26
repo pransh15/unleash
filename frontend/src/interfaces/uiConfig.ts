@@ -1,25 +1,39 @@
-import { ReactNode } from 'react';
-import { Variant } from 'utils/variants';
+import type { ReactNode } from 'react';
+import type { Variant } from 'utils/variants';
+import type { ResourceLimitsSchema } from '../openapi';
 
 export interface IUiConfig {
     authenticationType?: string;
     baseUriPath?: string;
-    flags: IFlags;
+    feedbackUriPath?: string;
+    /**
+     * @deprecated `useUiFlags` can be used instead
+     * @example
+     * ```ts
+     *   const yourFlag = useUiFlag("yourFlag")
+     * ```
+     */
+    flags: UiFlags;
     name: string;
     slogan: string;
     environment?: string;
+    billing?: 'subscription' | 'pay-as-you-go';
     unleashUrl?: string;
     version: string;
     versionInfo?: IVersionInfo;
     links: ILinks[];
     disablePasswordAuth?: boolean;
     emailEnabled?: boolean;
-    networkViewEnabled: boolean;
+    prometheusAPIAvailable: boolean;
     maintenanceMode?: boolean;
     toast?: IProclamationToast;
     segmentValuesLimit?: number;
     strategySegmentsLimit?: number;
     frontendApiOrigins?: string[];
+    resourceLimits: ResourceLimitsSchema;
+    oidcConfiguredThroughEnv?: boolean;
+    samlConfiguredThroughEnv?: boolean;
+    maxSessionsCount?: number;
 }
 
 export interface IProclamationToast {
@@ -29,7 +43,7 @@ export interface IProclamationToast {
     link: string;
 }
 
-export interface IFlags {
+export type UiFlags = {
     P: boolean;
     RE: boolean;
     EEA?: boolean;
@@ -40,9 +54,8 @@ export interface IFlags {
     embedProxyFrontend?: boolean;
     maintenanceMode?: boolean;
     messageBanner?: Variant;
-    featuresExportImport?: boolean;
+    banner?: Variant;
     caseInsensitiveInOperators?: boolean;
-    proPlanAutoCharge?: boolean;
     notifications?: boolean;
     personalAccessTokensKillSwitch?: boolean;
     demo?: boolean;
@@ -50,19 +63,45 @@ export interface IFlags {
     disableBulkToggle?: boolean;
     disableNotifications?: boolean;
     advancedPlayground?: boolean;
-    customRootRoles?: boolean;
     strategyVariant?: boolean;
-    newProjectLayout?: boolean;
-    configurableFeatureTypeLifetimes?: boolean;
-    frontendNavigationUpdate?: boolean;
-    segmentChangeRequests?: boolean;
-}
+    doraMetrics?: boolean;
+    dependentFeatures?: boolean;
+    newStrategyConfiguration?: boolean;
+    signals?: boolean;
+    automatedActions?: boolean;
+    celebrateUnleash?: boolean;
+    enableLicense?: boolean;
+    feedbackComments?: Variant;
+    showInactiveUsers?: boolean;
+    feedbackPosting?: boolean;
+    userAccessUIEnabled?: boolean;
+    outdatedSdksBanner?: boolean;
+    estimateTrafficDataCost?: boolean;
+    disableShowContextFieldSelectionValues?: boolean;
+    projectOverviewRefactorFeedback?: boolean;
+    featureLifecycle?: boolean;
+    manyStrategiesPagination?: boolean;
+    enableLegacyVariants?: boolean;
+    flagCreator?: boolean;
+    releasePlans?: boolean;
+    releasePlanChangeRequests?: boolean;
+    'enterprise-payg'?: boolean;
+    productivityReportEmail?: boolean;
+    showUserDeviceCount?: boolean;
+    flagOverviewRedesign?: boolean;
+    granularAdminPermissions?: boolean;
+    frontendHeaderRedesign?: boolean;
+    dataUsageMultiMonthView?: boolean;
+    connectionCount?: boolean;
+    edgeObservability?: boolean;
+};
 
 export interface IVersionInfo {
     instanceId: string;
     isLatest: boolean;
     latest: Partial<IVersion>;
     current: IVersion;
+    buildDate?: string;
 }
 
 export interface IVersion {

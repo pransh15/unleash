@@ -1,61 +1,60 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import Controller from '../controller';
 import { ADMIN, NONE } from '../../types/permissions';
-import UserService from '../../services/user-service';
-import { AccountService } from '../../services/account-service';
-import { AccessService } from '../../services/access-service';
-import { Logger } from '../../logger';
-import { IUnleashConfig, IUnleashServices, RoleName } from '../../types';
-import { EmailService } from '../../services/email-service';
-import ResetTokenService from '../../services/reset-token-service';
-import { IAuthRequest } from '../unleash-types';
-import SettingService from '../../services/setting-service';
-import { IUser, SimpleAuthSettings } from '../../server-impl';
-import { simpleAuthSettingsKey } from '../../types/settings/simple-auth-settings';
+import type UserService from '../../services/user-service';
+import type { AccountService } from '../../services/account-service';
+import type { AccessService } from '../../services/access-service';
+import type { Logger } from '../../logger';
+import type { IUnleashConfig, IUnleashServices, RoleName } from '../../types';
+import type ResetTokenService from '../../services/reset-token-service';
+import type { IAuthRequest } from '../unleash-types';
+import type SettingService from '../../services/setting-service';
+import type { IUser } from '../../server-impl';
 import { anonymise } from '../../util/anonymise';
-import { OpenApiService } from '../../services/openapi-service';
+import type { OpenApiService } from '../../services/openapi-service';
 import { createRequestSchema } from '../../openapi/util/create-request-schema';
 import {
     createResponseSchema,
     resourceCreatedResponseSchema,
 } from '../../openapi/util/create-response-schema';
-import { userSchema, UserSchema } from '../../openapi/spec/user-schema';
+import { userSchema, type UserSchema } from '../../openapi/spec/user-schema';
 import { serializeDates } from '../../types/serialize-dates';
-import { usersSchema, UsersSchema } from '../../openapi/spec/users-schema';
+import { usersSchema, type UsersSchema } from '../../openapi/spec/users-schema';
 import {
     usersSearchSchema,
-    UsersSearchSchema,
+    type UsersSearchSchema,
 } from '../../openapi/spec/users-search-schema';
-import { CreateUserSchema } from '../../openapi/spec/create-user-schema';
-import { UpdateUserSchema } from '../../openapi/spec/update-user-schema';
-import { PasswordSchema } from '../../openapi/spec/password-schema';
-import { IdSchema } from '../../openapi/spec/id-schema';
+import type { CreateUserSchema } from '../../openapi/spec/create-user-schema';
+import type { UpdateUserSchema } from '../../openapi/spec/update-user-schema';
+import type { PasswordSchema } from '../../openapi/spec/password-schema';
+import type { IdSchema } from '../../openapi/spec/id-schema';
 import {
     resetPasswordSchema,
-    ResetPasswordSchema,
+    type ResetPasswordSchema,
 } from '../../openapi/spec/reset-password-schema';
 import {
     emptyResponse,
     getStandardResponses,
 } from '../../openapi/util/standard-responses';
-import { GroupService } from '../../services/group-service';
+import type { GroupService } from '../../services/group-service';
 import {
-    UsersGroupsBaseSchema,
+    type UsersGroupsBaseSchema,
     usersGroupsBaseSchema,
 } from '../../openapi/spec/users-groups-base-schema';
-import { IGroup } from '../../types/group';
-import { IFlagResolver } from '../../types/experimental';
+import type { IGroup } from '../../types/group';
+import type { IFlagResolver } from '../../types/experimental';
 import rateLimit from 'express-rate-limit';
 import { minutesToMilliseconds } from 'date-fns';
 import {
-    AdminCountSchema,
+    type AdminCountSchema,
     adminCountSchema,
 } from '../../openapi/spec/admin-count-schema';
-import { BadDataError } from '../../error';
+import { ForbiddenError } from '../../error';
 import {
     createUserResponseSchema,
-    CreateUserResponseSchema,
+    type CreateUserResponseSchema,
 } from '../../openapi/spec/create-user-response-schema';
+import type { IRoleWithPermissions } from '../../types/stores/access-store';
 
 export default class UserAdminController extends Controller {
     private flagResolver: IFlagResolver;
@@ -68,8 +67,6 @@ export default class UserAdminController extends Controller {
 
     private readonly logger: Logger;
 
-    private emailService: EmailService;
-
     private resetTokenService: ResetTokenService;
 
     private settingService: SettingService;
@@ -78,7 +75,7 @@ export default class UserAdminController extends Controller {
 
     private groupService: GroupService;
 
-    readonly unleashUrl: string;
+    readonly isEnterprise: boolean;
 
     constructor(
         config: IUnleashConfig,
@@ -86,7 +83,6 @@ export default class UserAdminController extends Controller {
             userService,
             accountService,
             accessService,
-            emailService,
             resetTokenService,
             settingService,
             openApiService,
@@ -107,14 +103,13 @@ export default class UserAdminController extends Controller {
         this.userService = userService;
         this.accountService = accountService;
         this.accessService = accessService;
-        this.emailService = emailService;
         this.resetTokenService = resetTokenService;
         this.settingService = settingService;
         this.openApiService = openApiService;
         this.groupService = groupService;
         this.logger = config.getLogger('routes/user-controller.ts');
-        this.unleashUrl = config.server.unleashUrl;
         this.flagResolver = config.flagResolver;
+        this.isEnterprise = config.isEnterprise;
 
         this.route({
             method: 'post',
@@ -148,6 +143,17 @@ export default class UserAdminController extends Controller {
                     operationId: 'changeUserPassword',
                     summary: 'Change password for a user',
                     description: 'Change password for a user as an admin',
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            schema: {
+                                type: 'integer',
+                            },
+                            description: 'a user id',
+                        },
+                    ],
                     requestBody: createRequestSchema('passwordSchema'),
                     responses: {
                         200: emptyResponse,
@@ -187,7 +193,7 @@ export default class UserAdminController extends Controller {
                     tags: ['Users'],
                     operationId: 'getUsers',
                     summary:
-                        'Get all users and [root roles](https://docs.getunleash.io/reference/rbac#standard-roles)',
+                        'Get all users and [root roles](https://docs.getunleash.io/reference/rbac#predefined-roles)',
                     description:
                         'Will return all users and all available root roles for the Unleash instance.',
                     responses: {
@@ -249,6 +255,53 @@ export default class UserAdminController extends Controller {
 
         this.route({
             method: 'get',
+            path: '/:id/permissions',
+            permission: ADMIN,
+            handler: this.getPermissions,
+            middleware: [
+                openApiService.validPath({
+                    tags: ['Auth'],
+                    operationId: 'getUserPermissions',
+                    summary: 'Returns the list of permissions for the user',
+                    description:
+                        'Gets a list of permissions for a user, additional project and environment can be specified.',
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            schema: {
+                                type: 'integer',
+                            },
+                            description: 'a user id',
+                        },
+                        {
+                            name: 'project',
+                            in: 'query',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                            },
+                        },
+                        {
+                            name: 'environment',
+                            in: 'query',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                            },
+                        },
+                    ],
+                    responses: {
+                        200: emptyResponse, // TODO define schema
+                        ...getStandardResponses(401, 403, 415),
+                    },
+                }),
+            ],
+        });
+
+        this.route({
+            method: 'get',
             path: '/admin-count',
             handler: this.getAdminCount,
             permission: ADMIN,
@@ -288,7 +341,7 @@ export default class UserAdminController extends Controller {
                 }),
                 rateLimit({
                     windowMs: minutesToMilliseconds(1),
-                    max: 20,
+                    max: config.rateLimiting.createUserMaxPerMinute,
                     validate: false,
                     standardHeaders: true,
                     legacyHeaders: false,
@@ -307,6 +360,17 @@ export default class UserAdminController extends Controller {
                     operationId: 'getUser',
                     summary: 'Get user',
                     description: 'Will return a single user by id',
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            schema: {
+                                type: 'integer',
+                            },
+                            description: 'a user id',
+                        },
+                    ],
                     responses: {
                         200: createResponseSchema('userSchema'),
                         ...getStandardResponses(400, 401, 404),
@@ -328,9 +392,40 @@ export default class UserAdminController extends Controller {
                     description:
                         'Only the explicitly specified fields get updated.',
                     requestBody: createRequestSchema('updateUserSchema'),
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            schema: {
+                                type: 'integer',
+                            },
+                            description: 'a user id',
+                        },
+                    ],
                     responses: {
                         200: createResponseSchema('createUserResponseSchema'),
                         ...getStandardResponses(400, 401, 403, 404),
+                    },
+                }),
+            ],
+        });
+
+        this.route({
+            method: 'delete',
+            path: '/scim-users',
+            acceptAnyContentType: true,
+            handler: this.deleteScimUsers,
+            permission: ADMIN,
+            middleware: [
+                openApiService.validPath({
+                    tags: ['Users'],
+                    operationId: 'deleteScimUsers',
+                    summary: 'Delete all SCIM users',
+                    description: 'Deletes all users managed by SCIM',
+                    responses: {
+                        200: emptyResponse,
+                        ...getStandardResponses(401, 403),
                     },
                 }),
             ],
@@ -348,6 +443,17 @@ export default class UserAdminController extends Controller {
                     operationId: 'deleteUser',
                     summary: 'Delete a user',
                     description: 'Deletes the user with the given userId',
+                    parameters: [
+                        {
+                            name: 'id',
+                            in: 'path',
+                            required: true,
+                            schema: {
+                                type: 'integer',
+                            },
+                            description: 'a user id',
+                        },
+                    ],
                     responses: {
                         200: emptyResponse,
                         ...getStandardResponses(401, 403, 404),
@@ -363,6 +469,8 @@ export default class UserAdminController extends Controller {
     ): Promise<void> {
         const { user } = req;
         const receiver = req.body.id;
+        const receiverUser = await this.userService.getByEmail(receiver);
+        await this.throwIfScimUser(receiverUser);
         const resetPasswordUrl =
             await this.userService.createResetPasswordEmail(receiver, user);
 
@@ -425,7 +533,7 @@ export default class UserAdminController extends Controller {
         req: Request,
         res: Response<UsersGroupsBaseSchema>,
     ): Promise<void> {
-        let allUsers = await this.accountService.getAll();
+        const allUsers = await this.accountService.getAll();
         let users = allUsers.map((u) => {
             return {
                 id: u.id,
@@ -439,8 +547,8 @@ export default class UserAdminController extends Controller {
             users = this.anonymiseUsers(users);
         }
 
-        let allGroups = await this.groupService.getAll();
-        let groups = allGroups.map((g) => {
+        const allGroups = await this.groupService.getAll();
+        const groups = allGroups.map((g) => {
             return {
                 id: g.id,
                 name: g.name,
@@ -459,12 +567,12 @@ export default class UserAdminController extends Controller {
         );
     }
 
-    async getUser(req: Request, res: Response<UserSchema>): Promise<void> {
+    async getUser(
+        req: Request<{ id: number }>,
+        res: Response<UserSchema>,
+    ): Promise<void> {
         const { id } = req.params;
-        if (!Number.isInteger(Number(id))) {
-            throw new BadDataError('User id should be an integer');
-        }
-        const user = await this.userService.getUser(Number(id));
+        const user = await this.userService.getUser(id);
 
         this.openApiService.respondWithValidation(
             200,
@@ -480,7 +588,6 @@ export default class UserAdminController extends Controller {
     ): Promise<void> {
         const { username, email, name, rootRole, sendEmail, password } =
             req.body;
-        const { user } = req;
         const normalizedRootRole = Number.isInteger(Number(rootRole))
             ? Number(rootRole)
             : (rootRole as RoleName);
@@ -493,52 +600,22 @@ export default class UserAdminController extends Controller {
                 password,
                 rootRole: normalizedRootRole,
             },
-            user,
+            req.audit,
         );
 
-        const passwordAuthSettings =
-            await this.settingService.get<SimpleAuthSettings>(
-                simpleAuthSettingsKey,
-            );
+        const inviteLink = await this.userService.newUserInviteLink(
+            createdUser,
+            req.audit,
+        );
 
-        let inviteLink: string;
-        if (!passwordAuthSettings?.disabled) {
-            const inviteUrl = await this.resetTokenService.createNewUserUrl(
-                createdUser.id,
-                user.email,
-            );
-            inviteLink = inviteUrl.toString();
-        }
-
-        let emailSent = false;
-        const emailConfigured = this.emailService.configured();
-        const reallySendEmail =
-            emailConfigured && (sendEmail !== undefined ? sendEmail : true);
-
-        if (reallySendEmail) {
-            try {
-                await this.emailService.sendGettingStartedMail(
-                    createdUser.name,
-                    createdUser.email,
-                    this.unleashUrl,
-                    inviteLink,
-                );
-                emailSent = true;
-            } catch (e) {
-                this.logger.warn(
-                    'email was configured, but sending failed due to: ',
-                    e,
-                );
-            }
-        } else {
-            this.logger.warn(
-                'email was not sent to the user because email configuration is lacking',
-            );
-        }
+        // send email defaults to true
+        const emailSent = (sendEmail !== undefined ? sendEmail : true)
+            ? await this.userService.sendWelcomeEmail(createdUser, inviteLink)
+            : false;
 
         const responseData: CreateUserResponseSchema = {
             ...serializeDates(createdUser),
-            inviteLink: inviteLink || this.unleashUrl,
+            inviteLink,
             emailSent,
             rootRole: normalizedRootRole,
         };
@@ -554,7 +631,7 @@ export default class UserAdminController extends Controller {
 
     async updateUser(
         req: IAuthRequest<
-            { id: string },
+            { id: number },
             CreateUserResponseSchema,
             UpdateUserSchema
         >,
@@ -563,21 +640,20 @@ export default class UserAdminController extends Controller {
         const { user, params, body } = req;
         const { id } = params;
         const { name, email, rootRole } = body;
-        if (!Number.isInteger(Number(id))) {
-            throw new BadDataError('User id should be an integer');
-        }
+
+        await this.throwIfScimUser({ id });
         const normalizedRootRole = Number.isInteger(Number(rootRole))
             ? Number(rootRole)
             : (rootRole as RoleName);
 
         const updateUser = await this.userService.updateUser(
             {
-                id: Number(id),
+                id,
                 name,
                 email,
                 rootRole: normalizedRootRole,
             },
-            user,
+            req.audit,
         );
 
         this.openApiService.respondWithValidation(
@@ -591,14 +667,14 @@ export default class UserAdminController extends Controller {
         );
     }
 
-    async deleteUser(req: IAuthRequest, res: Response): Promise<void> {
+    async deleteUser(
+        req: IAuthRequest<{ id: number }>,
+        res: Response,
+    ): Promise<void> {
         const { user, params } = req;
         const { id } = params;
-        if (!Number.isInteger(Number(id))) {
-            throw new BadDataError('User id should be an integer');
-        }
 
-        await this.userService.deleteUser(+id, user);
+        await this.userService.deleteUser(+id, req.audit);
         res.status(200).send();
     }
 
@@ -613,11 +689,13 @@ export default class UserAdminController extends Controller {
     }
 
     async changeUserPassword(
-        req: IAuthRequest<{ id: string }, unknown, PasswordSchema>,
+        req: IAuthRequest<{ id: number }, unknown, PasswordSchema>,
         res: Response,
     ): Promise<void> {
         const { id } = req.params;
         const { password } = req.body;
+
+        await this.throwIfScimUser({ id });
 
         await this.userService.changePassword(+id, password);
         res.status(200).send();
@@ -635,5 +713,81 @@ export default class UserAdminController extends Controller {
             adminCountSchema.$id,
             adminCount,
         );
+    }
+
+    async getPermissions(
+        req: IAuthRequest<
+            { id: number },
+            unknown,
+            unknown,
+            { project?: string; environment?: string }
+        >,
+        res: Response,
+    ): Promise<void> {
+        const { project, environment } = req.query;
+        const user = await this.userService.getUser(req.params.id);
+        const rootRole = await this.accessService.getRootRoleForUser(user.id);
+        let projectRoles: IRoleWithPermissions[] = [];
+        if (project) {
+            const projectRoleIds =
+                await this.accessService.getProjectRolesForUser(
+                    project,
+                    user.id,
+                );
+
+            projectRoles = await Promise.all(
+                projectRoleIds.map((roleId) =>
+                    this.accessService.getRole(roleId),
+                ),
+            );
+        }
+        const matrix = await this.accessService.permissionsMatrixForUser(
+            user,
+            project,
+            environment,
+        );
+
+        // TODO add response validation based on the schema
+        res.status(200).json({
+            matrix,
+            user,
+            rootRole,
+            projectRoles,
+        });
+    }
+
+    async throwIfScimUser({
+        id,
+        scimId,
+    }: Pick<IUser, 'id' | 'scimId'>): Promise<void> {
+        if (!this.isEnterprise) return;
+
+        const isScimUser = await this.isScimUser({ id, scimId });
+        if (!isScimUser) return;
+
+        const { enabled } = await this.settingService.getWithDefault('scim', {
+            enabled: false,
+        });
+        if (!enabled) return;
+
+        throw new ForbiddenError(
+            'This user is managed by your SCIM provider and cannot be changed manually',
+        );
+    }
+
+    async isScimUser({
+        id,
+        scimId,
+    }: Pick<IUser, 'id' | 'scimId'>): Promise<boolean> {
+        return (
+            Boolean(scimId) ||
+            Boolean((await this.userService.getUser(id)).scimId)
+        );
+    }
+
+    async deleteScimUsers(req: IAuthRequest, res: Response): Promise<void> {
+        const { audit } = req;
+        await this.userService.deleteScimUsers(audit);
+        res.status(200).send();
     }
 }

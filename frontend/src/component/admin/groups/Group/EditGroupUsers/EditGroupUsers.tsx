@@ -5,8 +5,8 @@ import { useGroupApi } from 'hooks/api/actions/useGroupApi/useGroupApi';
 import { useGroup } from 'hooks/api/getters/useGroup/useGroup';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import useToast from 'hooks/useToast';
-import { IGroup } from 'interfaces/group';
-import { FC, FormEvent, useEffect } from 'react';
+import type { IGroup } from 'interfaces/group';
+import { type FC, type FormEvent, useEffect } from 'react';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { GroupFormUsersSelect } from 'component/admin/groups/GroupForm/GroupFormUsersSelect/GroupFormUsersSelect';
 import { GroupFormUsersTable } from 'component/admin/groups/GroupForm/GroupFormUsersTable/GroupFormUsersTable';
@@ -61,7 +61,7 @@ export const EditGroupUsers: FC<IEditGroupUsersProps> = ({
         group.description,
         group.mappingsSSO,
         group.users,
-        group.rootRole
+        group.rootRole,
     );
 
     useEffect(() => {
@@ -77,7 +77,7 @@ export const EditGroupUsers: FC<IEditGroupUsersProps> = ({
             refetchGroups();
             setOpen(false);
             setToastData({
-                title: 'Group users saved successfully',
+                text: 'Group users saved successfully',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -100,15 +100,15 @@ export const EditGroupUsers: FC<IEditGroupUsersProps> = ({
             onClose={() => {
                 setOpen(false);
             }}
-            label="Edit users"
+            label='Edit users'
         >
             <FormTemplate
                 loading={loading}
                 modal
-                title="Edit users"
-                description="Groups is the best and easiest way to organize users and then use them in projects to assign a specific role in one go to all the users in a group."
-                documentationLink="https://docs.getunleash.io/advanced/groups"
-                documentationLinkLabel="Groups documentation"
+                title='Edit users'
+                description='Groups is the best and easiest way to organize users and then use them in projects to assign a specific role in one go to all the users in a group.'
+                documentationLink='https://docs.getunleash.io/reference/rbac#user-groups'
+                documentationLinkLabel='Groups documentation'
                 formatApiCode={formatApiCode}
             >
                 <StyledForm onSubmit={handleSubmit}>
@@ -129,9 +129,9 @@ export const EditGroupUsers: FC<IEditGroupUsersProps> = ({
                     <StyledButtonContainer>
                         <StyledBox>
                             <Button
-                                type="submit"
-                                variant="contained"
-                                color="primary"
+                                type='submit'
+                                variant='contained'
+                                color='primary'
                                 data-testid={UG_SAVE_BTN_ID}
                             >
                                 Save

@@ -1,6 +1,6 @@
 import { Button, styled, TextField, Typography } from '@mui/material';
 import { AlertTitle, Alert } from '@mui/material';
-import { SyntheticEvent, useState } from 'react';
+import { type SyntheticEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useLoading from 'hooks/useLoading';
 import { FORGOTTEN_PASSWORD_FIELD } from 'utils/testIds';
@@ -48,29 +48,32 @@ const StyledTypography = styled(Typography)(({ theme }) => ({
     ...textCenter,
 }));
 
+type State = 'initial' | 'loading' | 'attempted' | 'too_many_attempts';
+
 const ForgottenPassword = () => {
     const [email, setEmail] = useState('');
-    const [attempted, setAttempted] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [state, setState] = useState<State>('initial');
     const [attemptedEmail, setAttemptedEmail] = useState('');
-    const ref = useLoading(loading);
+    const ref = useLoading(state === 'loading');
 
     const onClick = async (e: SyntheticEvent) => {
         e.preventDefault();
-        setLoading(true);
+        setState('loading');
         setAttemptedEmail(email);
 
         const path = formatApiPath('auth/reset/password-email');
-        await fetch(path, {
+        const res = await fetch(path, {
             headers: {
                 'Content-Type': 'application/json',
             },
             method: 'POST',
             body: JSON.stringify({ email }),
         });
-
-        setAttempted(true);
-        setLoading(false);
+        if (res.status === 429) {
+            setState('too_many_attempts');
+        } else {
+            setState('attempted');
+        }
     };
 
     return (
@@ -78,9 +81,9 @@ const ForgottenPassword = () => {
             <StyledDiv ref={ref}>
                 <StyledTitle data-loading>Forgotten password</StyledTitle>
                 <ConditionallyRender
-                    condition={attempted}
+                    condition={state === 'attempted'}
                     show={
-                        <Alert severity="success" data-loading>
+                        <Alert severity='success' data-loading>
                             <AlertTitle>Attempted to send email</AlertTitle>
                             We've attempted to send a reset password email to:
                             <StyledStrong>{attemptedEmail}</StyledStrong>
@@ -91,45 +94,56 @@ const ForgottenPassword = () => {
                         </Alert>
                     }
                 />
+                <ConditionallyRender
+                    condition={state === 'too_many_attempts'}
+                    show={
+                        <Alert severity='warning' data-loading>
+                            <AlertTitle>
+                                Too many password reset attempts
+                            </AlertTitle>
+                            Please wait another minute before your next attempt
+                        </Alert>
+                    }
+                />
                 <StyledForm onSubmit={onClick}>
-                    <StyledTypography variant="body1" data-loading>
+                    <StyledTypography variant='body1' data-loading>
                         Please provide your email address. If it exists in the
                         system we'll send a new reset link.
                     </StyledTypography>
                     <TextField
-                        variant="outlined"
-                        size="small"
-                        placeholder="email"
-                        type="email"
+                        variant='outlined'
+                        size='small'
+                        placeholder='email'
+                        type='email'
                         data-loading
                         data-testid={FORGOTTEN_PASSWORD_FIELD}
                         value={email}
-                        onChange={e => {
+                        onChange={(e) => {
                             setEmail(e.target.value);
                         }}
                     />
                     <StyledButton
-                        variant="contained"
-                        type="submit"
+                        variant='contained'
+                        type='submit'
                         data-loading
-                        color="primary"
-                        disabled={loading}
+                        color='primary'
+                        disabled={state === 'loading'}
                     >
                         <ConditionallyRender
-                            condition={!attempted}
+                            condition={state === 'initial'}
                             show={<span>Submit</span>}
                             elseShow={<span>Try again</span>}
                         />
                     </StyledButton>
-                    <DividerText text="Or log in" />
+                    <DividerText text='Or log in' />
                     <Button
-                        type="submit"
+                        type='submit'
                         data-loading
-                        variant="outlined"
-                        disabled={loading}
+                        variant='outlined'
+                        disabled={state === 'loading'}
                         component={Link}
-                        to="/login"
-                        sx={theme => ({
+                        to='/login'
+                        sx={(theme) => ({
                             width: '150px',
                             margin: theme.spacing(2, 'auto'),
                         })}

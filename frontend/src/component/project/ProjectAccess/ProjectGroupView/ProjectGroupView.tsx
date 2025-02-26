@@ -1,4 +1,5 @@
-import { Delete, Edit } from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
+import Edit from '@mui/icons-material/Edit';
 import { styled, useMediaQuery, useTheme } from '@mui/material';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { PageContent } from 'component/common/PageContent/PageContent';
@@ -15,9 +16,14 @@ import { SearchHighlightProvider } from 'component/common/Table/SearchHighlightC
 import { UserAvatar } from 'component/common/UserAvatar/UserAvatar';
 import { UPDATE_PROJECT } from 'component/providers/AccessProvider/permissions';
 import { useSearch } from 'hooks/useSearch';
-import { IGroup, IGroupUser } from 'interfaces/group';
-import { VFC, useState } from 'react';
-import { SortingRule, useFlexLayout, useSortBy, useTable } from 'react-table';
+import type { IGroup, IGroupUser } from 'interfaces/group';
+import { type VFC, useState } from 'react';
+import {
+    type SortingRule,
+    useFlexLayout,
+    useSortBy,
+    useTable,
+} from 'react-table';
 import { sortTypes } from 'utils/sortTypes';
 import { useConditionallyHiddenColumns } from 'hooks/useConditionallyHiddenColumns';
 
@@ -41,12 +47,14 @@ const StyledTitle = styled('div')(({ theme }) => ({
     display: 'flex',
     flexDirection: 'column',
     '& > span': {
+        display: 'flex',
+        alignItems: 'center',
         color: theme.palette.text.secondary,
         fontSize: theme.fontSizes.bodySize,
     },
 }));
 
-const defaultSort: SortingRule<string> = { id: 'joinedAt' };
+const defaultSort: SortingRule<string> = { id: 'joinedAt', desc: true };
 
 const columns = [
     {
@@ -75,7 +83,6 @@ const columns = [
         Header: 'Joined',
         accessor: 'joinedAt',
         Cell: DateCell,
-        sortType: 'date',
         maxWidth: 150,
     },
     {
@@ -85,11 +92,10 @@ const columns = [
         Cell: ({ row: { original: user } }: any) => (
             <TimeAgoCell
                 value={user.seenAt}
-                emptyText="Never"
-                title={date => `Last login: ${date}`}
+                emptyText='Never'
+                title={(date) => `Last login: ${date}`}
             />
         ),
-        sortType: 'date',
         maxWidth: 150,
     },
     // Always hidden -- for search
@@ -113,7 +119,7 @@ interface IProjectGroupViewProps {
     setOpen: React.Dispatch<React.SetStateAction<boolean>>;
     group: IGroup;
     projectId: string;
-    subtitle: string;
+    subtitle: React.ReactNode;
     onEdit: () => void;
     onRemove: () => void;
 }
@@ -144,7 +150,7 @@ export const ProjectGroupView: VFC<IProjectGroupViewProps> = ({
     const { data, getSearchText, getSearchContext } = useSearch(
         columns,
         searchValue,
-        group?.users ?? []
+        group?.users ?? [],
     );
 
     const { headerGroups, rows, prepareRow, setHiddenColumns } = useTable(
@@ -159,7 +165,7 @@ export const ProjectGroupView: VFC<IProjectGroupViewProps> = ({
             disableMultiSort: true,
         },
         useSortBy,
-        useFlexLayout
+        useFlexLayout,
     );
 
     useConditionallyHiddenColumns(
@@ -170,7 +176,7 @@ export const ProjectGroupView: VFC<IProjectGroupViewProps> = ({
             },
         ],
         setHiddenColumns,
-        columns
+        columns,
     );
 
     return (

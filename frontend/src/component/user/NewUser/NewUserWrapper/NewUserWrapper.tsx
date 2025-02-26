@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Box, Typography } from '@mui/material';
 import StandaloneLayout from 'component/user/common/StandaloneLayout';
 import StandaloneBanner from 'component/user/StandaloneBanner';
@@ -8,6 +8,7 @@ import { ConditionallyRender } from 'component/common/ConditionallyRender/Condit
 interface INewUserWrapperProps {
     loading?: boolean;
     title?: string;
+    children?: React.ReactNode;
 }
 
 export const NewUserWrapper: FC<INewUserWrapperProps> = ({
@@ -32,13 +33,14 @@ export const NewUserWrapper: FC<INewUserWrapperProps> = ({
                         condition={Boolean(title)}
                         show={
                             <Typography
-                                component="h2"
+                                component='h2'
                                 sx={{
-                                    fontSize: theme =>
+                                    fontSize: (theme) =>
                                         theme.fontSizes.mainHeader,
                                     marginBottom: 2,
                                     textAlign: 'center',
-                                    fontWeight: theme => theme.fontWeight.bold,
+                                    fontWeight: (theme) =>
+                                        theme.fontWeight.bold,
                                 }}
                             >
                                 {title}

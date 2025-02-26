@@ -7,10 +7,10 @@ import { RoleForm } from '../RoleForm/RoleForm';
 import { useRoles } from 'hooks/api/getters/useRoles/useRoles';
 import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
-import { FormEvent } from 'react';
+import { type FormEvent, useEffect } from 'react';
 import { useRolesApi } from 'hooks/api/actions/useRolesApi/useRolesApi';
 import { useRole } from 'hooks/api/getters/useRole/useRole';
-import { PredefinedRoleType } from 'interfaces/role';
+import type { PredefinedRoleType } from 'interfaces/role';
 import { ROOT_ROLE_TYPE } from '@server/util/constants';
 
 const StyledForm = styled('form')(() => ({
@@ -48,18 +48,18 @@ export const RoleModal = ({
     const {
         name,
         setName,
+        validateName,
         description,
         setDescription,
+        validateDescription,
         checkedPermissions,
         setCheckedPermissions,
+        validatePermissions,
         getRolePayload,
-        isNameUnique,
-        isNotEmpty,
-        hasPermissions,
         errors,
-        setError,
-        clearError,
-        ErrorField,
+        showErrors,
+        validate,
+        reload: reloadForm,
     } = useRoleForm(role?.name, role?.description, role?.permissions);
     const { refetch: refetchRoles } = useRoles();
     const { addRole, updateRole, loading } = useRolesApi();
@@ -67,11 +67,6 @@ export const RoleModal = ({
     const { uiConfig } = useUiConfig();
 
     const editing = role !== undefined;
-    const isValid =
-        isNameUnique(name) &&
-        isNotEmpty(name) &&
-        isNotEmpty(description) &&
-        hasPermissions(checkedPermissions);
 
     const payload = getRolePayload(type);
 
@@ -84,14 +79,6 @@ export const RoleModal = ({
     --data-raw '${JSON.stringify(payload, undefined, 2)}'`;
     };
 
-    const onSetName = (name: string) => {
-        clearError(ErrorField.NAME);
-        if (!isNameUnique(name)) {
-            setError(ErrorField.NAME, 'A role with that name already exists.');
-        }
-        setName(name);
-    };
-
     const refetch = () => {
         refetchRoles();
         refetchRole();
@@ -100,7 +87,7 @@ export const RoleModal = ({
     const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (!isValid) return;
+        if (!validate()) return;
 
         try {
             if (editing) {
@@ -109,7 +96,7 @@ export const RoleModal = ({
                 await addRole(payload);
             }
             setToastData({
-                title: `Role ${editing ? 'updated' : 'added'} successfully`,
+                text: `Role ${editing ? 'updated' : 'added'} successfully`,
                 type: 'success',
             });
             refetch();
@@ -118,6 +105,10 @@ export const RoleModal = ({
             setToastApiError(formatUnknownError(error));
         }
     };
+
+    useEffect(() => {
+        reloadForm();
+    }, [open]);
 
     const titleCasedType = type[0].toUpperCase() + type.slice(1);
 
@@ -134,27 +125,34 @@ export const RoleModal = ({
                 modal
                 title={editing ? `Edit ${type} role` : `New ${type} role`}
                 description={`${titleCasedType} roles allow you to control access to ${type} resources. Besides the built-in ${type} roles, you can create and manage custom ${type} roles to fit your needs.`}
-                documentationLink="https://docs.getunleash.io/reference/rbac"
-                documentationLinkLabel="Roles documentation"
+                documentationLink={`https://docs.getunleash.io/reference/rbac${
+                    type === ROOT_ROLE_TYPE
+                        ? '#custom-root-roles'
+                        : '#custom-project-roles'
+                }`}
+                documentationLinkLabel='Roles documentation'
                 formatApiCode={formatApiCode}
             >
                 <StyledForm onSubmit={onSubmit}>
                     <RoleForm
                         type={type}
                         name={name}
-                        onSetName={onSetName}
+                        setName={setName}
+                        validateName={validateName}
                         description={description}
                         setDescription={setDescription}
+                        validateDescription={validateDescription}
                         checkedPermissions={checkedPermissions}
                         setCheckedPermissions={setCheckedPermissions}
+                        validatePermissions={validatePermissions}
                         errors={errors}
+                        showErrors={showErrors}
                     />
                     <StyledButtonContainer>
                         <Button
-                            type="submit"
-                            variant="contained"
-                            color="primary"
-                            disabled={!isValid}
+                            type='submit'
+                            variant='contained'
+                            color='primary'
                         >
                             {editing ? 'Save' : 'Add'} role
                         </Button>

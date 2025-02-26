@@ -8,7 +8,7 @@ import {
 import UIContext from 'contexts/UIContext';
 import AnimateOnMount from '../AnimateOnMount/AnimateOnMount';
 import Toast from './Toast/Toast';
-import { IToast } from 'interfaces/toast';
+import type { IToast } from 'interfaces/toast';
 
 const ToastRenderer = () => {
     const { toastData, setToast } = useContext(UIContext);
@@ -19,10 +19,9 @@ const ToastRenderer = () => {
 
     useEffect(() => {
         if (!toastData.autoHideDuration) return;
-        let timeout = setTimeout(() => {
+        const timeout = setTimeout(() => {
             hide();
         }, toastData.autoHideDuration);
-
         return () => {
             clearTimeout(timeout);
         };
@@ -36,12 +35,12 @@ const ToastRenderer = () => {
                 right: 0,
                 left: 0,
                 margin: '0 auto',
-                maxWidth: '450px',
+                width: 'fit-content',
             },
             enter: fadeInBottomEnter,
             leave: fadeInBottomLeave,
         }),
-        []
+        [],
     );
 
     return (

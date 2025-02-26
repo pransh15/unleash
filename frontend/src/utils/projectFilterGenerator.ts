@@ -1,13 +1,13 @@
 import { ADMIN } from 'component/providers/AccessProvider/permissions';
-import { IPermission } from 'interfaces/user';
+import type { IPermission } from 'interfaces/user';
 
 type objectIdx = {
     [key: string]: string;
 };
 
 export const projectFilterGenerator = (
-    permissions: IPermission[] = [],
-    matcherPermission: string
+    permissions: IPermission[],
+    matcherPermission: string,
 ): ((projectId: string) => boolean) => {
     let admin = false;
 
@@ -23,7 +23,7 @@ export const projectFilterGenerator = (
 
             return acc;
         },
-        {}
+        {},
     );
 
     return (projectId: string) => {

@@ -1,9 +1,12 @@
-import dbInit from '../../helpers/database-init';
-import { setupAppWithCustomConfig } from '../../helpers/test-helper';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
+import {
+    type IUnleashTest,
+    setupAppWithCustomConfig,
+} from '../../helpers/test-helper';
 import getLogger from '../../../fixtures/no-logger';
 
-let app;
-let db;
+let app: IUnleashTest;
+let db: ITestDb;
 
 beforeAll(async () => {
     db = await dbInit('tag_api_serial', getLogger);
@@ -86,7 +89,7 @@ test('Can validate a tag', async () =>
         .expect(400)
         .expect((res) => {
             expect(res.body.details.length).toBe(1);
-            expect(res.body.details[0].description).toMatch(
+            expect(res.body.details[0].message).toMatch(
                 '"type" must be URL friendly',
             );
         }));
@@ -122,13 +125,13 @@ test('Can tag features', async () => {
     };
     await app.request.post('/api/admin/projects/default/features').send({
         name: featureName,
-        type: 'killswitch',
+        type: 'kill-switch',
         enabled: true,
         strategies: [{ name: 'default' }],
     });
 
     await db.stores.tagStore.createTag(removedTag);
-    await db.stores.featureTagStore.tagFeature(featureName, removedTag);
+    await db.stores.featureTagStore.tagFeature(featureName, removedTag, -1337);
 
     const initialTagState = await app.request.get(
         `/api/admin/features/${featureName}/tags`,
@@ -138,7 +141,7 @@ test('Can tag features', async () => {
 
     await app.request.post('/api/admin/projects/default/features').send({
         name: featureName2,
-        type: 'killswitch',
+        type: 'kill-switch',
         enabled: true,
         strategies: [{ name: 'default' }],
     });
@@ -172,17 +175,20 @@ test('Can bulk remove tags', async () => {
 
     await app.request.post('/api/admin/projects/default/features').send({
         name: featureName,
-        type: 'killswitch',
+        type: 'kill-switch',
         enabled: true,
         strategies: [{ name: 'default' }],
     });
 
-    await app.request.post('/api/admin/projects/default/features').send({
-        name: featureName2,
-        type: 'killswitch',
-        enabled: true,
-        strategies: [{ name: 'default' }],
-    });
+    await app.request
+        .post('/api/admin/projects/default/features')
+        .send({
+            name: featureName2,
+            type: 'kill-switch',
+            enabled: true,
+            strategies: [{ name: 'default' }],
+        })
+        .expect(201);
 
     await app.request
         .put('/api/admin/projects/default/tags')
@@ -205,4 +211,11 @@ test('Can bulk remove tags', async () => {
             },
         })
         .expect(200);
+});
+
+test('backward compatibility: the API should return invalid tag names if they exist', async () => {
+    const tag = { value: '  ', type: 'simple' };
+    await db.stores.tagStore.createTag(tag);
+    const { body } = await app.request.get('/api/admin/tags').expect(200);
+    expect(body.tags).toContainEqual(tag);
 });

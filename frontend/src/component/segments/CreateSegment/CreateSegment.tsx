@@ -1,7 +1,11 @@
-import React, { useContext } from 'react';
+import type React from 'react';
+import { useContext } from 'react';
 import { CreateButton } from 'component/common/CreateButton/CreateButton';
 import FormTemplate from 'component/common/FormTemplate/FormTemplate';
-import { CREATE_SEGMENT } from 'component/providers/AccessProvider/permissions';
+import {
+    CREATE_SEGMENT,
+    UPDATE_PROJECT_SEGMENT,
+} from 'component/providers/AccessProvider/permissions';
 import { useSegmentsApi } from 'hooks/api/actions/useSegmentsApi/useSegmentsApi';
 import { useConstraintsValidation } from 'hooks/api/getters/useConstraintsValidation/useConstraintsValidation';
 import { useSegments } from 'hooks/api/getters/useSegments/useSegments';
@@ -50,13 +54,11 @@ export const CreateSegment = ({ modal }: ICreateSegmentProps) => {
     const segmentValuesCount = useSegmentValuesCount(constraints);
 
     const overSegmentValuesLimit: boolean = Boolean(
-        segmentValuesLimit && segmentValuesCount > segmentValuesLimit
+        segmentValuesLimit && segmentValuesCount > segmentValuesLimit,
     );
 
     const formatApiCode = () => {
-        return `curl --location --request POST '${
-            uiConfig.unleashUrl
-        }/api/admin/segments' \\
+        return `curl --location --request POST '${uiConfig.unleashUrl}/api/admin/segments' \\
 --header 'Authorization: INSERT_API_KEY' \\
 --header 'Content-Type: application/json' \\
 --data-raw '${JSON.stringify(getSegmentPayload(), undefined, 2)}'`;
@@ -74,8 +76,7 @@ export const CreateSegment = ({ modal }: ICreateSegmentProps) => {
                 navigate('/segments/');
             }
             setToastData({
-                title: 'Segment created',
-                confetti: true,
+                text: 'Segment created',
                 type: 'success',
             });
             showFeedbackCES({
@@ -92,10 +93,10 @@ export const CreateSegment = ({ modal }: ICreateSegmentProps) => {
         <FormTemplate
             loading={loading}
             modal={modal}
-            title="Create segment"
+            title='Create segment'
             description={segmentsFormDescription}
             documentationLink={segmentsDocsLink}
-            documentationLinkLabel="Segments documentation"
+            documentationLinkLabel='Segments documentation'
             formatApiCode={formatApiCode}
         >
             <SegmentForm
@@ -110,11 +111,12 @@ export const CreateSegment = ({ modal }: ICreateSegmentProps) => {
                 setConstraints={setConstraints}
                 errors={errors}
                 clearErrors={clearErrors}
-                mode="create"
+                mode='create'
             >
                 <CreateButton
-                    name="segment"
-                    permission={CREATE_SEGMENT}
+                    name='segment'
+                    permission={[CREATE_SEGMENT, UPDATE_PROJECT_SEGMENT]}
+                    projectId={projectId}
                     disabled={!hasValidConstraints || overSegmentValuesLimit}
                     data-testid={SEGMENT_CREATE_BTN_ID}
                 />
@@ -126,5 +128,5 @@ export const CreateSegment = ({ modal }: ICreateSegmentProps) => {
 export const segmentsFormDescription = `
     Segments make it easy for you to define which of your users should get access to a feature.
     A segment is a reusable collection of constraints.
-    You can create and apply a segment when configuring activation strategies for a feature toggle or at any time from the segments page in the navigation menu.
+    You can create and apply a segment when configuring activation strategies for a feature flag or at any time from the segments page in the navigation menu.
 `;

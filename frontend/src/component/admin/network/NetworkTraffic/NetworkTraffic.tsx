@@ -1,11 +1,11 @@
 import { useInstanceMetrics } from 'hooks/api/getters/useInstanceMetrics/useInstanceMetrics';
-import { useMemo, VFC } from 'react';
+import { useMemo, type VFC } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
     CategoryScale,
     Chart as ChartJS,
-    ChartDataset,
-    ChartOptions,
+    type ChartDataset,
+    type ChartOptions,
     Legend,
     LinearScale,
     LineElement,
@@ -15,11 +15,11 @@ import {
     Tooltip,
 } from 'chart.js';
 import {
-    ILocationSettings,
+    type ILocationSettings,
     useLocationSettings,
 } from 'hooks/useLocationSettings';
 import { formatDateHM } from 'utils/formatDate';
-import { RequestsPerSecondSchema } from 'openapi';
+import type { RequestsPerSecondSchema } from 'openapi';
 import 'chartjs-adapter-date-fns';
 import { Alert, useTheme } from '@mui/material';
 import { Box } from '@mui/system';
@@ -27,7 +27,8 @@ import { CyclicIterator } from 'utils/cyclicIterator';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { usePageTitle } from 'hooks/usePageTitle';
 import { unknownify } from 'utils/unknownify';
-import { Theme } from '@mui/material/styles/createTheme';
+import type { Theme } from '@mui/material/styles/createTheme';
+import { NetworkPrometheusAPIWarning } from '../NetworkPrometheusAPIWarning';
 
 const pointStyles = ['circle', 'rect', 'rectRounded', 'rectRot', 'triangle'];
 
@@ -42,9 +43,9 @@ type ResultValue = [number, string];
 
 const createChartPoints = (
     values: ResultValue[],
-    y: (m: string) => number
+    y: (m: string) => number,
 ): IPoint[] => {
-    return values.map(row => ({
+    return values.map((row) => ({
         x: row[0],
         y: y(row[1]),
     }));
@@ -52,7 +53,7 @@ const createChartPoints = (
 
 const createInstanceChartOptions = (
     theme: Theme,
-    locationSettings: ILocationSettings
+    locationSettings: ILocationSettings,
 ): ChartOptions<'line'> => ({
     locale: locationSettings.locale,
     responsive: true,
@@ -73,10 +74,10 @@ const createInstanceChartOptions = (
             boxPadding: 5,
             usePointStyle: true,
             callbacks: {
-                title: items =>
+                title: (items) =>
                     formatDateHM(
                         1000 * items[0].parsed.x,
-                        locationSettings.locale
+                        locationSettings.locale,
                     ),
             },
             itemSort: (a, b) => b.parsed.y - a.parsed.y,
@@ -155,7 +156,7 @@ class ItemPicker<T> {
 
 const toChartData = (
     theme: Theme,
-    rps?: RequestsPerSecondSchema
+    rps?: RequestsPerSecondSchema,
 ): ChartDatasetType[] => {
     if (rps?.data?.result) {
         const colorPicker = new ItemPicker([
@@ -173,7 +174,7 @@ const toChartData = (
                 label: `${endpoint}: ${appName}`,
                 borderColor: color.main,
                 backgroundColor: color.main,
-                data: createChartPoints(values, y => parseFloat(y)),
+                data: createChartPoints(values, (y) => Number.parseFloat(y)),
                 elements: {
                     point: {
                         radius: 4,
@@ -206,14 +207,19 @@ export const NetworkTraffic: VFC = () => {
     return (
         <ConditionallyRender
             condition={data.datasets.length === 0}
-            show={<Alert severity="warning">No data available.</Alert>}
+            show={
+                <Alert severity='warning'>
+                    No data available.
+                    <NetworkPrometheusAPIWarning />
+                </Alert>
+            }
             elseShow={
                 <Box sx={{ display: 'grid', gap: 4 }}>
                     <div style={{ height: 400 }}>
                         <Line
                             data={data}
                             options={options}
-                            aria-label="An instance metrics line chart with two lines: requests per second for admin API and requests per second for client API"
+                            aria-label='An instance metrics line chart with two lines: requests per second for admin API and requests per second for client API'
                         />
                     </div>
                 </Box>
@@ -231,7 +237,7 @@ ChartJS.register(
     TimeScale,
     Legend,
     Tooltip,
-    Title
+    Title,
 );
 
 // Use a default export to lazy-load the charting library.

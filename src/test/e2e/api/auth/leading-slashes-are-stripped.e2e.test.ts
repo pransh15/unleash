@@ -1,7 +1,7 @@
 import getLogger from '../../../fixtures/no-logger';
-import dbInit, { ITestDb } from '../../helpers/database-init';
-import { IUnleashTest, setupAppWithAuth } from '../../helpers/test-helper';
-import { IAuthType, IUnleashStores } from '../../../../lib/types';
+import dbInit, { type ITestDb } from '../../helpers/database-init';
+import { type IUnleashTest, setupAppWithAuth } from '../../helpers/test-helper';
+import { IAuthType, type IUnleashStores } from '../../../../lib/types';
 import { ApiTokenType } from '../../../../lib/types/models/api-token';
 
 let app: IUnleashTest;
@@ -15,13 +15,24 @@ beforeAll(async () => {
         getLogger,
     );
     stores = db.stores;
-    app = await setupAppWithAuth(stores, {
-        authentication: { enableApiToken: true, type: IAuthType.DEMO },
-    });
-    appWithBaseUrl = await setupAppWithAuth(stores, {
-        server: { unleashUrl: 'http://localhost:4242', basePathUri: '/demo' },
-        authentication: { enableApiToken: true, type: IAuthType.DEMO },
-    });
+    app = await setupAppWithAuth(
+        stores,
+        {
+            authentication: { enableApiToken: true, type: IAuthType.DEMO },
+        },
+        db.rawDatabase,
+    );
+    appWithBaseUrl = await setupAppWithAuth(
+        stores,
+        {
+            server: {
+                unleashUrl: 'http://localhost:4242',
+                basePathUri: '/demo',
+            },
+            authentication: { enableApiToken: true, type: IAuthType.DEMO },
+        },
+        db.rawDatabase,
+    );
 });
 
 afterAll(async () => {
@@ -29,7 +40,7 @@ afterAll(async () => {
     await db.destroy();
 });
 
-test('Access to//api/admin/tags are refused no matter how many leading slashes', async () => {
+test('Access to //api/admin/tags are refused no matter how many leading slashes', async () => {
     await app.request.get('//api/admin/tags').expect(401);
     await app.request.get('////api/admin/tags').expect(401);
 });
@@ -46,13 +57,15 @@ test('multiple slashes after base path is also rejected with 404', async () => {
     await appWithBaseUrl.request.get('/demo/api/client/features').expect(401);
 });
 
-test(`Access with API token is granted`, async () => {
-    let token = await app.services.apiTokenService.createApiTokenWithProjects({
-        environment: 'default',
-        projects: ['default'],
-        tokenName: 'test',
-        type: ApiTokenType.CLIENT,
-    });
+test('Access with API token is granted', async () => {
+    const token = await app.services.apiTokenService.createApiTokenWithProjects(
+        {
+            environment: 'default',
+            projects: ['default'],
+            tokenName: 'test',
+            type: ApiTokenType.CLIENT,
+        },
+    );
     await app.request
         .get('/api/client/features')
         .set('Authorization', token.secret)

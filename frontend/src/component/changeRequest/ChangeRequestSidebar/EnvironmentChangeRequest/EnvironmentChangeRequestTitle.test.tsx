@@ -1,15 +1,14 @@
-import React, { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { screen } from '@testing-library/react';
 import { ChangeRequestTitle } from './ChangeRequestTitle';
-import { ChangeRequestState } from '../../changeRequest.types';
+import type { UnscheduledChangeRequest } from 'component/changeRequest/changeRequest.types';
 import userEvent from '@testing-library/user-event';
 import { testServerRoute, testServerSetup } from 'utils/testServer';
 import { render } from 'utils/testRenderer';
-import { UIProviderContainer } from '../../../providers/UIProvider/UIProviderContainer';
 
-const changeRequest = {
+const changeRequest: UnscheduledChangeRequest = {
     id: 3,
-    state: 'Draft' as ChangeRequestState,
+    state: 'Draft' as const,
     title: 'My title',
     project: 'default',
     environment: 'default',
@@ -18,7 +17,9 @@ const changeRequest = {
     createdAt: new Date(),
     features: [],
     approvals: [],
+    rejections: [],
     comments: [],
+    segments: [],
 };
 
 const server = testServerSetup();
@@ -27,7 +28,7 @@ testServerRoute(
     server,
     `/api/admin/projects/${changeRequest.project}/change-requests/${changeRequest.id}/title`,
     {},
-    'put'
+    'put',
 );
 
 testServerRoute(server, '/api/admin/ui-config', {});
@@ -48,11 +49,7 @@ const TestComponent: FC = () => {
 
 test('can edit and save title', async () => {
     const user = userEvent.setup();
-    render(
-        <UIProviderContainer>
-            <TestComponent />
-        </UIProviderContainer>
-    );
+    render(<TestComponent />);
 
     const editButton = await screen.findByTestId('EditIcon');
     await user.click(editButton);

@@ -1,58 +1,98 @@
-import { IUnleashConfig } from '../../types/option';
+import type { Logger } from '../../logger';
+import type { IStrategy } from '../../types/stores/strategy-store';
+import type { IFeatureToggleStore } from '../feature-toggle/types/feature-toggle-store-type';
+import type { IFeatureStrategiesStore } from '../feature-toggle/types/feature-toggle-strategies-store-type';
 import {
-    FeatureToggleDTO,
-    IFeatureStrategy,
-    IFeatureStrategySegment,
-    IVariant,
-} from '../../types/model';
-import { Logger } from '../../logger';
-import { IFeatureTagStore } from '../../types/stores/feature-tag-store';
-import { ITagTypeStore } from '../../types/stores/tag-type-store';
-import { IEventStore } from '../../types/stores/event-store';
-import { IStrategy } from '../../types/stores/strategy-store';
-import { IFeatureToggleStore } from '../../types/stores/feature-toggle-store';
-import { IFeatureStrategiesStore } from '../../types/stores/feature-strategies-store';
-import { IFeatureEnvironmentStore } from '../../types/stores/feature-environment-store';
-import { IContextFieldStore, IUnleashStores } from '../../types/stores';
-import { ISegmentStore } from '../../types/stores/segment-store';
-import { ExportQuerySchema } from '../../openapi/spec/export-query-schema';
-import {
-    FEATURES_EXPORTED,
-    FEATURES_IMPORTED,
-    IFlagResolver,
-    IUnleashServices,
-    WithRequired,
+    FeaturesExportedEvent,
+    FeaturesImportedEvent,
+    SYSTEM_USER,
+    SYSTEM_USER_AUDIT,
+    type FeatureToggleDTO,
+    type IAuditUser,
+    type IContextFieldStore,
+    type IFeatureEnvironmentStore,
+    type IFeatureStrategy,
+    type IFeatureStrategySegment,
+    type IFeatureTagStore,
+    type IFlagResolver,
+    type ITagTypeStore,
+    type IUnleashConfig,
+    type IUnleashServices,
+    type IUnleashStores,
+    type IVariant,
+    type WithRequired,
 } from '../../types';
-import {
+import type {
+    ExportQuerySchema,
     ExportResultSchema,
     FeatureStrategySchema,
+    ImportTogglesSchema,
     ImportTogglesValidateSchema,
 } from '../../openapi';
-import { ImportTogglesSchema } from '../../openapi/spec/import-toggles-schema';
-import User from '../../types/user';
+import type { IUser } from '../../types/user';
 import { BadDataError } from '../../error';
-import { extractUsernameFromUser } from '../../util';
-import {
+import type {
     AccessService,
     ContextService,
+    DependentFeaturesService,
+    EventService,
     FeatureTagService,
     FeatureToggleService,
     StrategyService,
     TagTypeService,
 } from '../../services';
 import { isValidField } from './import-context-validation';
-import { IImportTogglesStore } from './import-toggles-store-type';
-import { ImportPermissionsService } from './import-permissions-service';
+import type {
+    IImportTogglesStore,
+    ProjectFeaturesLimit,
+} from './import-toggles-store-type';
+import {
+    ImportPermissionsService,
+    type Mode,
+} from './import-permissions-service';
 import { ImportValidationMessages } from './import-validation-messages';
+import { findDuplicates } from '../../util/findDuplicates';
+import type { FeatureNameCheckResultWithFeaturePattern } from '../feature-toggle/feature-toggle-service';
+import type { IDependentFeaturesReadModel } from '../dependent-features/dependent-features-read-model-type';
+import groupBy from 'lodash.groupby';
+import { allSettledWithRejection } from '../../util/allSettledWithRejection';
+import type { ISegmentReadModel } from '../segment/segment-read-model-type';
+import { readFile } from '../../util/read-file';
 
-export default class ExportImportService {
+export type IImportService = {
+    validate(
+        dto: ImportTogglesSchema,
+        user: IUser,
+    ): Promise<ImportTogglesValidateSchema>;
+
+    import(
+        dto: ImportTogglesSchema,
+        user: IUser,
+        auditUser: IAuditUser,
+    ): Promise<void>;
+
+    importFromFile(
+        file: string,
+        project: string,
+        environment: string,
+    ): Promise<void>;
+};
+
+export type IExportService = {
+    export(
+        query: ExportQuerySchema,
+        auditUser: IAuditUser,
+    ): Promise<ExportResultSchema>;
+};
+
+export default class ExportImportService
+    implements IExportService, IImportService
+{
     private logger: Logger;
 
     private toggleStore: IFeatureToggleStore;
 
     private featureStrategiesStore: IFeatureStrategiesStore;
-
-    private eventStore: IEventStore;
 
     private importTogglesStore: IImportTogglesStore;
 
@@ -61,8 +101,6 @@ export default class ExportImportService {
     private featureEnvironmentStore: IFeatureEnvironmentStore;
 
     private featureTagStore: IFeatureTagStore;
-
-    private segmentStore: ISegmentStore;
 
     private flagResolver: IFlagResolver;
 
@@ -76,23 +114,29 @@ export default class ExportImportService {
 
     private accessService: AccessService;
 
+    private eventService: EventService;
+
     private tagTypeService: TagTypeService;
+
+    private segmentReadModel: ISegmentReadModel;
 
     private featureTagService: FeatureTagService;
 
     private importPermissionsService: ImportPermissionsService;
 
+    private dependentFeaturesReadModel: IDependentFeaturesReadModel;
+
+    private dependentFeaturesService: DependentFeaturesService;
+
     constructor(
         stores: Pick<
             IUnleashStores,
             | 'importTogglesStore'
-            | 'eventStore'
             | 'featureStrategiesStore'
             | 'featureToggleStore'
             | 'featureEnvironmentStore'
             | 'tagTypeStore'
             | 'featureTagStore'
-            | 'segmentStore'
             | 'contextFieldStore'
         >,
         {
@@ -104,46 +148,55 @@ export default class ExportImportService {
             strategyService,
             contextService,
             accessService,
+            eventService,
             tagTypeService,
             featureTagService,
+            dependentFeaturesService,
         }: Pick<
             IUnleashServices,
             | 'featureToggleService'
             | 'strategyService'
             | 'contextService'
             | 'accessService'
+            | 'eventService'
             | 'tagTypeService'
             | 'featureTagService'
+            | 'dependentFeaturesService'
         >,
+        dependentFeaturesReadModel: IDependentFeaturesReadModel,
+        segmentReadModel: ISegmentReadModel,
     ) {
-        this.eventStore = stores.eventStore;
         this.toggleStore = stores.featureToggleStore;
         this.importTogglesStore = stores.importTogglesStore;
         this.featureStrategiesStore = stores.featureStrategiesStore;
         this.featureEnvironmentStore = stores.featureEnvironmentStore;
         this.tagTypeStore = stores.tagTypeStore;
         this.featureTagStore = stores.featureTagStore;
-        this.segmentStore = stores.segmentStore;
         this.flagResolver = flagResolver;
         this.featureToggleService = featureToggleService;
         this.contextFieldStore = stores.contextFieldStore;
         this.strategyService = strategyService;
         this.contextService = contextService;
         this.accessService = accessService;
+        this.eventService = eventService;
         this.tagTypeService = tagTypeService;
         this.featureTagService = featureTagService;
+        this.dependentFeaturesService = dependentFeaturesService;
         this.importPermissionsService = new ImportPermissionsService(
             this.importTogglesStore,
             this.accessService,
             this.tagTypeService,
             this.contextService,
         );
+        this.dependentFeaturesReadModel = dependentFeaturesReadModel;
+        this.segmentReadModel = segmentReadModel;
         this.logger = getLogger('services/state-service.js');
     }
 
     async validate(
         dto: ImportTogglesSchema,
-        user: User,
+        user: IUser,
+        mode = 'regular' as Mode,
     ): Promise<ImportTogglesValidateSchema> {
         const [
             unsupportedStrategies,
@@ -151,32 +204,48 @@ export default class ExportImportService {
             unsupportedContextFields,
             archivedFeatures,
             otherProjectFeatures,
+            existingProjectFeatures,
             missingPermissions,
+            duplicateFeatures,
+            featureNameCheckResult,
+            featureLimitResult,
+            unsupportedSegments,
+            unsupportedDependencies,
         ] = await Promise.all([
             this.getUnsupportedStrategies(dto),
             this.getUsedCustomStrategies(dto),
             this.getUnsupportedContextFields(dto),
             this.getArchivedFeatures(dto),
             this.getOtherProjectFeatures(dto),
+            this.getExistingProjectFeatures(dto),
             this.importPermissionsService.getMissingPermissions(
                 dto,
                 user,
-                'regular',
+                mode,
             ),
+            this.getDuplicateFeatures(dto),
+            this.getInvalidFeatureNames(dto),
+            this.getFeatureLimit(dto),
+            this.getUnsupportedSegments(dto),
+            this.getMissingDependencies(dto),
         ]);
 
-        const errors = ImportValidationMessages.compileErrors(
-            dto.project,
-            unsupportedStrategies,
-            unsupportedContextFields || [],
-            [],
+        const errors = ImportValidationMessages.compileErrors({
+            projectName: dto.project,
+            strategies: unsupportedStrategies,
+            contextFields: unsupportedContextFields || [],
             otherProjectFeatures,
-            false,
-        );
-        const warnings = ImportValidationMessages.compileWarnings(
-            usedCustomStrategies,
+            duplicateFeatures,
+            featureNameCheckResult,
+            featureLimitResult,
+            segments: unsupportedSegments,
+            dependencies: unsupportedDependencies,
+        });
+        const warnings = ImportValidationMessages.compileWarnings({
             archivedFeatures,
-        );
+            existingFeatures: existingProjectFeatures,
+            usedCustomStrategies,
+        });
         const permissions =
             ImportValidationMessages.compilePermissionErrors(
                 missingPermissions,
@@ -189,41 +258,133 @@ export default class ExportImportService {
         };
     }
 
-    async import(dto: ImportTogglesSchema, user: User): Promise<void> {
+    async importVerify(
+        dto: ImportTogglesSchema,
+        user: IUser,
+        mode = 'regular' as Mode,
+    ): Promise<void> {
+        await allSettledWithRejection([
+            this.verifyStrategies(dto),
+            this.verifyContextFields(dto),
+            this.importPermissionsService.verifyPermissions(dto, user, mode),
+            this.verifyFeatures(dto),
+            this.verifySegments(dto),
+            this.verifyDependencies(dto),
+        ]);
+    }
+
+    async fileImportVerify(dto: ImportTogglesSchema): Promise<void> {
+        await allSettledWithRejection([
+            this.verifyStrategies(dto),
+            this.verifyContextFields(dto),
+            this.verifyFeatures(dto),
+            this.verifySegments(dto),
+            this.verifyDependencies(dto),
+        ]);
+    }
+
+    async importFeatureData(
+        dto: ImportTogglesSchema,
+        auditUser: IAuditUser,
+    ): Promise<void> {
+        await this.createOrUpdateToggles(dto, auditUser);
+        await this.importToggleVariants(dto, auditUser);
+        await this.importTagTypes(dto, auditUser);
+        await this.importTags(dto, auditUser);
+        await this.importContextFields(dto, auditUser);
+    }
+
+    async import(
+        dto: ImportTogglesSchema,
+        user: IUser,
+        auditUser: IAuditUser,
+    ): Promise<void> {
+        const cleanedDto = await this.cleanData(dto);
+        await this.importVerify(cleanedDto, user);
+        await this.processImport(cleanedDto, user, auditUser);
+    }
+
+    async importFromFile(
+        file: string,
+        project: string,
+        environment: string,
+    ): Promise<void> {
+        const content = await readFile(file);
+        const data = JSON.parse(content);
+        const dto = {
+            project,
+            environment,
+            data,
+        };
         const cleanedDto = await this.cleanData(dto);
 
-        await Promise.all([
-            this.verifyStrategies(cleanedDto),
-            this.verifyContextFields(cleanedDto),
-            this.importPermissionsService.verifyPermissions(
-                dto,
-                user,
-                'regular',
-            ),
-            this.verifyFeatures(dto),
-        ]);
-        await this.createToggles(cleanedDto, user);
-        await this.importToggleVariants(dto, user);
-        await this.importTagTypes(cleanedDto, user);
-        await this.importTags(cleanedDto, user);
-        await this.importContextFields(dto, user);
-
-        await this.importDefault(cleanedDto, user);
-        await this.eventStore.store({
-            project: cleanedDto.project,
-            environment: cleanedDto.environment,
-            type: FEATURES_IMPORTED,
-            createdBy: extractUsernameFromUser(user),
-        });
+        await this.fileImportVerify(cleanedDto);
+        await this.processImport(cleanedDto, SYSTEM_USER, SYSTEM_USER_AUDIT);
     }
 
-    private async importDefault(dto: ImportTogglesSchema, user: User) {
+    private async processImport(
+        dto: ImportTogglesSchema,
+        user: IUser,
+        auditUser: IAuditUser,
+    ) {
+        await this.importFeatureData(dto, auditUser);
+
+        await this.importEnvironmentData(dto, user, auditUser);
+        await this.eventService.storeEvent(
+            new FeaturesImportedEvent({
+                project: dto.project,
+                environment: dto.environment,
+                auditUser,
+            }),
+        );
+    }
+
+    async importEnvironmentData(
+        dto: ImportTogglesSchema,
+        user: IUser,
+        auditUser: IAuditUser,
+    ): Promise<void> {
         await this.deleteStrategies(dto);
-        await this.importStrategies(dto, user);
-        await this.importToggleStatuses(dto, user);
+        await this.importStrategies(dto, auditUser);
+        await this.importToggleStatuses(dto, user, auditUser);
+        await this.importDependencies(dto, user, auditUser);
     }
 
-    private async importToggleStatuses(dto: ImportTogglesSchema, user: User) {
+    private async importDependencies(
+        dto: ImportTogglesSchema,
+        user: IUser,
+        auditUser: IAuditUser,
+    ) {
+        await Promise.all(
+            (dto.data.dependencies || []).flatMap((dependency) => {
+                const feature = dto.data.features.find(
+                    (feature) => feature.name === dependency.feature,
+                );
+                if (!feature || !feature.project) {
+                    return [];
+                }
+
+                const projectId = feature!.project!;
+                return dependency.dependencies.map((parentDependency) =>
+                    this.dependentFeaturesService.upsertFeatureDependency(
+                        {
+                            child: dependency.feature,
+                            projectId,
+                        },
+                        parentDependency,
+                        user,
+                        auditUser,
+                    ),
+                );
+            }),
+        );
+    }
+
+    private async importToggleStatuses(
+        dto: ImportTogglesSchema,
+        user: IUser,
+        auditUser: IAuditUser,
+    ) {
         await Promise.all(
             (dto.data.featureEnvironments || []).map((featureEnvironment) =>
                 this.featureToggleService.updateEnabled(
@@ -231,14 +392,17 @@ export default class ExportImportService {
                     featureEnvironment.name,
                     dto.environment,
                     featureEnvironment.enabled,
-                    extractUsernameFromUser(user),
+                    auditUser,
                     user,
                 ),
             ),
         );
     }
 
-    private async importStrategies(dto: ImportTogglesSchema, user: User) {
+    private async importStrategies(
+        dto: ImportTogglesSchema,
+        auditUser: IAuditUser,
+    ) {
         const hasFeatureName = (
             featureStrategy: FeatureStrategySchema,
         ): featureStrategy is WithRequired<
@@ -248,21 +412,15 @@ export default class ExportImportService {
         await Promise.all(
             dto.data.featureStrategies
                 ?.filter(hasFeatureName)
-                .map((featureStrategy) =>
+                .map(({ featureName, ...restOfFeatureStrategy }) =>
                     this.featureToggleService.createStrategy(
+                        restOfFeatureStrategy,
                         {
-                            name: featureStrategy.name,
-                            constraints: featureStrategy.constraints,
-                            parameters: featureStrategy.parameters,
-                            segments: featureStrategy.segments,
-                            sortOrder: featureStrategy.sortOrder,
-                        },
-                        {
-                            featureName: featureStrategy.featureName,
+                            featureName,
                             environment: dto.environment,
                             projectId: dto.project,
                         },
-                        extractUsernameFromUser(user),
+                        auditUser,
                     ),
                 ),
         );
@@ -275,7 +433,7 @@ export default class ExportImportService {
         );
     }
 
-    private async importTags(dto: ImportTogglesSchema, user: User) {
+    private async importTags(dto: ImportTogglesSchema, auditUser: IAuditUser) {
         await this.importTogglesStore.deleteTagsForFeatures(
             dto.data.features.map((feature) => feature.name),
         );
@@ -285,45 +443,54 @@ export default class ExportImportService {
             if (tag.tagType) {
                 await this.featureTagService.addTag(
                     tag.featureName,
-                    { type: tag.tagType, value: tag.tagValue },
-                    extractUsernameFromUser(user),
+                    {
+                        type: tag.tagType,
+                        value: tag.tagValue,
+                    },
+                    auditUser,
                 );
             }
         }
     }
 
-    private async importContextFields(dto: ImportTogglesSchema, user: User) {
+    private async importContextFields(
+        dto: ImportTogglesSchema,
+        auditUser: IAuditUser,
+    ) {
         const newContextFields = (await this.getNewContextFields(dto)) || [];
         await Promise.all(
             newContextFields.map((contextField) =>
                 this.contextService.createContextField(
                     {
                         name: contextField.name,
-                        description: contextField.description,
+                        description: contextField.description || '',
                         legalValues: contextField.legalValues,
                         stickiness: contextField.stickiness,
                     },
-                    extractUsernameFromUser(user),
+                    auditUser,
                 ),
             ),
         );
     }
 
-    private async importTagTypes(dto: ImportTogglesSchema, user: User) {
+    private async importTagTypes(
+        dto: ImportTogglesSchema,
+        auditUser: IAuditUser,
+    ) {
         const newTagTypes = await this.getNewTagTypes(dto);
         return Promise.all(
             newTagTypes.map((tagType) => {
                 return tagType
-                    ? this.tagTypeService.createTagType(
-                          tagType,
-                          extractUsernameFromUser(user),
-                      )
+                    ? this.tagTypeService.createTagType(tagType, auditUser)
                     : Promise.resolve();
             }),
         );
     }
 
-    private async importToggleVariants(dto: ImportTogglesSchema, user: User) {
+    private async importToggleVariants(
+        dto: ImportTogglesSchema,
+        auditUser: IAuditUser,
+    ) {
         const featureEnvsWithVariants =
             dto.data.featureEnvironments?.filter(
                 (featureEnvironment) =>
@@ -333,40 +500,117 @@ export default class ExportImportService {
         await Promise.all(
             featureEnvsWithVariants.map((featureEnvironment) => {
                 return featureEnvironment.featureName
-                    ? this.featureToggleService.saveVariantsOnEnv(
+                    ? this.featureToggleService.legacySaveVariantsOnEnv(
                           dto.project,
                           featureEnvironment.featureName,
                           dto.environment,
                           featureEnvironment.variants as IVariant[],
-                          user,
+                          auditUser,
                       )
                     : Promise.resolve();
             }),
         );
     }
 
-    private async createToggles(dto: ImportTogglesSchema, user: User) {
-        await Promise.all(
-            dto.data.features.map((feature) =>
-                this.featureToggleService
-                    .validateName(feature.name)
-                    .then(() => {
-                        const { archivedAt, createdAt, ...rest } = feature;
-                        return this.featureToggleService.createFeatureToggle(
-                            dto.project,
-                            rest as FeatureToggleDTO,
-                            extractUsernameFromUser(user),
-                        );
-                    })
-                    .catch(() => {}),
-            ),
+    private async createOrUpdateToggles(
+        dto: ImportTogglesSchema,
+        auditUser: IAuditUser,
+    ) {
+        const existingFeatures = await this.getExistingProjectFeatures(dto);
+
+        for (const feature of dto.data.features) {
+            if (existingFeatures.includes(feature.name)) {
+                const { archivedAt, createdAt, ...rest } = feature;
+                await this.featureToggleService.updateFeatureToggle(
+                    dto.project,
+                    rest as FeatureToggleDTO,
+                    feature.name,
+                    auditUser,
+                );
+            } else {
+                await this.featureToggleService.validateName(feature.name);
+                const { archivedAt, createdAt, ...rest } = feature;
+                await this.featureToggleService.createFeatureToggle(
+                    dto.project,
+                    rest as FeatureToggleDTO,
+                    auditUser,
+                );
+            }
+        }
+    }
+
+    private async getUnsupportedSegments(
+        dto: ImportTogglesSchema,
+    ): Promise<string[]> {
+        const supportedSegments = await this.segmentReadModel.getAll();
+        const targetProject = dto.project;
+        return dto.data.segments
+            ? dto.data.segments
+                  .filter(
+                      (importingSegment) =>
+                          !supportedSegments.find(
+                              (existingSegment) =>
+                                  importingSegment.name ===
+                                      existingSegment.name &&
+                                  (!existingSegment.project ||
+                                      existingSegment.project ===
+                                          targetProject),
+                          ),
+                  )
+
+                  .map((it) => it.name)
+            : [];
+    }
+
+    private async getMissingDependencies(
+        dto: ImportTogglesSchema,
+    ): Promise<string[]> {
+        const dependentFeatures =
+            dto.data.dependencies?.flatMap((dependency) =>
+                dependency.dependencies.map((d) => d.feature),
+            ) || [];
+        const importedFeatures = dto.data.features.map((f) => f.name);
+
+        const missingFromImported = dependentFeatures.filter(
+            (feature) => !importedFeatures.includes(feature),
         );
+
+        let missingFeatures: string[] = [];
+
+        if (missingFromImported.length) {
+            const featuresFromStore = (
+                await this.toggleStore.getAllByNames(missingFromImported)
+            ).map((f) => f.name);
+            missingFeatures = missingFromImported.filter(
+                (feature) => !featuresFromStore.includes(feature),
+            );
+        }
+        return missingFeatures;
+    }
+
+    private async verifySegments(dto: ImportTogglesSchema) {
+        const unsupportedSegments = await this.getUnsupportedSegments(dto);
+        if (unsupportedSegments.length > 0) {
+            throw new BadDataError(
+                `Unsupported segments: ${unsupportedSegments.join(', ')}`,
+            );
+        }
+    }
+
+    private async verifyDependencies(dto: ImportTogglesSchema) {
+        const unsupportedDependencies = await this.getMissingDependencies(dto);
+        if (unsupportedDependencies.length > 0) {
+            throw new BadDataError(
+                `The following dependent features are missing: ${unsupportedDependencies.join(
+                    ', ',
+                )}`,
+            );
+        }
     }
 
     private async verifyContextFields(dto: ImportTogglesSchema) {
-        const unsupportedContextFields = await this.getUnsupportedContextFields(
-            dto,
-        );
+        const unsupportedContextFields =
+            await this.getUnsupportedContextFields(dto);
         if (Array.isArray(unsupportedContextFields)) {
             const [firstError, ...remainingErrors] =
                 unsupportedContextFields.map((field) => {
@@ -398,10 +642,21 @@ export default class ExportImportService {
 
     private async cleanData(dto: ImportTogglesSchema) {
         const removedFeaturesDto = await this.removeArchivedFeatures(dto);
-        return ExportImportService.remapSegments(removedFeaturesDto);
+        return this.remapSegments(removedFeaturesDto);
     }
 
-    private static async remapSegments(dto: ImportTogglesSchema) {
+    private async remapSegments(dto: ImportTogglesSchema) {
+        const existingSegments = await this.segmentReadModel.getAll();
+
+        const segmentMapping = new Map(
+            dto.data.segments?.map((segment) => [
+                segment.id,
+                existingSegments.find(
+                    (existingSegment) => existingSegment.name === segment.name,
+                )?.id,
+            ]),
+        );
+
         return {
             ...dto,
             data: {
@@ -409,14 +664,18 @@ export default class ExportImportService {
                 featureStrategies: dto.data.featureStrategies.map(
                     (strategy) => ({
                         ...strategy,
-                        segments: [],
+                        segments: strategy.segments?.map(
+                            (segment) => segmentMapping.get(segment)!,
+                        ),
                     }),
                 ),
             },
         };
     }
 
-    private async removeArchivedFeatures(dto: ImportTogglesSchema) {
+    async removeArchivedFeatures(
+        dto: ImportTogglesSchema,
+    ): Promise<ImportTogglesSchema> {
         const archivedFeatures = await this.getArchivedFeatures(dto);
         const featureTags =
             dto.data.featureTags?.filter(
@@ -468,6 +727,26 @@ export default class ExportImportService {
                 [firstError, ...remainingErrors],
             );
         }
+    }
+
+    private async getInvalidFeatureNames({
+        project,
+        data,
+    }: ImportTogglesSchema): Promise<FeatureNameCheckResultWithFeaturePattern> {
+        return this.featureToggleService.checkFeatureFlagNamesAgainstProjectPattern(
+            project,
+            data.features.map((f) => f.name),
+        );
+    }
+
+    private async getFeatureLimit({
+        project,
+        data,
+    }: ImportTogglesSchema): Promise<ProjectFeaturesLimit> {
+        return this.importTogglesStore.getProjectFeaturesLimit(
+            [...new Set(data.features.map((f) => f.name))],
+            project,
+        );
     }
 
     private async getUnsupportedStrategies(
@@ -529,6 +808,17 @@ export default class ExportImportService {
         );
     }
 
+    private async getExistingProjectFeatures(dto: ImportTogglesSchema) {
+        return this.importTogglesStore.getFeaturesInProject(
+            dto.data.features.map((feature) => feature.name),
+            dto.project,
+        );
+    }
+
+    private getDuplicateFeatures(dto: ImportTogglesSchema) {
+        return findDuplicates(dto.data.features.map((feature) => feature.name));
+    }
+
     private async getNewTagTypes(dto: ImportTogglesSchema) {
         const existingTagTypes = (await this.tagTypeService.getAll()).map(
             (tagType) => tagType.name,
@@ -555,12 +845,23 @@ export default class ExportImportService {
 
     async export(
         query: ExportQuerySchema,
-        userName: string,
+        auditUser: IAuditUser,
     ): Promise<ExportResultSchema> {
-        const featureNames =
-            typeof query.tag === 'string'
-                ? await this.featureTagService.listFeatures(query.tag)
-                : (query.features as string[]) || [];
+        let featureNames: string[] = [];
+        if (typeof query.tag === 'string') {
+            featureNames = await this.featureTagService.listFeatures(query.tag);
+        } else if (Array.isArray(query.features) && query.features.length) {
+            featureNames = query.features;
+        } else if (typeof query.project === 'string') {
+            const allProjectFeatures = await this.toggleStore.getAll({
+                project: query.project,
+            });
+            featureNames = allProjectFeatures.map((feature) => feature.name);
+        } else {
+            const allFeatures = await this.toggleStore.getAll();
+            featureNames = allFeatures.map((feature) => feature.name);
+        }
+
         const [
             features,
             featureEnvironments,
@@ -570,6 +871,7 @@ export default class ExportImportService {
             featureTags,
             segments,
             tagTypes,
+            featureDependencies,
         ] = await Promise.all([
             this.toggleStore.getAllByNames(featureNames),
             await this.featureEnvironmentStore.getAllByFeatures(
@@ -580,11 +882,12 @@ export default class ExportImportService {
                 featureNames,
                 query.environment,
             ),
-            this.segmentStore.getAllFeatureStrategySegments(),
+            this.segmentReadModel.getAllFeatureStrategySegments(),
             this.contextFieldStore.getAll(),
             this.featureTagStore.getAllByFeatures(featureNames),
-            this.segmentStore.getAll(),
+            this.segmentReadModel.getAll(),
             this.tagTypeStore.getAll(),
+            this.dependentFeaturesReadModel.getDependencies(featureNames),
         ]);
         this.addSegmentsToStrategies(featureStrategies, strategySegments);
         const filteredContextFields = contextFields
@@ -621,6 +924,19 @@ export default class ExportImportService {
         const filteredTagTypes = tagTypes.filter((tagType) =>
             featureTags.map((tag) => tag.tagType).includes(tagType.name),
         );
+
+        const groupedFeatureDependencies = groupBy(
+            featureDependencies,
+            'feature',
+        );
+
+        const mappedFeatureDependencies = Object.entries(
+            groupedFeatureDependencies,
+        ).map(([feature, dependencies]) => ({
+            feature,
+            dependencies: dependencies.map((d) => d.dependency),
+        }));
+
         const result = {
             features: features.map((item) => {
                 const { createdAt, archivedAt, lastSeenAt, ...rest } = item;
@@ -633,6 +949,7 @@ export default class ExportImportService {
                     projectId,
                     environment,
                     strategyName,
+                    milestoneId,
                     ...rest
                 } = item;
                 return {
@@ -654,15 +971,17 @@ export default class ExportImportService {
             featureTags,
             segments: filteredSegments.map((item) => {
                 const { id, name } = item;
-                return { id, name };
+                return {
+                    id,
+                    name,
+                };
             }),
             tagTypes: filteredTagTypes,
+            dependencies: mappedFeatureDependencies,
         };
-        await this.eventStore.store({
-            type: FEATURES_EXPORTED,
-            createdBy: userName,
-            data: result,
-        });
+        await this.eventService.storeEvent(
+            new FeaturesExportedEvent({ data: result, auditUser }),
+        );
 
         return result;
     }
@@ -681,5 +1000,4 @@ export default class ExportImportService {
         });
     }
 }
-
 module.exports = ExportImportService;

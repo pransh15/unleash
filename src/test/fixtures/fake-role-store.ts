@@ -1,14 +1,23 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { ICustomRole } from 'lib/types/model';
-import { IRole, IUserRole } from 'lib/types/stores/access-store';
-import {
+import type { RoleSchema } from '../../lib/openapi';
+import type { ICustomRole } from '../../lib/types/model';
+import type { IRole, IUserRole } from '../../lib/types/stores/access-store';
+import type {
     ICustomRoleInsert,
     ICustomRoleUpdate,
     IRoleStore,
-} from 'lib/types/stores/role-store';
+} from '../../lib/types/stores/role-store';
 
 export default class FakeRoleStore implements IRoleStore {
     count(): Promise<number> {
+        return Promise.resolve(0);
+    }
+
+    filteredCount(search: Partial<RoleSchema>): Promise<number> {
+        return Promise.resolve(0);
+    }
+
+    filteredCountInUse(search: Partial<RoleSchema>): Promise<number> {
         return Promise.resolve(0);
     }
 
@@ -33,6 +42,7 @@ export default class FakeRoleStore implements IRoleStore {
             ...role,
             type: role.roleType,
             id: this.roles.length,
+            roleType: undefined, // roleType is not part of ICustomRole and simulates what the DB responds
         };
         this.roles.push(roleCreated);
         return Promise.resolve(roleCreated);
@@ -51,7 +61,7 @@ export default class FakeRoleStore implements IRoleStore {
     }
 
     async getRoleByName(name: string): Promise<IRole> {
-        return this.roles.find((r) => (r.name = name)) as IRole;
+        return this.roles.find((r) => r.name === name) as IRole;
     }
 
     getRolesForProject(projectId: string): Promise<IRole[]> {

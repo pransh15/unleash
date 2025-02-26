@@ -1,9 +1,9 @@
-import { FC, VFC } from 'react';
+import { useState, type VFC } from 'react';
 import { Box, Button, styled, Typography } from '@mui/material';
 import { DynamicSidebarModal } from 'component/common/SidebarModal/SidebarModal';
 import { PageContent } from 'component/common/PageContent/PageContent';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
-import { CheckCircle } from '@mui/icons-material';
+import CheckCircle from '@mui/icons-material/CheckCircle';
 import { ChangeRequest } from '../ChangeRequest/ChangeRequest';
 import { usePendingChangeRequests } from 'hooks/api/getters/usePendingChangeRequests/usePendingChangeRequests';
 import { useChangeRequestApi } from 'hooks/api/actions/useChangeRequestApi/useChangeRequestApi';
@@ -11,6 +11,7 @@ import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import { EnvironmentChangeRequest } from './EnvironmentChangeRequest/EnvironmentChangeRequest';
 import { ReviewChangesHeader } from './ReviewChangesHeader/ReviewChangesHeader';
+import { ChangeRequestPlausibleProvider } from '../ChangeRequestContext';
 
 interface IChangeRequestSidebarProps {
     open: boolean;
@@ -55,7 +56,7 @@ export const StyledFlexAlignCenterBox = styled(Box)(() => ({
 
 export const Separator = () => (
     <Typography
-        component="span"
+        component='span'
         sx={{
             marginLeft: 1.5,
             marginRight: 1.5,
@@ -64,22 +65,6 @@ export const Separator = () => (
     >
         |
     </Typography>
-);
-
-export const UpdateCount: FC<{ count: number }> = ({ count }) => (
-    <Box>
-        <Typography component="span" variant="body1" color="text.secondary">
-            Updates:{' '}
-        </Typography>
-        <Typography
-            component="span"
-            sx={{
-                fontWeight: 'bold',
-            }}
-        >
-            {count} {count === 1 ? 'feature toggle' : 'feature toggles'}
-        </Typography>
-    </Box>
 );
 
 export const ChangeRequestSidebar: VFC<IChangeRequestSidebarProps> = ({
@@ -92,15 +77,18 @@ export const ChangeRequestSidebar: VFC<IChangeRequestSidebarProps> = ({
         loading,
         refetch: refetchChangeRequest,
     } = usePendingChangeRequests(project);
-    const { changeState, discardDraft } = useChangeRequestApi();
+    const { discardDraft } = useChangeRequestApi();
     const { setToastApiError } = useToast();
+    const [
+        changeRequestChangesWillOverwrite,
+        setChangeRequestChangesWillOverwrite,
+    ] = useState(false);
 
-    const onReview = async (draftId: number, comment?: string) => {
+    const onReview = async (
+        changeState: (project: string) => Promise<void>,
+    ) => {
         try {
-            await changeState(project, draftId, {
-                state: 'In review',
-                comment,
-            });
+            await changeState(project);
             refetchChangeRequest();
         } catch (error: unknown) {
             setToastApiError(formatUnknownError(error));
@@ -121,13 +109,11 @@ export const ChangeRequestSidebar: VFC<IChangeRequestSidebarProps> = ({
             <DynamicSidebarModal
                 open={open}
                 onClose={onClose}
-                label="Review changes"
+                label='Review changes'
             >
                 <StyledPageContent
                     disableBorder={true}
-                    header={
-                        <PageHeader titleElement="Review your changes"></PageHeader>
-                    }
+                    header={<PageHeader titleElement='Review your changes' />}
                 >
                     There are no changes to review.
                     {/* FIXME: empty state */}
@@ -141,26 +127,36 @@ export const ChangeRequestSidebar: VFC<IChangeRequestSidebarProps> = ({
         <DynamicSidebarModal
             open={open}
             onClose={onClose}
-            label="Review changes"
+            label='Review changes'
         >
             <StyledPageContent
                 disableBorder={true}
                 header={<ReviewChangesHeader />}
             >
-                {data?.map(environmentChangeRequest => (
-                    <EnvironmentChangeRequest
+                {data?.map((environmentChangeRequest) => (
+                    <ChangeRequestPlausibleProvider
                         key={environmentChangeRequest.id}
-                        environmentChangeRequest={environmentChangeRequest}
-                        onClose={onClose}
-                        onReview={onReview}
-                        onDiscard={onDiscard}
+                        value={{
+                            willOverwriteStrategyChanges:
+                                changeRequestChangesWillOverwrite,
+                            registerWillOverwriteStrategyChanges: () =>
+                                setChangeRequestChangesWillOverwrite(true),
+                        }}
                     >
-                        <ChangeRequest
-                            changeRequest={environmentChangeRequest}
-                            onNavigate={onClose}
-                            onRefetch={refetchChangeRequest}
-                        />
-                    </EnvironmentChangeRequest>
+                        <EnvironmentChangeRequest
+                            key={environmentChangeRequest.id}
+                            environmentChangeRequest={environmentChangeRequest}
+                            onClose={onClose}
+                            onReview={onReview}
+                            onDiscard={onDiscard}
+                        >
+                            <ChangeRequest
+                                changeRequest={environmentChangeRequest}
+                                onNavigate={onClose}
+                                onRefetch={refetchChangeRequest}
+                            />
+                        </EnvironmentChangeRequest>
+                    </ChangeRequestPlausibleProvider>
                 ))}
             </StyledPageContent>
         </DynamicSidebarModal>

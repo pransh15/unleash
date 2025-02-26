@@ -1,9 +1,9 @@
-import { IUnleashConfig } from '../../types';
+import type { IUnleashConfig } from '../../types';
 import { GroupService } from '../../services';
-import { Db } from '../../db/db';
+import type { Db } from '../../db/db';
 import GroupStore from '../../db/group-store';
 import { AccountStore } from '../../db/account-store';
-import EventStore from '../../db/event-store';
+import { createEventsService } from '../events/createEventsService';
 
 export const createGroupService = (
     db: Db,
@@ -12,10 +12,11 @@ export const createGroupService = (
     const { getLogger } = config;
     const groupStore = new GroupStore(db);
     const accountStore = new AccountStore(db, getLogger);
-    const eventStore = new EventStore(db, getLogger);
+    const eventService = createEventsService(db, config);
     const groupService = new GroupService(
-        { groupStore, eventStore, accountStore },
+        { groupStore, accountStore },
         { getLogger },
+        eventService,
     );
     return groupService;
 };

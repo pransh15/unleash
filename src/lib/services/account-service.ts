@@ -1,11 +1,10 @@
-import { Logger } from '../logger';
-import { IUser } from '../types/user';
-import { IUnleashConfig } from '../types/option';
-import { IAccountStore, IUnleashStores } from '../types/stores';
-import { minutesToMilliseconds } from 'date-fns';
-import { AccessService } from './access-service';
+import type { Logger } from '../logger';
+import type { IUser } from '../types/user';
+import type { IUnleashConfig } from '../types/option';
+import type { IAccountStore, IUnleashStores } from '../types/stores';
+import type { AccessService } from './access-service';
 import { RoleName } from '../types/model';
-import { IAdminCount } from 'lib/types/stores/account-store';
+import type { IAdminCount } from '../types/stores/account-store';
 
 interface IUserWithRole extends IUser {
     rootRole: number;
@@ -18,12 +17,10 @@ export class AccountService {
 
     private accessService: AccessService;
 
-    private seenTimer: NodeJS.Timeout;
-
     private lastSeenSecrets: Set<string> = new Set<string>();
 
     constructor(
-        stores: Pick<IUnleashStores, 'accountStore' | 'eventStore'>,
+        stores: Pick<IUnleashStores, 'accountStore'>,
         { getLogger }: Pick<IUnleashConfig, 'getLogger'>,
         services: {
             accessService: AccessService;
@@ -32,12 +29,11 @@ export class AccountService {
         this.logger = getLogger('service/account-service.ts');
         this.store = stores.accountStore;
         this.accessService = services.accessService;
-        this.updateLastSeen();
     }
 
     async getAll(): Promise<IUserWithRole[]> {
         const accounts = await this.store.getAll();
-        const defaultRole = await this.accessService.getRootRole(
+        const defaultRole = await this.accessService.getPredefinedRole(
             RoleName.VIEWER,
         );
         const userRoles = await this.accessService.getRootRoleForAllUsers();
@@ -63,19 +59,9 @@ export class AccountService {
             this.lastSeenSecrets = new Set<string>();
             await this.store.markSeenAt(toStore);
         }
-
-        this.seenTimer = setTimeout(
-            async () => this.updateLastSeen(),
-            minutesToMilliseconds(3),
-        ).unref();
     }
 
     addPATSeen(secret: string): void {
         this.lastSeenSecrets.add(secret);
-    }
-
-    destroy(): void {
-        clearTimeout(this.seenTimer);
-        this.seenTimer = null;
     }
 }

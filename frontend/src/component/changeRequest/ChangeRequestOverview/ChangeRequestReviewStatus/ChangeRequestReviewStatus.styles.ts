@@ -1,5 +1,10 @@
 import { styled } from '@mui/material';
-import { Cancel, CheckCircle } from '@mui/icons-material';
+import Cancel from '@mui/icons-material/Cancel';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import Schedule from '@mui/icons-material/Schedule';
+import Edit from '@mui/icons-material/Edit';
+import ErrorIcon from '@mui/icons-material/Error';
+import PauseCircle from '@mui/icons-material/PauseCircle';
 import { Box, Typography, Divider } from '@mui/material';
 
 const styledComponentPropCheck = () => (prop: string) =>
@@ -36,6 +41,33 @@ export const StyledSuccessIcon = styled(CheckCircle)(({ theme }) => ({
     marginRight: theme.spacing(1),
 }));
 
+export const StyledScheduledIcon = styled(Schedule)(({ theme }) => ({
+    color: theme.palette.warning.main,
+    height: '35px',
+    width: '35px',
+    marginRight: theme.spacing(1),
+}));
+
+export const StyledScheduleFailedIcon = styled(ErrorIcon)(({ theme }) => ({
+    color: theme.palette.error.main,
+    height: '35px',
+    width: '35px',
+    marginRight: theme.spacing(1),
+}));
+
+export const StyledScheduleSuspendedIcon = styled(PauseCircle)(({ theme }) => ({
+    color: theme.palette.text.secondary,
+    height: '35px',
+    width: '35px',
+    marginRight: theme.spacing(1),
+}));
+
+export const StyledEditIcon = styled(Edit)(({ theme }) => ({
+    color: theme.palette.text.secondary,
+    height: '24px',
+    width: '24px',
+}));
+
 export const StyledOuterContainer = styled(Box)(({ theme }) => ({
     display: 'flex',
     marginTop: theme.spacing(2),
@@ -53,7 +85,7 @@ export const StyledButtonContainer = styled(Box, {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    ['svg']: {
+    svg: {
         color: svgColor,
     },
 }));
@@ -77,3 +109,10 @@ export const StyledReviewTitle = styled(Typography, {
     fontWeight: 'bold',
     color,
 }));
+
+export const StyledScheduledBox = styled(Box)({
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+});

@@ -5,7 +5,7 @@ import useAPI from '../useApi/useApi';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
 
 export const useFavoriteProjectsApi = () => {
-    const { makeRequest, createRequest, errors, loading } = useAPI({
+    const { makeLightRequest, createRequest, errors, loading } = useAPI({
         propagateErrors: true,
     });
     const { setToastData, setToastApiError } = useToast();
@@ -17,14 +17,14 @@ export const useFavoriteProjectsApi = () => {
             const req = createRequest(
                 path,
                 { method: 'POST' },
-                'addFavoriteProject'
+                'addFavoriteProject',
             );
 
             try {
-                await makeRequest(req.caller, req.id);
+                await makeLightRequest(req.caller, req.id);
 
                 setToastData({
-                    title: 'Project added to favorites',
+                    text: 'Project added to favorites',
                     type: 'success',
                 });
                 trackEvent('favorite', {
@@ -36,7 +36,7 @@ export const useFavoriteProjectsApi = () => {
                 setToastApiError(formatUnknownError(error));
             }
         },
-        [createRequest, makeRequest]
+        [createRequest, makeLightRequest],
     );
 
     const unfavorite = useCallback(
@@ -45,14 +45,14 @@ export const useFavoriteProjectsApi = () => {
             const req = createRequest(
                 path,
                 { method: 'DELETE' },
-                'removeFavoriteProject'
+                'removeFavoriteProject',
             );
 
             try {
-                await makeRequest(req.caller, req.id);
+                await makeLightRequest(req.caller, req.id);
 
                 setToastData({
-                    title: 'Project removed from favorites',
+                    text: 'Project removed from favorites',
                     type: 'success',
                 });
                 trackEvent('favorite', {
@@ -64,7 +64,7 @@ export const useFavoriteProjectsApi = () => {
                 setToastApiError(formatUnknownError(error));
             }
         },
-        [createRequest, makeRequest]
+        [createRequest, makeLightRequest],
     );
 
     return {

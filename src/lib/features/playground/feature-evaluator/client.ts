@@ -1,25 +1,26 @@
-import { Strategy } from './strategy';
-import { FeatureInterface } from './feature';
-import { RepositoryInterface } from './repository';
+import type { Strategy } from './strategy';
+import type { FeatureInterface } from './feature';
+import type { RepositoryInterface } from './repository';
 import {
     getDefaultVariant,
     selectVariant,
-    Variant,
-    VariantDefinition,
+    type Variant,
+    type VariantDefinition,
 } from './variant';
-import { Context } from './context';
-import { SegmentForEvaluation } from './strategy/strategy';
-import { PlaygroundStrategySchema } from 'lib/openapi/spec/playground-strategy-schema';
+import type { Context } from './context';
+import type { SegmentForEvaluation } from './strategy/strategy';
+import type { PlaygroundStrategySchema } from '../../../openapi/spec/playground-strategy-schema';
 import { playgroundStrategyEvaluation } from '../../../openapi/spec/playground-strategy-schema';
-
-export type StrategyEvaluationResult = Pick<
-    PlaygroundStrategySchema,
-    'result' | 'segments' | 'constraints'
->;
+import { randomId } from '../../../util';
 
 export type EvaluatedPlaygroundStrategy = Omit<
     PlaygroundStrategySchema,
     'links'
+>;
+
+export type StrategyEvaluationResult = Pick<
+    EvaluatedPlaygroundStrategy,
+    'result' | 'segments' | 'constraints'
 >;
 
 export type FeatureStrategiesEvaluationResult = {
@@ -27,6 +28,7 @@ export type FeatureStrategiesEvaluationResult = {
     variant?: Variant;
     variants?: VariantDefinition[];
     strategies: EvaluatedPlaygroundStrategy[];
+    hasUnsatisfiedDependency?: boolean;
 };
 
 export default class UnleashClient {
@@ -43,7 +45,6 @@ export default class UnleashClient {
                 !strategy ||
                 !strategy.name ||
                 typeof strategy.name !== 'string' ||
-                !strategy.isEnabled ||
                 typeof strategy.isEnabled !== 'function'
             ) {
                 throw new Error('Invalid strategy data / interface');
@@ -57,13 +58,63 @@ export default class UnleashClient {
         );
     }
 
+    isParentDependencySatisfied(
+        feature: FeatureInterface | undefined,
+        context: Context,
+    ) {
+        if (!feature?.dependencies?.length) {
+            return true;
+        }
+
+        return feature.dependencies.every((parent) => {
+            const parentToggle = this.repository.getToggle(parent.feature);
+
+            if (!parentToggle) {
+                return false;
+            }
+            if (parentToggle.dependencies?.length) {
+                return false;
+            }
+            if (Boolean(parent.enabled) !== Boolean(parentToggle.enabled)) {
+                return false;
+            }
+
+            if (parent.enabled !== false) {
+                if (parent.variants?.length) {
+                    return parent.variants.includes(
+                        this.getVariant(parent.feature, context).name,
+                    );
+                }
+                return (
+                    this.isEnabled(parent.feature, context, () => false)
+                        .result === true
+                );
+            }
+
+            return !(
+                this.isEnabled(parent.feature, context, () => false).result ===
+                true
+            );
+        });
+    }
+
     isEnabled(
         name: string,
         context: Context,
         fallback: Function,
     ): FeatureStrategiesEvaluationResult {
         const feature = this.repository.getToggle(name);
-        return this.isFeatureEnabled(feature, context, fallback);
+
+        const parentDependencySatisfied = this.isParentDependencySatisfied(
+            feature,
+            context,
+        );
+        const result = this.isFeatureEnabled(feature, context, fallback);
+
+        return {
+            ...result,
+            hasUnsatisfiedDependency: !parentDependencySatisfied,
+        };
     }
 
     isFeatureEnabled(
@@ -91,26 +142,32 @@ export default class UnleashClient {
 
         const strategies = feature.strategies.map(
             (strategySelector): EvaluatedPlaygroundStrategy => {
-                const getStrategy = () => {
+                const getStrategy = (): Strategy => {
+                    // assume that 'unknown' strategy is always present
+                    const unknownStrategy = this.getStrategy(
+                        'unknown',
+                    ) as Strategy;
+
                     // the application hostname strategy relies on external
                     // variables to calculate its result. As such, we can't
                     // evaluate it in a way that makes sense. So we'll
                     // use the 'unknown' strategy instead.
                     if (strategySelector.name === 'applicationHostname') {
-                        return this.getStrategy('unknown');
+                        return unknownStrategy;
                     }
+
                     return (
                         this.getStrategy(strategySelector.name) ??
-                        this.getStrategy('unknown')
+                        unknownStrategy
                     );
                 };
 
                 const strategy = getStrategy();
 
                 const segments =
-                    strategySelector.segments
+                    (strategySelector.segments
                         ?.map(this.getSegment(this.repository))
-                        .filter(Boolean) ?? [];
+                        .filter(Boolean) as SegmentForEvaluation[]) ?? [];
 
                 const evaluationResult = strategy.isEnabledWithConstraints(
                     strategySelector.parameters,
@@ -123,7 +180,7 @@ export default class UnleashClient {
 
                 return {
                     name: strategySelector.name,
-                    id: strategySelector.id,
+                    id: strategySelector.id || randomId(),
                     title: strategySelector.title,
                     disabled: strategySelector.disabled || false,
                     parameters: strategySelector.parameters,
@@ -136,7 +193,7 @@ export default class UnleashClient {
         const overallStrategyResult = (): [
             boolean | typeof playgroundStrategyEvaluation.unknownResult,
             VariantDefinition[] | undefined,
-            Variant | undefined | null,
+            Variant | undefined,
         ] => {
             // if at least one strategy is enabled, then the feature is enabled
             const enabledStrategy = strategies.find(
@@ -149,7 +206,7 @@ export default class UnleashClient {
                 return [
                     true,
                     enabledStrategy.result.variants,
-                    enabledStrategy.result.variant,
+                    enabledStrategy.result.variant || undefined,
                 ];
             }
 
@@ -231,20 +288,28 @@ export default class UnleashClient {
             'result' | 'variant'
         >,
     ): Variant {
-        const fallback = fallbackVariant || getDefaultVariant();
+        const fallback = {
+            feature_enabled: false,
+            featureEnabled: false,
+            ...(fallbackVariant || getDefaultVariant()),
+        };
         const feature = this.repository.getToggle(name);
 
-        if (typeof feature === 'undefined') {
+        if (
+            typeof feature === 'undefined' ||
+            !this.isParentDependencySatisfied(feature, context)
+        ) {
             return fallback;
         }
 
-        let enabled = true;
         const result =
             forcedResult ??
             this.isFeatureEnabled(feature, context, () =>
                 fallbackVariant ? fallbackVariant.enabled : false,
             );
-        enabled = result.result === true;
+        const enabled = result.result === true;
+        fallback.feature_enabled = fallbackVariant?.feature_enabled ?? enabled;
+        fallback.featureEnabled = fallback.feature_enabled;
         const strategyVariant = result.variant;
         if (enabled && strategyVariant) {
             return strategyVariant;
@@ -274,6 +339,8 @@ export default class UnleashClient {
             name: variant.name,
             payload: variant.payload,
             enabled,
+            feature_enabled: true,
+            featureEnabled: true,
         };
     }
 }

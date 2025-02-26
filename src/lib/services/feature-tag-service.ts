@@ -1,17 +1,24 @@
 import NotFoundError from '../error/notfound-error';
-import { Logger } from '../logger';
-import { FEATURE_TAGGED, FEATURE_UNTAGGED, TAG_CREATED } from '../types/events';
-import { IUnleashConfig } from '../types/option';
-import { IFeatureToggleStore, IUnleashStores } from '../types/stores';
-import { tagSchema } from './tag-schema';
+import type { Logger } from '../logger';
 import {
+    FEATURE_TAGGED,
+    FEATURE_UNTAGGED,
+    FeatureTaggedEvent,
+    TAG_CREATED,
+} from '../types/events';
+import type { IUnleashConfig } from '../types/option';
+import type { IFeatureToggleStore, IUnleashStores } from '../types/stores';
+import { tagSchema } from './tag-schema';
+import type {
     IFeatureTag,
+    IFeatureTagInsert,
     IFeatureTagStore,
 } from '../types/stores/feature-tag-store';
-import { IEventStore } from '../types/stores/event-store';
-import { ITagStore } from '../types/stores/tag-store';
-import { ITag } from '../types/model';
+import type { ITagStore } from '../types/stores/tag-store';
+import type { ITag } from '../types/model';
 import { BadDataError, FOREIGN_KEY_VIOLATION } from '../../lib/error';
+import type EventService from '../features/events/event-service';
+import type { IAuditUser } from '../types';
 
 class FeatureTagService {
     private tagStore: ITagStore;
@@ -20,7 +27,7 @@ class FeatureTagService {
 
     private featureToggleStore: IFeatureToggleStore;
 
-    private eventStore: IEventStore;
+    private eventService: EventService;
 
     private logger: Logger;
 
@@ -28,19 +35,19 @@ class FeatureTagService {
         {
             tagStore,
             featureTagStore,
-            eventStore,
             featureToggleStore,
         }: Pick<
             IUnleashStores,
-            'tagStore' | 'featureTagStore' | 'eventStore' | 'featureToggleStore'
+            'tagStore' | 'featureTagStore' | 'featureToggleStore'
         >,
         { getLogger }: Pick<IUnleashConfig, 'getLogger'>,
+        eventService: EventService,
     ) {
         this.logger = getLogger('/services/feature-tag-service.ts');
         this.tagStore = tagStore;
         this.featureTagStore = featureTagStore;
         this.featureToggleStore = featureToggleStore;
-        this.eventStore = eventStore;
+        this.eventService = eventService;
     }
 
     async listTags(featureName: string): Promise<ITag[]> {
@@ -55,20 +62,25 @@ class FeatureTagService {
     async addTag(
         featureName: string,
         tag: ITag,
-        userName: string,
+        auditUser: IAuditUser,
     ): Promise<ITag> {
         const featureToggle = await this.featureToggleStore.get(featureName);
         const validatedTag = await tagSchema.validateAsync(tag);
-        await this.createTagIfNeeded(validatedTag, userName);
-        await this.featureTagStore.tagFeature(featureName, validatedTag);
-
-        await this.eventStore.store({
-            type: FEATURE_TAGGED,
-            createdBy: userName,
+        await this.createTagIfNeeded(validatedTag, auditUser);
+        await this.featureTagStore.tagFeature(
             featureName,
-            project: featureToggle.project,
-            data: validatedTag,
-        });
+            validatedTag,
+            auditUser.id,
+        );
+
+        await this.eventService.storeEvent(
+            new FeatureTaggedEvent({
+                featureName,
+                project: featureToggle.project,
+                data: validatedTag,
+                auditUser,
+            }),
+        );
         return validatedTag;
     }
 
@@ -76,69 +88,78 @@ class FeatureTagService {
         featureNames: string[],
         addedTags: ITag[],
         removedTags: ITag[],
-        userName: string,
+        auditUser: IAuditUser,
     ): Promise<void> {
-        const featureToggles = await this.featureToggleStore.getAllByNames(
-            featureNames,
-        );
+        const featureToggles =
+            await this.featureToggleStore.getAllByNames(featureNames);
         await Promise.all(
-            addedTags.map((tag) => this.createTagIfNeeded(tag, userName)),
+            addedTags.map((tag) => this.createTagIfNeeded(tag, auditUser)),
         );
-        const createdFeatureTags: IFeatureTag[] = featureNames.flatMap(
+        const createdFeatureTags: IFeatureTagInsert[] = featureNames.flatMap(
             (featureName) =>
                 addedTags.map((addedTag) => ({
                     featureName,
                     tagType: addedTag.type,
                     tagValue: addedTag.value,
+                    createdByUserId: auditUser.id,
                 })),
         );
 
         await this.featureTagStore.tagFeatures(createdFeatureTags);
 
-        const removedFeatureTags: IFeatureTag[] = featureNames.flatMap(
-            (featureName) =>
+        const removedFeatureTags: Omit<IFeatureTag, 'createdByUserId'>[] =
+            featureNames.flatMap((featureName) =>
                 removedTags.map((addedTag) => ({
                     featureName,
                     tagType: addedTag.type,
                     tagValue: addedTag.value,
                 })),
-        );
+            );
 
         await this.featureTagStore.untagFeatures(removedFeatureTags);
 
         const creationEvents = featureToggles.flatMap((featureToggle) =>
             addedTags.map((addedTag) => ({
                 type: FEATURE_TAGGED,
-                createdBy: userName,
+                createdBy: auditUser.username,
                 featureName: featureToggle.name,
                 project: featureToggle.project,
                 data: addedTag,
+                createdByUserId: auditUser.id,
+                ip: auditUser.ip,
             })),
         );
 
         const removalEvents = featureToggles.flatMap((featureToggle) =>
             removedTags.map((removedTag) => ({
                 type: FEATURE_UNTAGGED,
-                createdBy: userName,
                 featureName: featureToggle.name,
                 project: featureToggle.project,
-                data: removedTag,
+                preData: removedTag,
+                createdBy: auditUser.username,
+                createdByUserId: auditUser.id,
+                ip: auditUser.ip,
             })),
         );
 
-        await this.eventStore.batchStore([...creationEvents, ...removalEvents]);
+        await this.eventService.storeEvents([
+            ...creationEvents,
+            ...removalEvents,
+        ]);
     }
 
-    async createTagIfNeeded(tag: ITag, userName: string): Promise<void> {
+    async createTagIfNeeded(tag: ITag, auditUser: IAuditUser): Promise<void> {
         try {
             await this.tagStore.getTag(tag.type, tag.value);
         } catch (error) {
             if (error instanceof NotFoundError) {
                 try {
                     await this.tagStore.createTag(tag);
-                    await this.eventStore.store({
+                    await this.eventService.storeEvent({
                         type: TAG_CREATED,
-                        createdBy: userName,
+                        createdBy: auditUser.username,
+                        createdByUserId: auditUser.id,
+                        ip: auditUser.ip,
                         data: tag,
                     });
                 } catch (err) {
@@ -156,16 +177,21 @@ class FeatureTagService {
     async removeTag(
         featureName: string,
         tag: ITag,
-        userName: string,
+        auditUser: IAuditUser,
     ): Promise<void> {
         const featureToggle = await this.featureToggleStore.get(featureName);
+        const tags =
+            await this.featureTagStore.getAllTagsForFeature(featureName);
         await this.featureTagStore.untagFeature(featureName, tag);
-        await this.eventStore.store({
+        await this.eventService.storeEvent({
             type: FEATURE_UNTAGGED,
-            createdBy: userName,
+            createdBy: auditUser.username,
+            createdByUserId: auditUser.id,
+            ip: auditUser.ip,
             featureName,
             project: featureToggle.project,
-            data: tag,
+            preData: tag,
+            tags,
         });
     }
 }

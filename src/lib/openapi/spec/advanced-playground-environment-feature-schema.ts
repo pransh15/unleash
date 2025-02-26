@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { parametersSchema } from './parameters-schema';
 import { variantSchema } from './variant-schema';
 import { overrideSchema } from './override-schema';
@@ -9,11 +9,12 @@ import {
 import { playgroundConstraintSchema } from './playground-constraint-schema';
 import { playgroundSegmentSchema } from './playground-segment-schema';
 import { sdkContextSchema } from './sdk-context-schema';
+import { sdkFlatContextSchema } from './sdk-flat-context-schema';
 
 export const advancedPlaygroundEnvironmentFeatureSchema = {
     $id: '#/components/schemas/advancedPlaygroundEnvironmentFeatureSchema',
     description:
-        'A simplified feature toggle model intended for the Unleash playground.',
+        'A simplified feature flag model intended for the Unleash playground.',
     type: 'object',
     additionalProperties: false,
     required: [
@@ -39,8 +40,8 @@ export const advancedPlaygroundEnvironmentFeatureSchema = {
             description: "The feature's environment.",
         },
         context: {
-            description: 'The context to use when evaluating toggles',
-            $ref: sdkContextSchema.$id,
+            description: 'The context to use when evaluating flags',
+            $ref: sdkFlatContextSchema.$id,
         },
         projectId: {
             type: 'string',
@@ -101,7 +102,7 @@ export const advancedPlaygroundEnvironmentFeatureSchema = {
                 name: {
                     type: 'string',
                     description:
-                        "The variant's name. If there is no variant or if the toggle is disabled, this will be `disabled`",
+                        "The variant's name. If there is no variant or if the flag is disabled, this will be `disabled`",
                     example: 'red-variant',
                 },
                 enabled: {
@@ -126,6 +127,11 @@ export const advancedPlaygroundEnvironmentFeatureSchema = {
                         },
                     },
                 },
+                feature_enabled: {
+                    type: 'boolean',
+                    description:
+                        'Whether the feature is enabled or not. If the feature is disabled, this property will be `false`',
+                },
             },
             nullable: true,
             example: { name: 'green', enabled: true },
@@ -144,6 +150,7 @@ export const advancedPlaygroundEnvironmentFeatureSchema = {
             parametersSchema,
             variantSchema,
             overrideSchema,
+            sdkFlatContextSchema,
             sdkContextSchema,
         },
         variants: { type: 'array', items: { $ref: variantSchema.$id } },

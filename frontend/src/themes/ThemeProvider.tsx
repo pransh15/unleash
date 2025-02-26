@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import type { FC } from 'react';
 import { CssBaseline, ThemeProvider as MuiThemeProvider } from '@mui/material';
 
 import createCache from '@emotion/cache';
@@ -10,7 +10,9 @@ export const muiCache = createCache({
     prepend: true,
 });
 
-export const ThemeProvider: FC = ({ children }) => {
+export const ThemeProvider: FC<{ children?: React.ReactNode }> = ({
+    children,
+}) => {
     const { resolveTheme } = useThemeMode();
 
     return (

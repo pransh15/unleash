@@ -1,7 +1,6 @@
-import React from 'react';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { useStrategiesBySegment } from 'hooks/api/getters/useStrategiesBySegment/useStrategiesBySegment';
-import { ISegment } from 'interfaces/segment';
+import type { ISegment } from 'interfaces/segment';
 import { SegmentDeleteConfirm } from './SegmentDeleteConfirm/SegmentDeleteConfirm';
 import { SegmentDeleteUsedSegment } from './SegmentDeleteUsedSegment/SegmentDeleteUsedSegment';
 
@@ -10,6 +9,7 @@ interface ISegmentDeleteProps {
     open: boolean;
     onClose: () => void;
     onRemove: () => void;
+    title: string;
 }
 
 export const SegmentDelete = ({
@@ -17,10 +17,12 @@ export const SegmentDelete = ({
     open,
     onClose,
     onRemove,
+    title,
 }: ISegmentDeleteProps) => {
-    const { strategies, loading } = useStrategiesBySegment(segment.id);
-    const canDeleteSegment = strategies?.length === 0;
-
+    const { strategies, changeRequestStrategies, loading } =
+        useStrategiesBySegment(segment.id);
+    const canDeleteSegment =
+        strategies?.length === 0 && changeRequestStrategies?.length === 0;
     if (loading) {
         return null;
     }
@@ -34,6 +36,7 @@ export const SegmentDelete = ({
                     open={open}
                     onClose={onClose}
                     onRemove={onRemove}
+                    title={title}
                 />
             }
             elseShow={
@@ -42,6 +45,7 @@ export const SegmentDelete = ({
                     open={open}
                     onClose={onClose}
                     strategies={strategies}
+                    changeRequestStrategies={changeRequestStrategies}
                 />
             }
         />

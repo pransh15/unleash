@@ -7,16 +7,19 @@ process.nextTick(async () => {
     try {
         await start(
             createConfig({
-                db: {
-                    user: 'unleash_user',
-                    password: 'password',
-                    host: 'localhost',
-                    port: 5432,
-                    database: process.env.UNLEASH_DATABASE_NAME || 'unleash',
-                    schema: process.env.UNLEASH_DATABASE_SCHEMA,
-                    ssl: false,
-                    applicationName: 'unleash',
-                },
+                db: process.env.DATABASE_URL
+                    ? undefined
+                    : {
+                          user: 'unleash_user',
+                          password: 'password',
+                          host: 'localhost',
+                          port: 5432,
+                          database:
+                              process.env.UNLEASH_DATABASE_NAME || 'unleash',
+                          schema: process.env.UNLEASH_DATABASE_SCHEMA,
+                          ssl: false,
+                          applicationName: 'unleash',
+                      },
                 server: {
                     enableRequestLogger: true,
                     baseUriPath: '',
@@ -26,7 +29,7 @@ process.nextTick(async () => {
                     enableHeapSnapshotEnpoint: true,
                 },
                 logLevel: LogLevel.debug,
-                // secureHeaders: true,
+                secureHeaders: false,
                 versionCheck: {
                     enable: false,
                 },
@@ -37,14 +40,26 @@ process.nextTick(async () => {
                         embedProxyFrontend: true,
                         anonymiseEventLog: false,
                         responseTimeWithAppNameKillSwitch: false,
-                        strategyVariant: true,
-                        newProjectLayout: true,
-                        emitPotentiallyStaleEvents: true,
-                        slackAppAddon: true,
-                        configurableFeatureTypeLifetimes: true,
-                        frontendNavigationUpdate: true,
-                        lastSeenByEnvironment: true,
-                        segmentChangeRequests: true,
+                        userAccessUIEnabled: true,
+                        outdatedSdksBanner: true,
+                        disableShowContextFieldSelectionValues: false,
+                        feedbackPosting: true,
+                        manyStrategiesPagination: true,
+                        enableLegacyVariants: false,
+                        extendedMetrics: true,
+                        originMiddlewareRequestLogging: true,
+                        webhookDomainLogging: true,
+                        releasePlans: false,
+                        releasePlanChangeRequests: false,
+                        showUserDeviceCount: true,
+                        flagOverviewRedesign: true,
+                        granularAdminPermissions: true,
+                        deltaApi: true,
+                        uniqueSdkTracking: true,
+                        frontendHeaderRedesign: true,
+                        dataUsageMultiMonthView: true,
+                        filterExistingFlagNames: true,
+                        teamsIntegrationChangeRequests: true,
                     },
                 },
                 authentication: {

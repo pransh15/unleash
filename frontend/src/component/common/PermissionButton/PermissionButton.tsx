@@ -1,9 +1,9 @@
-import { Button, ButtonProps } from '@mui/material';
-import { Lock } from '@mui/icons-material';
+import { Button, styled, type ButtonProps } from '@mui/material';
+import Lock from '@mui/icons-material/Lock';
 import React from 'react';
 import {
     TooltipResolver,
-    ITooltipResolverProps,
+    type ITooltipResolverProps,
 } from 'component/common/TooltipResolver/TooltipResolver';
 import { formatAccessText } from 'utils/formatAccessText';
 import { useId } from 'hooks/useId';
@@ -11,6 +11,11 @@ import {
     useHasRootAccess,
     useHasProjectEnvironmentAccess,
 } from 'hooks/useHasAccess';
+
+const StyledButton = styled(Button)({
+    justifySelf: 'start',
+    alignSelf: 'start',
+});
 
 export interface IPermissionButtonProps extends Omit<ButtonProps, 'title'> {
     permission: string | string[];
@@ -20,6 +25,7 @@ export interface IPermissionButtonProps extends Omit<ButtonProps, 'title'> {
     environmentId?: string;
     tooltipProps?: Omit<ITooltipResolverProps, 'children'>;
     hideLockIcon?: boolean;
+    children?: React.ReactNode;
 }
 
 interface IPermissionBaseButtonProps extends IPermissionButtonProps {
@@ -34,10 +40,10 @@ export interface IProjectPermissionButtonProps extends IPermissionButtonProps {
 const getEndIcon = (
     access: boolean,
     fallBackIcon?: React.ReactNode,
-    hideLockIcon?: boolean
+    hideLockIcon?: boolean,
 ): React.ReactNode => {
     if (!access && !hideLockIcon) {
-        return <Lock titleAccess="Locked" />;
+        return <Lock titleAccess='Locked' />;
     }
 
     if (fallBackIcon) {
@@ -47,93 +53,97 @@ const getEndIcon = (
     return null;
 };
 
-const ProjectEnvironmentPermissionButton: React.FC<IProjectPermissionButtonProps> =
-    React.forwardRef((props, ref) => {
-        const access = useHasProjectEnvironmentAccess(
-            props.permission,
-            props.projectId,
-            props.environmentId
-        );
-
-        return <BasePermissionButton {...props} access={access} ref={ref} />;
-    });
-
-const RootPermissionButton: React.FC<IPermissionButtonProps> = React.forwardRef(
-    (props, ref) => {
-        const access = useHasRootAccess(
-            props.permission,
-            props.projectId,
-            props.environmentId
-        );
-
-        return <BasePermissionButton {...props} access={access} ref={ref} />;
-    }
-);
-
-const BasePermissionButton: React.FC<IPermissionBaseButtonProps> =
-    React.forwardRef(
-        (
-            {
-                permission,
-                access,
-                variant = 'contained',
-                color = 'primary',
-                onClick,
-                children,
-                disabled,
-                projectId,
-                environmentId,
-                tooltipProps,
-                hideLockIcon,
-                ...rest
-            },
-            ref
-        ) => {
-            const id = useId();
-            const endIcon = getEndIcon(access, rest.endIcon, hideLockIcon);
-
-            return (
-                <TooltipResolver
-                    {...tooltipProps}
-                    title={formatAccessText(access, tooltipProps?.title)}
-                    arrow
-                >
-                    <span id={id}>
-                        <Button
-                            ref={ref}
-                            onClick={onClick}
-                            disabled={disabled || !access}
-                            aria-labelledby={id}
-                            variant={variant}
-                            color={color}
-                            {...rest}
-                            endIcon={endIcon}
-                        >
-                            {children}
-                        </Button>
-                    </span>
-                </TooltipResolver>
-            );
-        }
+const ProjectEnvironmentPermissionButton = React.forwardRef<
+    HTMLButtonElement,
+    IProjectPermissionButtonProps
+>((props, ref) => {
+    const access = useHasProjectEnvironmentAccess(
+        props.permission,
+        props.projectId,
+        props.environmentId,
     );
 
-const PermissionButton: React.FC<IPermissionButtonProps> = React.forwardRef(
-    (props, ref) => {
-        if (
-            typeof props.projectId !== 'undefined' &&
-            typeof props.environmentId !== 'undefined'
-        ) {
-            return (
-                <ProjectEnvironmentPermissionButton
-                    {...props}
-                    environmentId={props.environmentId}
-                    projectId={props.projectId}
+    return <BasePermissionButton {...props} access={access} ref={ref} />;
+});
+
+const RootPermissionButton = React.forwardRef<
+    HTMLButtonElement,
+    IPermissionButtonProps
+>((props, ref) => {
+    const access = useHasRootAccess(
+        props.permission,
+        props.projectId,
+        props.environmentId,
+    );
+
+    return <BasePermissionButton {...props} access={access} ref={ref} />;
+});
+
+const BasePermissionButton = React.forwardRef<
+    HTMLButtonElement,
+    IPermissionBaseButtonProps
+>(
+    (
+        {
+            permission,
+            access,
+            variant = 'contained',
+            color = 'primary',
+            onClick,
+            children,
+            disabled,
+            projectId,
+            environmentId,
+            tooltipProps,
+            hideLockIcon,
+            ...rest
+        },
+        ref,
+    ) => {
+        const id = useId();
+        const endIcon = getEndIcon(access, rest.endIcon, hideLockIcon);
+
+        return (
+            <TooltipResolver
+                {...tooltipProps}
+                title={formatAccessText(access, tooltipProps?.title)}
+                arrow
+            >
+                <StyledButton
                     ref={ref}
-                />
-            );
-        }
-        return <RootPermissionButton {...props} ref={ref} />;
-    }
+                    onClick={onClick}
+                    disabled={disabled || !access}
+                    aria-labelledby={id}
+                    variant={variant}
+                    color={color}
+                    {...rest}
+                    endIcon={endIcon}
+                >
+                    {children}
+                </StyledButton>
+            </TooltipResolver>
+        );
+    },
 );
+
+const PermissionButton = React.forwardRef<
+    HTMLButtonElement,
+    IPermissionButtonProps
+>((props, ref) => {
+    if (
+        typeof props.projectId !== 'undefined' &&
+        typeof props.environmentId !== 'undefined'
+    ) {
+        return (
+            <ProjectEnvironmentPermissionButton
+                {...props}
+                environmentId={props.environmentId}
+                projectId={props.projectId}
+                ref={ref}
+            />
+        );
+    }
+    return <RootPermissionButton {...props} ref={ref} />;
+});
 
 export default PermissionButton;

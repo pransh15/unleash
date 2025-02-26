@@ -3,22 +3,42 @@
  * Do not edit manually.
  * See `gen:api` script in package.json
  */
+import type { ProjectCreatedSchemaChangeRequestEnvironmentsItem } from './projectCreatedSchemaChangeRequestEnvironmentsItem';
 import type { ProjectCreatedSchemaMode } from './projectCreatedSchemaMode';
 
 /**
  * Details about the newly created project.
  */
 export interface ProjectCreatedSchema {
-    /** The project's identifier. */
-    id: string;
-    /** The project's name. */
-    name: string;
-    /** The project's description. */
-    description?: string | null;
-    /** A limit on the number of features allowed in the project. `null` if no limit. */
-    featureLimit?: number | null;
-    /** A mode of the project affecting what actions are possible in this project */
-    mode?: ProjectCreatedSchemaMode;
+    /** The list of environments that have change requests enabled. */
+    changeRequestEnvironments?: ProjectCreatedSchemaChangeRequestEnvironmentsItem[];
     /** A default stickiness for the project affecting the default stickiness value for variants and Gradual Rollout strategy */
     defaultStickiness?: string;
+    /**
+     * The project's description.
+     * @nullable
+     */
+    description?: string | null;
+    /**
+     * The environments enabled for the project.
+     * @minItems 1
+     */
+    environments?: string[];
+    /**
+     * A limit on the number of features allowed in the project. `null` if no limit.
+     * @nullable
+     */
+    featureLimit?: number | null;
+    /**
+     * The project's identifier.
+     * @pattern [A-Za-z0-9_~.-]+
+     */
+    id: string;
+    /** A mode of the project affecting what actions are possible in this project */
+    mode?: ProjectCreatedSchemaMode;
+    /**
+     * The project's name.
+     * @minLength 1
+     */
+    name: string;
 }

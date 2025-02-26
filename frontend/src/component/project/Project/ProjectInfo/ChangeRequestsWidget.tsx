@@ -1,7 +1,7 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import useLoading from 'hooks/useLoading';
 import { Box, styled, Typography } from '@mui/material';
-import { IChangeRequest } from 'component/changeRequest/changeRequest.types';
+import type { ChangeRequestType } from 'component/changeRequest/changeRequest.types';
 
 import {
     StyledCount,
@@ -58,9 +58,9 @@ const StyledSubtitle = styled(Typography)(({ theme }) => ({
 
 const ChangeRequestsLabel = () => (
     <Typography
-        component="span"
-        variant="body2"
-        color="text.secondary"
+        component='span'
+        variant='body2'
+        color='text.secondary'
         lineHeight={1}
         data-loading={LOADING_LABEL}
     >
@@ -74,10 +74,12 @@ export const ChangeRequestsWidget: FC<IChangeRequestsWidgetProps> = ({
     const { changeRequests, loading } = useProjectChangeRequests(projectId);
     const loadingRef = useLoading(loading, `[data-loading="${LOADING_LABEL}"]`);
     const toBeApplied = changeRequests?.filter(
-        (changeRequest: IChangeRequest) => changeRequest?.state === 'Approved'
+        (changeRequest: ChangeRequestType) =>
+            changeRequest?.state === 'Approved',
     ).length;
     const toBeReviewed = changeRequests?.filter(
-        (changeRequest: IChangeRequest) => changeRequest?.state === 'In review'
+        (changeRequest: ChangeRequestType) =>
+            changeRequest?.state === 'In review',
     ).length;
 
     return (
@@ -85,7 +87,7 @@ export const ChangeRequestsWidget: FC<IChangeRequestsWidgetProps> = ({
             <StyledWidgetTitle>Open change requests</StyledWidgetTitle>
             <StyledContentBox>
                 <StyledChangeBox
-                    sx={{ background: theme => theme.palette.success.light }}
+                    sx={{ background: (theme) => theme.palette.success.light }}
                 >
                     <StyledSubtitle>To be applied</StyledSubtitle>
                     <StyledChangeRequestStatusInfo>
@@ -96,7 +98,9 @@ export const ChangeRequestsWidget: FC<IChangeRequestsWidgetProps> = ({
                     </StyledChangeRequestStatusInfo>
                 </StyledChangeBox>
                 <StyledChangeBox
-                    sx={{ background: theme => theme.palette.secondary.light }}
+                    sx={{
+                        background: (theme) => theme.palette.secondary.light,
+                    }}
                 >
                     <StyledSubtitle>To be reviewed</StyledSubtitle>
                     <StyledChangeRequestStatusInfo>

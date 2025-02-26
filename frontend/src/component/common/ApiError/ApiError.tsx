@@ -1,6 +1,6 @@
 import { Button } from '@mui/material';
 import { Alert } from '@mui/material';
-import React from 'react';
+import type React from 'react';
 
 interface IApiErrorProps {
     className?: string;
@@ -19,11 +19,11 @@ const ApiError: React.FC<IApiErrorProps> = ({
         <Alert
             className={className ? className : ''}
             action={
-                <Button color="inherit" size="small" onClick={onClick}>
+                <Button color='inherit' size='small' onClick={onClick}>
                     TRY AGAIN
                 </Button>
             }
-            severity="error"
+            severity='error'
             {...rest}
         >
             {text}

@@ -1,23 +1,30 @@
-import { IProjectStats } from 'lib/services/project-service';
-import {
+import type { IProjectStats } from '../../lib/features/project/project-service';
+import type {
     ICreateEnabledDates,
     IProjectStatsStore,
-} from 'lib/types/stores/project-stats-store-type';
+} from '../../lib/types/stores/project-stats-store-type';
+import type { DoraFeaturesSchema } from '../../lib/openapi';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 export default class FakeProjectStatsStore implements IProjectStatsStore {
-    updateProjectStats(
+    private stats: Record<string, IProjectStats> = {};
+
+    async updateProjectStats(
         projectId: string,
-        status: IProjectStats,
+        stats: IProjectStats,
     ): Promise<void> {
-        throw new Error('not implemented');
+        this.stats[projectId] = stats;
     }
 
-    getProjectStats(projectId: string): Promise<IProjectStats> {
-        throw new Error('not implemented');
+    async getProjectStats(projectId: string): Promise<IProjectStats> {
+        return this.stats[projectId];
     }
 
-    getTimeToProdDates(): Promise<ICreateEnabledDates[]> {
-        throw new Error('not implemented');
+    async getTimeToProdDates(): Promise<ICreateEnabledDates[]> {
+        return [];
+    }
+
+    async getTimeToProdDatesForFeatureToggles(): Promise<DoraFeaturesSchema[]> {
+        return [];
     }
 }

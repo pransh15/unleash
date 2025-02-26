@@ -1,40 +1,58 @@
-import React, { ChangeEvent, Fragment } from 'react';
+import { type ChangeEvent, Fragment } from 'react';
 import {
     FormControl,
     FormControlLabel,
     Grid,
-    InputLabel,
-    MenuItem,
-    Select,
     Switch,
     TextField,
-    SelectChangeEvent,
 } from '@mui/material';
+import { RoleSelect } from 'component/common/RoleSelect/RoleSelect';
+import { useRoles } from 'hooks/api/getters/useRoles/useRoles';
+import type { IRole } from 'interfaces/role';
 
 interface IAutoCreateFormProps {
     data?: {
         enabled: boolean;
         autoCreate: boolean;
         defaultRootRole?: string;
+        defaultRootRoleId?: number;
         emailDomains?: string;
     };
-    setValue: (name: string, value: string | boolean) => void;
+    setValue: (
+        name: string,
+        value: string | boolean | number | undefined,
+    ) => void;
+    onUpdateRole: (role: IRole | null) => void;
+    disabled?: boolean;
 }
 
 export const AutoCreateForm = ({
     data = { enabled: false, autoCreate: false },
     setValue,
+    onUpdateRole,
+    disabled = false,
 }: IAutoCreateFormProps) => {
+    const { roles } = useRoles();
+
     const updateAutoCreate = () => {
         setValue('autoCreate', !data.autoCreate);
     };
 
-    const updateDefaultRootRole = (evt: SelectChangeEvent) => {
-        setValue('defaultRootRole', evt.target.value);
-    };
-
     const updateField = (e: ChangeEvent<HTMLInputElement>) => {
         setValue(e.target.name, e.target.value);
+    };
+
+    const resolveRole = ({
+        defaultRootRole,
+        defaultRootRoleId,
+    }: {
+        defaultRootRole?: string;
+        defaultRootRoleId?: number;
+    }): IRole | null => {
+        if (defaultRootRoleId) {
+            return roles.find(({ id }) => id === defaultRootRoleId) || null;
+        }
+        return roles.find(({ name }) => name === defaultRootRole) || null;
     };
 
     return (
@@ -51,12 +69,12 @@ export const AutoCreateForm = ({
                         control={
                             <Switch
                                 onChange={updateAutoCreate}
-                                name="enabled"
+                                name='enabled'
                                 checked={data.autoCreate}
-                                disabled={!data.enabled}
+                                disabled={!data.enabled || disabled}
                             />
                         }
-                        label="Auto-create users"
+                        label='Auto-create users'
                     />
                 </Grid>
             </Grid>
@@ -69,24 +87,17 @@ export const AutoCreateForm = ({
                     </p>
                 </Grid>
                 <Grid item md={6}>
-                    <FormControl style={{ minWidth: '200px' }}>
-                        <InputLabel id="defaultRootRole-label">
-                            Default Role
-                        </InputLabel>
-                        <Select
-                            label="Default Role"
-                            labelId="defaultRootRole-label"
-                            id="defaultRootRole"
-                            name="defaultRootRole"
-                            disabled={!data.autoCreate || !data.enabled}
-                            value={data.defaultRootRole || 'Editor'}
-                            onChange={updateDefaultRootRole}
-                        >
-                            {/*consider these from API or constants. */}
-                            <MenuItem value="Viewer">Viewer</MenuItem>
-                            <MenuItem value="Editor">Editor</MenuItem>
-                            <MenuItem value="Admin">Admin</MenuItem>
-                        </Select>
+                    <FormControl style={{ width: '400px' }}>
+                        <RoleSelect
+                            roles={roles}
+                            value={resolveRole(data)}
+                            setValue={onUpdateRole}
+                            disabled={
+                                !data.autoCreate || !data.enabled || disabled
+                            }
+                            required
+                            hideDescription
+                        />
                     </FormControl>
                 </Grid>
             </Grid>
@@ -101,16 +112,16 @@ export const AutoCreateForm = ({
                 <Grid item md={6}>
                     <TextField
                         onChange={updateField}
-                        label="Email domains"
-                        name="emailDomains"
-                        disabled={!data.autoCreate || !data.enabled}
+                        label='Email domains'
+                        name='emailDomains'
+                        disabled={!data.autoCreate || !data.enabled || disabled}
                         required={Boolean(data.autoCreate)}
                         value={data.emailDomains || ''}
-                        placeholder="@company.com, @anotherCompany.com"
+                        placeholder='@company.com, @anotherCompany.com'
                         style={{ width: '400px' }}
                         rows={2}
-                        variant="outlined"
-                        size="small"
+                        variant='outlined'
+                        size='small'
                     />
                 </Grid>
             </Grid>

@@ -1,8 +1,15 @@
-import EventEmitter from 'events';
-import { LogLevel, LogProvider } from '../logger';
-import { ILegacyApiTokenCreate } from './models/api-token';
-import { IFlagResolver, IExperimentalOptions, IFlags } from './experimental';
-import SMTPTransport from 'nodemailer/lib/smtp-transport';
+import type { Express } from 'express';
+import type EventEmitter from 'events';
+import type { LogLevel, LogProvider } from '../logger';
+import type { ILegacyApiTokenCreate } from './models/api-token';
+import type {
+    IExperimentalOptions,
+    IFlagResolver,
+    IFlags,
+} from './experimental';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
+import type { IUnleashServices } from './services';
+import type { ResourceLimitsSchema } from '../openapi/spec/resource-limits-schema';
 
 export interface ISSLOption {
     rejectUnauthorized: boolean;
@@ -38,6 +45,7 @@ export interface ISessionOption {
     db: boolean;
     clearSiteDataOnLogout: boolean;
     cookieName: string;
+    maxParallelSessions: number;
 }
 
 export interface IVersionOption {
@@ -47,30 +55,50 @@ export interface IVersionOption {
 export enum IAuthType {
     OPEN_SOURCE = 'open-source',
     DEMO = 'demo',
+    /**
+     * Self-hosted by the customer. Should eventually be renamed to better reflect this.
+     */
     ENTERPRISE = 'enterprise',
+    /**
+     * Hosted by Unleash.
+     */
     HOSTED = 'hosted',
     CUSTOM = 'custom',
     NONE = 'none',
 }
 
+export type CustomAuthHandler = (
+    app: Express,
+    config: Partial<IUnleashConfig>,
+    services?: IUnleashServices,
+) => void;
+
+export type UsernameAdminUser = {
+    username: string;
+    password: string;
+};
+
 export interface IAuthOption {
+    demoAllowAdminLogin?: boolean;
     enableApiToken: boolean;
     type: IAuthType;
-    customAuthHandler?: Function;
-    createAdminUser: boolean;
+    customAuthHandler?: CustomAuthHandler;
+    createAdminUser?: boolean;
+    initialAdminUser?: UsernameAdminUser;
     initApiTokens: ILegacyApiTokenCreate[];
 }
 
 export interface IImportOption {
     file: string;
-    keepExisting: boolean;
-    dropBeforeImport: boolean;
+    project: string;
+    environment: string;
 }
 
 export interface IServerOption {
     port?: number;
     host?: string;
     pipe?: string;
+    disableCompression?: boolean;
     keepAliveTimeout: number;
     headersTimeout: number;
     baseUriPath: string;
@@ -82,6 +110,7 @@ export interface IServerOption {
     gracefulShutdownEnable: boolean;
     gracefulShutdownTimeout: number;
     secret: string;
+    enableScheduledCreatedByMigration: boolean;
 }
 
 export interface IClientCachingOption {
@@ -100,7 +129,7 @@ export interface IUnleashOptions {
     versionCheck?: Partial<IVersionOption>;
     telemetry?: boolean;
     authentication?: Partial<IAuthOption>;
-    ui?: object;
+    ui?: IUIConfig;
     frontendApi?: IFrontendApi;
     import?: Partial<IImportOption>;
     experimental?: Partial<IExperimentalOptions>;
@@ -114,10 +143,28 @@ export interface IUnleashOptions {
     enterpriseVersion?: string;
     inlineSegmentConstraints?: boolean;
     clientFeatureCaching?: Partial<IClientCachingOption>;
-    flagResolver?: IFlagResolver;
     accessControlMaxAge?: number;
     prometheusApi?: string;
     publicFolder?: string;
+    disableScheduler?: boolean;
+    metricsRateLimiting?: Partial<IMetricsRateLimiting>;
+    dailyMetricsStorageDays?: number;
+    rateLimiting?: Partial<IRateLimiting>;
+    isOss?: boolean;
+    resourceLimits?: Partial<
+        Pick<
+            ResourceLimitsSchema,
+            | 'apiTokens'
+            | 'constraintValues'
+            | 'constraints'
+            | 'environments'
+            | 'featureEnvironmentStrategies'
+            | 'featureFlags'
+            | 'projects'
+            | 'segments'
+        >
+    >;
+    userInactivityThresholdInDays?: number;
 }
 
 export interface IEmailOption {
@@ -128,6 +175,7 @@ export interface IEmailOption {
     smtpuser?: string;
     smtppass?: string;
     transportOptions?: SMTPTransport.Options;
+    optionalHeaders?: Record<string, unknown>;
 }
 
 export interface IListeningPipe {
@@ -143,14 +191,12 @@ export interface IUIConfig {
     environment?: string;
     slogan?: string;
     name?: string;
-    links?: [
-        {
-            value: string;
-            icon?: string;
-            href: string;
-            title: string;
-        },
-    ];
+    links?: {
+        value: string;
+        icon?: string;
+        href: string;
+        title: string;
+    }[];
     flags?: IFlags;
 }
 
@@ -161,6 +207,9 @@ export interface ICspDomainOptions {
     scriptSrc?: string[];
     imgSrc?: string[];
     connectSrc?: string[];
+    frameSrc?: string[];
+    objectSrc?: string[];
+    mediaSrc?: string[];
 }
 
 export interface ICspDomainConfig {
@@ -170,10 +219,27 @@ export interface ICspDomainConfig {
     scriptSrc: string[];
     imgSrc: string[];
     connectSrc: string[];
+    frameSrc: string[];
+    objectSrc: string[];
+    mediaSrc: string[];
 }
 
 interface IFrontendApi {
     refreshIntervalInMs: number;
+}
+
+export interface IMetricsRateLimiting {
+    clientMetricsMaxPerMinute: number;
+    clientRegisterMaxPerMinute: number;
+    frontendMetricsMaxPerMinute: number;
+    frontendRegisterMaxPerMinute: number;
+}
+
+export interface IRateLimiting {
+    createUserMaxPerMinute: number;
+    simpleLoginMaxPerMinute: number;
+    passwordResetMaxPerMinute: number;
+    callSignalEndpointMaxPerSecond: number;
 }
 
 export interface IUnleashConfig {
@@ -196,15 +262,29 @@ export interface IUnleashConfig {
     enableOAS: boolean;
     preHook?: Function;
     preRouterHook?: Function;
+    shutdownHook?: Function;
     enterpriseVersion?: string;
     eventBus: EventEmitter;
     environmentEnableOverrides?: string[];
     frontendApi: IFrontendApi;
     inlineSegmentConstraints: boolean;
+    /** @deprecated: use resourceLimits.segmentValues */
     segmentValuesLimit: number;
+    /** @deprecated: use resourceLimits.strategySegments */
     strategySegmentsLimit: number;
+    resourceLimits: ResourceLimitsSchema;
+    metricsRateLimiting: IMetricsRateLimiting;
+    dailyMetricsStorageDays: number;
     clientFeatureCaching: IClientCachingOption;
     accessControlMaxAge: number;
     prometheusApi?: string;
     publicFolder?: string;
+    disableScheduler?: boolean;
+    isEnterprise: boolean;
+    isOss: boolean;
+    rateLimiting: IRateLimiting;
+    feedbackUriPath?: string;
+    openAIAPIKey?: string;
+    userInactivityThresholdInDays: number;
+    buildDate?: string;
 }

@@ -1,4 +1,4 @@
-import { Delete } from '@mui/icons-material';
+import Delete from '@mui/icons-material/Delete';
 import {
     Button,
     IconButton,
@@ -18,17 +18,16 @@ import { SearchHighlightProvider } from 'component/common/Table/SearchHighlightC
 import { PAT_LIMIT } from '@server/util/constants';
 import { useServiceAccountTokens } from 'hooks/api/getters/useServiceAccountTokens/useServiceAccountTokens';
 import { useSearch } from 'hooks/useSearch';
-import {
+import type {
     INewPersonalAPIToken,
     IPersonalAPIToken,
 } from 'interfaces/personalAPIToken';
 import { useMemo, useState } from 'react';
 import {
     useTable,
-    SortingRule,
+    type SortingRule,
     useSortBy,
     useFlexLayout,
-    Column,
 } from 'react-table';
 import { sortTypes } from 'utils/sortTypes';
 import { ServiceAccountCreateTokenDialog } from './ServiceAccountCreateTokenDialog/ServiceAccountCreateTokenDialog';
@@ -38,12 +37,12 @@ import { useConditionallyHiddenColumns } from 'hooks/useConditionallyHiddenColum
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { Dialogue } from 'component/common/Dialogue/Dialogue';
 import {
-    ICreateServiceAccountTokenPayload,
+    type ICreateServiceAccountTokenPayload,
     useServiceAccountTokensApi,
 } from 'hooks/api/actions/useServiceAccountTokensApi/useServiceAccountTokensApi';
 import useToast from 'hooks/useToast';
 import { formatUnknownError } from 'utils/formatUnknownError';
-import { IServiceAccount } from 'interfaces/service-account';
+import type { IServiceAccount } from 'interfaces/service-account';
 import { useServiceAccounts } from 'hooks/api/getters/useServiceAccounts/useServiceAccounts';
 
 const StyledHeader = styled('div')(({ theme }) => ({
@@ -81,7 +80,7 @@ export type PageQueryType = Partial<
     Record<'sort' | 'order' | 'search', string>
 >;
 
-const defaultSort: SortingRule<string> = { id: 'createdAt' };
+const defaultSort: SortingRule<string> = { id: 'createdAt', desc: true };
 
 interface IServiceAccountTokensProps {
     serviceAccount: IServiceAccount;
@@ -97,7 +96,7 @@ export const ServiceAccountTokens = ({
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
     const isExtraSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const { tokens = [], refetchTokens } = useServiceAccountTokens(
-        serviceAccount.id
+        serviceAccount.id,
     );
     const { refetch } = useServiceAccounts();
     const { createServiceAccountToken, deleteServiceAccountToken } =
@@ -115,12 +114,12 @@ export const ServiceAccountTokens = ({
     const [selectedToken, setSelectedToken] = useState<IPersonalAPIToken>();
 
     const onCreateClick = async (
-        newToken: ICreateServiceAccountTokenPayload
+        newToken: ICreateServiceAccountTokenPayload,
     ) => {
         try {
             const token = await createServiceAccountToken(
                 serviceAccount.id,
-                newToken
+                newToken,
             );
             refetch();
             refetchTokens();
@@ -128,7 +127,7 @@ export const ServiceAccountTokens = ({
             setNewToken(token);
             setTokenOpen(true);
             setToastData({
-                title: 'Token created successfully',
+                text: 'Token created successfully',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -141,13 +140,13 @@ export const ServiceAccountTokens = ({
             try {
                 await deleteServiceAccountToken(
                     serviceAccount.id,
-                    selectedToken?.id
+                    selectedToken?.id,
                 );
                 refetch();
                 refetchTokens();
                 setDeleteOpen(false);
                 setToastData({
-                    title: 'Token deleted successfully',
+                    text: 'Token deleted successfully',
                     type: 'success',
                 });
             } catch (error: unknown) {
@@ -157,81 +156,74 @@ export const ServiceAccountTokens = ({
     };
 
     const columns = useMemo(
-        () =>
-            [
-                {
-                    Header: 'Description',
-                    accessor: 'description',
-                    Cell: HighlightCell,
-                    minWidth: 100,
-                    searchable: true,
+        () => [
+            {
+                Header: 'Description',
+                accessor: 'description',
+                Cell: HighlightCell,
+                minWidth: 100,
+                searchable: true,
+            },
+            {
+                Header: 'Expires',
+                accessor: 'expiresAt',
+                Cell: ({ value }: { value: string }) => {
+                    const date = new Date(value);
+                    if (date.getFullYear() > new Date().getFullYear() + 100) {
+                        return <TextCell>Never</TextCell>;
+                    }
+                    return <DateCell value={value} />;
                 },
-                {
-                    Header: 'Expires',
-                    accessor: 'expiresAt',
-                    Cell: ({ value }: { value: string }) => {
-                        const date = new Date(value);
-                        if (
-                            date.getFullYear() >
-                            new Date().getFullYear() + 100
-                        ) {
-                            return <TextCell>Never</TextCell>;
-                        }
-                        return <DateCell value={value} />;
-                    },
-                    sortType: 'date',
-                    maxWidth: 150,
-                },
-                {
-                    Header: 'Created',
-                    accessor: 'createdAt',
-                    Cell: DateCell,
-                    sortType: 'date',
-                    maxWidth: 150,
-                },
-                {
-                    Header: 'Last seen',
-                    accessor: 'seenAt',
-                    Cell: TimeAgoCell,
-                    sortType: 'date',
-                    maxWidth: 150,
-                },
-                {
-                    Header: 'Actions',
-                    id: 'Actions',
-                    align: 'center',
-                    Cell: ({ row: { original: rowToken } }: any) => (
-                        <ActionCell>
-                            <Tooltip title="Delete token" arrow describeChild>
-                                <span>
-                                    <IconButton
-                                        onClick={() => {
-                                            setSelectedToken(rowToken);
-                                            setDeleteOpen(true);
-                                        }}
-                                    >
-                                        <Delete />
-                                    </IconButton>
-                                </span>
-                            </Tooltip>
-                        </ActionCell>
-                    ),
-                    maxWidth: 100,
-                    disableSortBy: true,
-                },
-            ] as Column<IPersonalAPIToken>[],
-        [setSelectedToken, setDeleteOpen]
+                maxWidth: 150,
+            },
+            {
+                Header: 'Created',
+                accessor: 'createdAt',
+                Cell: DateCell,
+                maxWidth: 150,
+            },
+            {
+                Header: 'Last seen',
+                accessor: 'seenAt',
+                Cell: TimeAgoCell,
+                maxWidth: 150,
+            },
+            {
+                Header: 'Actions',
+                id: 'Actions',
+                align: 'center',
+                Cell: ({ row: { original: rowToken } }: any) => (
+                    <ActionCell>
+                        <Tooltip title='Delete token' arrow describeChild>
+                            <span>
+                                <IconButton
+                                    onClick={() => {
+                                        setSelectedToken(rowToken);
+                                        setDeleteOpen(true);
+                                    }}
+                                >
+                                    <Delete />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+                    </ActionCell>
+                ),
+                maxWidth: 100,
+                disableSortBy: true,
+            },
+        ],
+        [setSelectedToken, setDeleteOpen],
     );
 
     const { data, getSearchText, getSearchContext } = useSearch(
         columns,
         searchValue,
-        tokens
+        tokens,
     );
 
     const { headerGroups, rows, prepareRow, setHiddenColumns } = useTable(
         {
-            columns,
+            columns: columns as any[],
             data,
             initialState,
             sortTypes,
@@ -241,7 +233,7 @@ export const ServiceAccountTokens = ({
             disableMultiSort: true,
         },
         useSortBy,
-        useFlexLayout
+        useFlexLayout,
     );
 
     useConditionallyHiddenColumns(
@@ -260,7 +252,7 @@ export const ServiceAccountTokens = ({
             },
         ],
         setHiddenColumns,
-        columns
+        columns,
     );
 
     return (
@@ -275,8 +267,8 @@ export const ServiceAccountTokens = ({
                             getSearchContext={getSearchContext}
                         />
                         <Button
-                            variant="contained"
-                            color="primary"
+                            variant='contained'
+                            color='primary'
                             disabled={tokens.length >= PAT_LIMIT}
                             onClick={() => setCreateOpen(true)}
                         >
@@ -315,7 +307,7 @@ export const ServiceAccountTokens = ({
                                     the Unleash API.
                                 </StyledPlaceholderSubtitle>
                                 <Button
-                                    variant="outlined"
+                                    variant='outlined'
                                     onClick={() => setCreateOpen(true)}
                                 >
                                     Create new service account token
@@ -338,13 +330,13 @@ export const ServiceAccountTokens = ({
             />
             <Dialogue
                 open={deleteOpen}
-                primaryButtonText="Delete token"
-                secondaryButtonText="Cancel"
+                primaryButtonText='Delete token'
+                secondaryButtonText='Cancel'
                 onClick={onDeleteClick}
                 onClose={() => {
                     setDeleteOpen(false);
                 }}
-                title="Delete token?"
+                title='Delete token?'
             >
                 <Typography>
                     Any applications or scripts using this token "

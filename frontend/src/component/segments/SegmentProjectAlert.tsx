@@ -1,10 +1,16 @@
 import { Alert, styled } from '@mui/material';
 import { formatEditStrategyPath } from 'component/feature/FeatureStrategy/FeatureStrategyEdit/FeatureStrategyEdit';
-import { IProjectCard } from 'interfaces/project';
-import { IFeatureStrategy } from 'interfaces/strategy';
+import type { ProjectSchema } from 'openapi';
+import type { IFeatureStrategy } from 'interfaces/strategy';
 import { Link } from 'react-router-dom';
 import { formatStrategyName } from 'utils/strategyNames';
 import { usePlausibleTracker } from 'hooks/usePlausibleTracker';
+import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
+import type {
+    ChangeRequestNewStrategy,
+    ChangeRequestStrategy,
+    ChangeRequestUpdatedStrategy,
+} from 'hooks/api/getters/useStrategiesBySegment/useStrategiesBySegment';
 
 const StyledUl = styled('ul')(({ theme }) => ({
     listStyle: 'none',
@@ -16,10 +22,14 @@ const StyledAlert = styled(Alert)(({ theme }) => ({
 }));
 
 interface ISegmentProjectAlertProps {
-    projects: IProjectCard[];
-    strategies: IFeatureStrategy[];
+    projects: ProjectSchema[];
+    strategies: (
+        | IFeatureStrategy
+        | ChangeRequestUpdatedStrategy
+        | ChangeRequestNewStrategy
+    )[];
     projectsUsed: string[];
-    availableProjects: IProjectCard[];
+    availableProjects: ProjectSchema[];
 }
 
 export const SegmentProjectAlert = ({
@@ -39,12 +49,13 @@ export const SegmentProjectAlert = ({
     };
     const projectList = (
         <StyledUl>
-            {Array.from(projectsUsed).map(projectId => (
+            {Array.from(projectsUsed).map((projectId) => (
+                // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
                 <li key={projectId} onClick={trackClick}>
                     <Link
                         to={`/projects/${projectId}`}
-                        target="_blank"
-                        rel="noreferrer"
+                        target='_blank'
+                        rel='noreferrer'
                     >
                         {projects.find(({ id }) => id === projectId)?.name ??
                             projectId}
@@ -52,47 +63,30 @@ export const SegmentProjectAlert = ({
                     <ul>
                         {strategies
                             ?.filter(
-                                strategy => strategy.projectId === projectId
+                                (strategy) => strategy.projectId === projectId,
                             )
-                            .map(strategy => (
-                                <li key={strategy.id}>
-                                    <Link
-                                        to={formatEditStrategyPath(
-                                            strategy.projectId!,
-                                            strategy.featureName!,
-                                            strategy.environment!,
-                                            strategy.id
-                                        )}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                    >
-                                        {strategy.featureName!}{' '}
-                                        {formatStrategyNameParens(strategy)}
-                                    </Link>
-                                </li>
-                            ))}
+                            .map((strategy, index) =>
+                                strategyListItem(strategy, index),
+                            )}
                     </ul>
                 </li>
             ))}
         </StyledUl>
     );
 
-    if (projectsUsed.length > 1) {
+    if (projectsUsed.length > 0) {
         return (
-            <StyledAlert severity="info">
-                You can't specify a project for this segment because it is used
-                in multiple projects:
-                {projectList}
-            </StyledAlert>
-        );
-    }
-
-    if (availableProjects.length === 1) {
-        return (
-            <StyledAlert severity="info">
-                You can't specify a project other than{' '}
-                <strong>{availableProjects[0].name}</strong> for this segment
-                because it is used here:
+            <StyledAlert severity='info'>
+                <ConditionallyRender
+                    condition={projectsUsed.length > 1}
+                    show={
+                        <span>
+                            You can't specify a project for this segment because
+                            it is used in multiple projects:
+                        </span>
+                    }
+                    elseShow={<span>Usage of this segment:</span>}
+                />
                 {projectList}
             </StyledAlert>
         );
@@ -101,10 +95,72 @@ export const SegmentProjectAlert = ({
     return null;
 };
 
-const formatStrategyNameParens = (strategy: IFeatureStrategy): string => {
+const formatStrategyNameParens = (strategy: {
+    strategyName?: string;
+}): string => {
     if (!strategy.strategyName) {
         return '';
     }
 
     return `(${formatStrategyName(strategy.strategyName)})`;
+};
+
+export const formatChangeRequestPath = (
+    projectId: string,
+    changeRequestId: number,
+): string => {
+    return `/projects/${projectId}/change-requests/${changeRequestId}`;
+};
+
+const strategyListItem = (
+    strategy:
+        | IFeatureStrategy
+        | ChangeRequestUpdatedStrategy
+        | ChangeRequestNewStrategy,
+    index: number,
+) => {
+    const isChangeRequest = (
+        strategy: IFeatureStrategy | ChangeRequestStrategy,
+    ): strategy is ChangeRequestStrategy => 'changeRequest' in strategy;
+
+    if (isChangeRequest(strategy)) {
+        const { id, title } = strategy.changeRequest;
+
+        const text = title ? `#${id} (${title})` : `#${id}`;
+        return (
+            <li key={`#${strategy.changeRequest.id}@${index}`}>
+                <p>
+                    {strategy.featureName}{' '}
+                    {`${formatStrategyNameParens(
+                        strategy,
+                    )} — in change request `}
+                    <Link
+                        to={formatChangeRequestPath(strategy.projectId, id)}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        title={`Change request ${id}`}
+                    >
+                        {text}
+                    </Link>
+                </p>
+            </li>
+        );
+    } else {
+        return (
+            <li key={strategy.id}>
+                <Link
+                    to={formatEditStrategyPath(
+                        strategy.projectId!,
+                        strategy.featureName!,
+                        strategy.environment!,
+                        strategy.id,
+                    )}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                >
+                    {strategy.featureName!} {formatStrategyNameParens(strategy)}
+                </Link>
+            </li>
+        );
+    }
 };

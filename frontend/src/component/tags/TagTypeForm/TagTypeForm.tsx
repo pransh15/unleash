@@ -1,7 +1,7 @@
 import Input from 'component/common/Input/Input';
 import { TextField, Button, styled } from '@mui/material';
 
-import React from 'react';
+import type React from 'react';
 import { trim } from 'component/common/util';
 import { EDIT } from 'constants/misc';
 
@@ -16,6 +16,7 @@ interface ITagTypeForm {
     mode: 'Create' | 'Edit';
     clearErrors: () => void;
     validateNameUniqueness?: () => void;
+    children?: React.ReactNode;
 }
 
 const StyledForm = styled('form')(({ theme }) => ({
@@ -72,9 +73,9 @@ const TagTypeForm: React.FC<ITagTypeForm> = ({
                     What is your tag name?
                 </StyledInputDescription>
                 <StyledInput
-                    label="Tag name"
+                    label='Tag name'
                     value={tagName}
-                    onChange={e => setTagName(trim(e.target.value))}
+                    onChange={(e) => setTagName(trim(e.target.value))}
                     error={Boolean(errors.name)}
                     errorText={errors.name}
                     onFocus={() => clearErrors()}
@@ -87,12 +88,12 @@ const TagTypeForm: React.FC<ITagTypeForm> = ({
                     What is this tag for?
                 </StyledInputDescription>
                 <StyledTextField
-                    label="Tag description"
-                    variant="outlined"
+                    label='Tag description'
+                    variant='outlined'
                     multiline
                     maxRows={4}
                     value={tagDesc}
-                    onChange={e => setTagDesc(e.target.value)}
+                    onChange={(e) => setTagDesc(e.target.value)}
                 />
             </StyledContainer>
             <StyledButtonContainer>

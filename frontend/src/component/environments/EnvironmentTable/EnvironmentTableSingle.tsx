@@ -1,5 +1,5 @@
 import { styled, TableBody, TableRow } from '@mui/material';
-import { IEnvironment } from 'interfaces/environments';
+import type { IEnvironment } from 'interfaces/environments';
 import { useTable } from 'react-table';
 import { SortableTableHeader, Table, TableCell } from 'component/common/Table';
 import { EnvironmentIconCell } from 'component/environments/EnvironmentTable/EnvironmentIconCell/EnvironmentIconCell';
@@ -12,7 +12,7 @@ const StyledTable = styled(Table)(({ theme }) => ({
 }));
 
 const StyledToggleWarning = styled('p', {
-    shouldForwardProp: prop => prop !== 'warning',
+    shouldForwardProp: (prop) => prop !== 'warning',
 })<{ warning?: boolean }>(({ theme, warning }) => ({
     color: warning ? theme.palette.error.dark : theme.palette.text.primary,
 }));
@@ -68,7 +68,7 @@ export const EnvironmentTableSingle = ({
                                 <StyledToggleWarning
                                     warning={Boolean(
                                         original.enabledToggleCount &&
-                                            original.enabledToggleCount > 0
+                                            original.enabledToggleCount > 0,
                                     )}
                                 >
                                     {original.enabledToggleCount === 1
@@ -81,7 +81,7 @@ export const EnvironmentTableSingle = ({
                 ),
             },
         ],
-        [warnEnabledToggles]
+        [warnEnabledToggles],
     );
 
     const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
@@ -92,18 +92,24 @@ export const EnvironmentTableSingle = ({
         });
 
     return (
-        <StyledTable {...getTableProps()} rowHeight="compact">
+        <StyledTable {...getTableProps()} rowHeight='compact'>
             <SortableTableHeader headerGroups={headerGroups as any} />
             <TableBody {...getTableBodyProps()}>
-                {rows.map(row => {
+                {rows.map((row) => {
                     prepareRow(row);
+                    const { key, ...rowProps } = row.getRowProps();
                     return (
-                        <TableRow hover {...row.getRowProps()}>
-                            {row.cells.map(cell => (
-                                <TableCell {...cell.getCellProps()}>
-                                    {cell.render('Cell')}
-                                </TableCell>
-                            ))}
+                        <TableRow hover key={key} {...rowProps}>
+                            {row.cells.map((cell) => {
+                                const { key, ...cellProps } =
+                                    cell.getCellProps();
+
+                                return (
+                                    <TableCell key={key} {...cellProps}>
+                                        {cell.render('Cell')}
+                                    </TableCell>
+                                );
+                            })}
                         </TableRow>
                     );
                 })}

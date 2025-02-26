@@ -1,10 +1,10 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 import { constraintSchema } from './constraint-schema';
 
 export const updateFeatureSchema = {
     $id: '#/components/schemas/updateFeatureSchema',
     type: 'object',
-    description: 'Data used for updating a feature toggle',
+    description: 'Data used for updating a feature flag',
     properties: {
         description: {
             type: 'string',
@@ -13,10 +13,16 @@ export const updateFeatureSchema = {
             description: 'Detailed description of the feature',
         },
         type: {
-            type: 'string',
+            enum: [
+                'experiment',
+                'kill-switch',
+                'release',
+                'operational',
+                'permission',
+            ],
             example: 'kill-switch',
             description:
-                'Type of the toggle e.g. experiment, kill-switch, release, operational, permission',
+                'Type of the flag e.g. experiment, kill-switch, release, operational, permission',
         },
         stale: {
             type: 'boolean',
@@ -27,7 +33,7 @@ export const updateFeatureSchema = {
             type: 'boolean',
             example: true,
             description:
-                'If `true` the feature toggle will be moved to the [archive](https://docs.getunleash.io/reference/archived-toggles) with a property `archivedAt` set to current time',
+                'If `true` the feature flag will be moved to the [archive](https://docs.getunleash.io/reference/feature-toggles#archive-a-feature-flag) with a property `archivedAt` set to current time',
         },
         impressionData: {
             type: 'boolean',

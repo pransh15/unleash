@@ -1,27 +1,31 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { FeatureStrategyForm } from 'component/feature/FeatureStrategy/FeatureStrategyForm/FeatureStrategyForm';
+import { useEffect, useRef, useState } from 'react';
 import FormTemplate from 'component/common/FormTemplate/FormTemplate';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
 import { formatUnknownError } from 'utils/formatUnknownError';
 import useToast from 'hooks/useToast';
-import { IFeatureStrategy } from 'interfaces/strategy';
+import type { IFeatureStrategy } from 'interfaces/strategy';
 import { UPDATE_FEATURE_STRATEGY } from 'component/providers/AccessProvider/permissions';
-import { ISegment } from 'interfaces/segment';
-import { formatStrategyName } from 'utils/strategyNames';
+import type { ISegment } from 'interfaces/segment';
 import { useFormErrors } from 'hooks/useFormErrors';
 import { useCollaborateData } from 'hooks/useCollaborateData';
 import { useFeature } from 'hooks/api/getters/useFeature/useFeature';
-import { IFeatureToggle } from 'interfaces/featureToggle';
+import type { IFeatureToggle } from 'interfaces/featureToggle';
 import { useChangeRequestsEnabled } from 'hooks/useChangeRequestsEnabled';
 import { useChangeRequestApi } from 'hooks/api/actions/useChangeRequestApi/useChangeRequestApi';
 import { comparisonModerator } from 'component/feature/FeatureStrategy/featureStrategy.utils';
-import {
+import type {
+    ChangeRequestAddStrategy,
+    ChangeRequestEditStrategy,
     IChangeRequestAddStrategy,
     IChangeRequestUpdateStrategy,
 } from 'component/changeRequest/changeRequest.types';
 import { SidebarModal } from 'component/common/SidebarModal/SidebarModal';
 import { useSegments } from 'hooks/api/getters/useSegments/useSegments';
+import { FeatureStrategyForm } from '../../../../feature/FeatureStrategy/FeatureStrategyForm/FeatureStrategyForm';
+import { NewStrategyVariants } from 'component/feature/StrategyTypes/NewStrategyVariants';
+import { constraintId } from 'component/common/ConstraintAccordion/ConstraintAccordionList/createEmptyConstraint';
+import { v4 as uuidv4 } from 'uuid';
 
 interface IEditChangeProps {
     change: IChangeRequestAddStrategy | IChangeRequestUpdateStrategy;
@@ -32,6 +36,16 @@ interface IEditChangeProps {
     onSubmit: () => void;
     onClose: () => void;
 }
+
+const addIdSymbolToConstraints = (
+    strategy?: ChangeRequestAddStrategy | ChangeRequestEditStrategy,
+) => {
+    if (!strategy) return;
+
+    return strategy?.constraints.map((constraint) => {
+        return { ...constraint, [constraintId]: uuidv4() };
+    });
+};
 
 export const EditChange = ({
     change,
@@ -44,13 +58,17 @@ export const EditChange = ({
 }: IEditChangeProps) => {
     const projectId = useRequiredPathParam('projectId');
     const { editChange } = useChangeRequestApi();
+    const [tab, setTab] = useState(0);
 
-    const [strategy, setStrategy] = useState<Partial<IFeatureStrategy>>(
-        change.payload
-    );
+    const constraintsWithId = addIdSymbolToConstraints(change.payload);
+
+    const [strategy, setStrategy] = useState<Partial<IFeatureStrategy>>({
+        ...change.payload,
+        constraints: constraintsWithId,
+    });
 
     const { segments: allSegments } = useSegments();
-    const strategySegments = (allSegments || []).filter(segment => {
+    const strategySegments = (allSegments || []).filter((segment) => {
         return change.payload.segments?.includes(segment.id);
     });
 
@@ -83,7 +101,7 @@ export const EditChange = ({
             {
                 afterSubmitAction: refetchFeature,
             },
-            comparisonModerator
+            comparisonModerator,
         );
 
     useEffect(() => {
@@ -95,7 +113,7 @@ export const EditChange = ({
 
     const payload = {
         ...strategy,
-        segments: segments.map(segment => segment.id),
+        segments: segments.map((segment) => segment.id),
     };
 
     const onInternalSubmit = async () => {
@@ -107,7 +125,7 @@ export const EditChange = ({
             });
             onSubmit();
             setToastData({
-                title: 'Change updated',
+                text: 'Change updated',
                 type: 'success',
             });
         } catch (error: unknown) {
@@ -125,14 +143,14 @@ export const EditChange = ({
         <SidebarModal
             open={open}
             onClose={onClose}
-            label="Edit change"
-            onClick={e => {
+            label='Edit change'
+            onClick={(e) => {
                 e.stopPropagation();
             }}
         >
             <FormTemplate
                 modal
-                title={formatStrategyName(strategyDefinition.name ?? '')}
+                disablePadding
                 description={featureStrategyHelp}
                 documentationLink={featureStrategyDocsLink}
                 documentationLinkLabel={featureStrategyDocsLinkLabel}
@@ -142,7 +160,7 @@ export const EditChange = ({
                         changeRequestId,
                         change.id,
                         payload,
-                        unleashUrl
+                        unleashUrl,
                     )
                 }
             >
@@ -160,7 +178,18 @@ export const EditChange = ({
                     permission={UPDATE_FEATURE_STRATEGY}
                     errors={errors}
                     isChangeRequest={isChangeRequestConfigured(environment)}
+                    tab={tab}
+                    setTab={setTab}
+                    StrategyVariants={
+                        <NewStrategyVariants
+                            strategy={strategy}
+                            setStrategy={setStrategy}
+                            environment={environment}
+                            projectId={projectId}
+                        />
+                    }
                 />
+
                 {staleDataNotification}
             </FormTemplate>
         </SidebarModal>
@@ -172,7 +201,7 @@ export const formatUpdateStrategyApiCode = (
     changeRequestId: number,
     changeId: number,
     strategy: Partial<IFeatureStrategy>,
-    unleashUrl?: string
+    unleashUrl?: string,
 ): string => {
     if (!unleashUrl) {
         return '';
@@ -188,8 +217,8 @@ export const formatUpdateStrategyApiCode = (
 };
 
 export const featureStrategyHelp = `
-    An activation strategy will only run when a feature toggle is enabled and provides a way to control who will get access to the feature.
-    If any of a feature toggle's activation strategies returns true, the user will get access.
+    An activation strategy will only run when a feature flag is enabled and provides a way to control who will get access to the feature.
+    If any of a feature flag's activation strategies returns true, the user will get access.
 `;
 
 export const featureStrategyDocsLink =

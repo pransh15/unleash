@@ -1,7 +1,7 @@
-import { Context } from './context';
+import type { Context } from './context';
 // eslint-disable-next-line import/no-cycle
-import { FeatureInterface } from './feature';
-import normalizedValue from './strategy/util';
+import type { FeatureInterface } from './feature';
+import { normalizedVariantValue } from './strategy/util';
 import { resolveContextValue } from './helpers';
 
 interface Override {
@@ -10,7 +10,7 @@ interface Override {
 }
 
 export interface Payload {
-    type: 'string' | 'csv' | 'json';
+    type: 'string' | 'csv' | 'json' | 'number';
     value: string;
 }
 
@@ -26,6 +26,11 @@ export interface Variant {
     name: string;
     enabled: boolean;
     payload?: Payload;
+    featureEnabled?: boolean;
+    /**
+     * @deprecated use featureEnabled
+     */
+    feature_enabled?: boolean;
 }
 
 export function getDefaultVariant(): Variant {
@@ -45,7 +50,7 @@ function getSeed(context: Context, stickiness: string = 'default'): string {
         const value = resolveContextValue(context, stickiness);
         return value ? value.toString() : randomString();
     }
-    let result;
+    let result: string | undefined;
     stickinessSelectors.some((key: string): boolean => {
         const value = context[key];
         if (typeof value === 'string' && value !== '') {
@@ -91,7 +96,7 @@ export function selectVariantDefinition(
 
     const { stickiness } = variants[0];
 
-    const target = normalizedValue(
+    const target = normalizedVariantValue(
         getSeed(context, stickiness),
         featureName,
         totalWeight,

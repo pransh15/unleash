@@ -1,8 +1,12 @@
-import { IImportTogglesStore } from './import-toggles-store-type';
-import { AccessService, ContextService, TagTypeService } from '../../services';
-import { ContextFieldSchema, ImportTogglesSchema } from '../../openapi';
-import { ITagType } from '../../types/stores/tag-type-store';
-import User from '../../types/user';
+import type { IImportTogglesStore } from './import-toggles-store-type';
+import type {
+    AccessService,
+    ContextService,
+    TagTypeService,
+} from '../../services';
+import type { ContextFieldSchema, ImportTogglesSchema } from '../../openapi';
+import type { ITagType } from '../tag-type/tag-type-store-type';
+import type { IUser } from '../../types/user';
 import {
     CREATE_CONTEXT_FIELD,
     CREATE_FEATURE,
@@ -10,11 +14,11 @@ import {
     DELETE_FEATURE_STRATEGY,
     UPDATE_FEATURE,
     UPDATE_FEATURE_ENVIRONMENT_VARIANTS,
-    UPDATE_TAG_TYPE,
+    CREATE_TAG_TYPE,
 } from '../../types';
 import { PermissionError } from '../../error';
 
-type Mode = 'regular' | 'change_request';
+export type Mode = 'regular' | 'change_request';
 
 export class ImportPermissionsService {
     private importTogglesStore: IImportTogglesStore;
@@ -67,7 +71,7 @@ export class ImportPermissionsService {
 
     async getMissingPermissions(
         dto: ImportTogglesSchema,
-        user: User,
+        user: IUser,
         mode: Mode,
     ): Promise<string[]> {
         const [
@@ -94,7 +98,7 @@ export class ImportPermissionsService {
         ]);
         const permissions = [UPDATE_FEATURE];
         if (newTagTypes.length > 0) {
-            permissions.push(UPDATE_TAG_TYPE);
+            permissions.push(CREATE_TAG_TYPE);
         }
         if (Array.isArray(newContextFields) && newContextFields.length > 0) {
             permissions.push(CREATE_CONTEXT_FIELD);
@@ -140,7 +144,7 @@ export class ImportPermissionsService {
 
     async verifyPermissions(
         dto: ImportTogglesSchema,
-        user: User,
+        user: IUser,
         mode: Mode,
     ): Promise<void> {
         const missingPermissions = await this.getMissingPermissions(

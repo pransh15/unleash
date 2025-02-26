@@ -1,5 +1,6 @@
 import { Alert, Link } from '@mui/material';
-import React, { ReactNode } from 'react';
+import type React from 'react';
+import type { ReactNode } from 'react';
 import useUiConfig from 'hooks/api/getters/useUiConfig/useUiConfig';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { CancelButton, StyledBox, StyledForm } from './ApiTokenForm.styles';
@@ -9,6 +10,7 @@ interface IApiTokenFormProps {
     handleCancel: () => void;
     mode: 'Create' | 'Edit';
     actions?: ReactNode;
+    children?: React.ReactNode;
 }
 
 const ApiTokenForm: React.FC<IApiTokenFormProps> = ({
@@ -26,9 +28,9 @@ const ApiTokenForm: React.FC<IApiTokenFormProps> = ({
             <ConditionallyRender
                 condition={isUnleashCloud}
                 show={
-                    <Alert severity="info" sx={{ mb: 4 }}>
+                    <Alert severity='info' sx={{ mb: 4 }}>
                         Please be aware of our{' '}
-                        <Link href="https://www.getunleash.io/fair-use-policy">
+                        <Link href='https://www.getunleash.io/fair-use-policy'>
                             fair use policy
                         </Link>
                         .

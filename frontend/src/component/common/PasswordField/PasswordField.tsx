@@ -2,10 +2,12 @@ import {
     IconButton,
     InputAdornment,
     TextField,
-    TextFieldProps,
+    type TextFieldProps,
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
-import React, { useState, VFC } from 'react';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import type React from 'react';
+import { useState, type VFC } from 'react';
 
 const PasswordField: VFC<TextFieldProps> = ({ ...rest }) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -15,7 +17,7 @@ const PasswordField: VFC<TextFieldProps> = ({ ...rest }) => {
     };
 
     const handleMouseDownPassword = (
-        e: React.MouseEvent<HTMLButtonElement>
+        e: React.MouseEvent<HTMLButtonElement>,
     ) => {
         e.preventDefault();
     };
@@ -25,19 +27,19 @@ const PasswordField: VFC<TextFieldProps> = ({ ...rest }) => {
 
     return (
         <TextField
-            variant="outlined"
-            size="small"
+            variant='outlined'
+            size='small'
             type={showPassword ? 'text' : 'password'}
             InputProps={{
                 style: {
                     paddingRight: '0px',
                 },
                 endAdornment: (
-                    <InputAdornment position="end">
+                    <InputAdornment position='end'>
                         <IconButton
                             onClick={handleClickShowPassword}
                             onMouseDown={handleMouseDownPassword}
-                            size="large"
+                            size='large'
                         >
                             <IconComponent titleAccess={iconTitle} />
                         </IconButton>

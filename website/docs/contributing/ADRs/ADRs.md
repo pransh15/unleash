@@ -22,6 +22,11 @@ We are in the process of defining ADRs for the back end. At the time of writing 
 
 * [Naming](./back-end/naming.md)
 * [Preferred export](./back-end/preferred-export.md)
+* [Breaking DB changes](./back-end/breaking-db-changes.md)
+* [POST/PUT API payload](./back-end/POST-PUT-api-payload.md)
+* [Specificity in database column references](./back-end/specificity-db-columns.md)
+* [Write model vs Read models](./back-end/write-model-vs-read-models.md)
+* [Frontend API Design](./back-end/frontend-api-design.md)
 
 ## Front-end ADRs
 
@@ -32,10 +37,10 @@ We have created a set of ADRs to help guide the development of the front end:
 * [Preferred component props usage](./front-end/preferred-component-props-usage.md)
 * [Preferred export](./front-end/preferred-export.md)
 * [Preferred function type](./front-end/preferred-function-type.md)
-* [Preferred style import placement](./front-end/preferred-styles-import-placement.md)
 * [Preferred styling method](./front-end/preferred-styling-method.md)
 * [Preferred data mutation method](./front-end/preferred-data-mutation-method.md)
 * [Preferred data fetching method](./front-end/preferred-data-fetching-method.md)
 * [Preferred folder structure](./front-end/preferred-folder-structure.md)
 * [Preferred form architecture](./front-end/preferred-form-architecture.md)
 * [OpenAPI SDK generator](./front-end/sdk-generator.md)
+* [Use of conditionals in JSX (refactor of &lt;ConditionallyRender /&gt;)](./front-end/jsx-conditionals.md)

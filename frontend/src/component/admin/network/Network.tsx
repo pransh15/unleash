@@ -1,18 +1,19 @@
 import { lazy } from 'react';
 
-import { styled, Tab, Tabs } from '@mui/material';
+import { Tab, Tabs } from '@mui/material';
 import { Route, Routes, useLocation } from 'react-router-dom';
-import { CenteredNavLink } from '../menu/CenteredNavLink';
+import { TabLink } from 'component/common/TabNav/TabLink';
 import { PageContent } from 'component/common/PageContent/PageContent';
+import { useUiFlag } from 'hooks/useUiFlag';
 
 const NetworkOverview = lazy(() => import('./NetworkOverview/NetworkOverview'));
+const NetworkConnectedEdges = lazy(
+    () => import('./NetworkConnectedEdges/NetworkConnectedEdges'),
+);
 const NetworkTraffic = lazy(() => import('./NetworkTraffic/NetworkTraffic'));
-
-const StyledPageContent = styled(PageContent)(() => ({
-    '.page-header': {
-        padding: 0,
-    },
-}));
+const NetworkTrafficUsage = lazy(
+    () => import('./NetworkTrafficUsage/NetworkTrafficUsage'),
+);
 
 const tabs = [
     {
@@ -23,42 +24,66 @@ const tabs = [
         label: 'Traffic',
         path: '/admin/network/traffic',
     },
+    {
+        label: 'Connected Edges',
+        path: '/admin/network/connected-edges',
+    },
+    {
+        label: 'Data Usage',
+        path: '/admin/network/data-usage',
+    },
 ];
 
 export const Network = () => {
     const { pathname } = useLocation();
+    const edgeObservabilityEnabled = useUiFlag('edgeObservability');
+
+    const filteredTabs = tabs.filter(
+        ({ label }) => label !== 'Connected Edges' || edgeObservabilityEnabled,
+    );
 
     return (
         <div>
-            <StyledPageContent
-                headerClass="page-header"
+            <PageContent
+                withTabs
                 header={
                     <Tabs
                         value={pathname}
-                        indicatorColor="primary"
-                        textColor="primary"
-                        variant="scrollable"
+                        indicatorColor='primary'
+                        textColor='primary'
+                        variant='scrollable'
                         allowScrollButtonsMobile
                     >
-                        {tabs.map(({ label, path }) => (
+                        {filteredTabs.map(({ label, path }) => (
                             <Tab
                                 key={label}
                                 value={path}
                                 label={
-                                    <CenteredNavLink to={path}>
+                                    <TabLink to={path}>
                                         <span>{label}</span>
-                                    </CenteredNavLink>
+                                    </TabLink>
                                 }
+                                sx={{ padding: 0 }}
                             />
                         ))}
                     </Tabs>
                 }
             >
                 <Routes>
-                    <Route path="traffic" element={<NetworkTraffic />} />
-                    <Route path="*" element={<NetworkOverview />} />
+                    <Route path='*' element={<NetworkOverview />} />
+                    <Route path='traffic' element={<NetworkTraffic />} />
+                    {edgeObservabilityEnabled && (
+                        <Route
+                            path='connected-edges'
+                            element={<NetworkConnectedEdges />}
+                        />
+                    )}
+                    <Route
+                        path='data-usage'
+                        element={<NetworkTrafficUsage />}
+                    />
                 </Routes>
-            </StyledPageContent>
+            </PageContent>
         </div>
     );
 };

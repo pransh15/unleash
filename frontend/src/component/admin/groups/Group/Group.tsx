@@ -1,7 +1,12 @@
-import { useEffect, useMemo, useState, VFC } from 'react';
+import { useEffect, useMemo, useState, type VFC } from 'react';
 import { IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import { useSearchParams, Link } from 'react-router-dom';
-import { SortingRule, useFlexLayout, useSortBy, useTable } from 'react-table';
+import {
+    type SortingRule,
+    useFlexLayout,
+    useSortBy,
+    useTable,
+} from 'react-table';
 import { TablePlaceholder, VirtualizedTable } from 'component/common/Table';
 import { useGroup } from 'hooks/api/getters/useGroup/useGroup';
 import { SearchHighlightProvider } from 'component/common/Table/SearchHighlightContext/SearchHighlightContext';
@@ -11,14 +16,16 @@ import { PageContent } from 'component/common/PageContent/PageContent';
 import { PageHeader } from 'component/common/PageHeader/PageHeader';
 import { sortTypes } from 'utils/sortTypes';
 import { createLocalStorage } from 'utils/createLocalStorage';
-import { IGroupUser } from 'interfaces/group';
+import type { IGroupUser } from 'interfaces/group';
 import { useSearch } from 'hooks/useSearch';
 import { Search } from 'component/common/Search/Search';
 import { TextCell } from 'component/common/Table/cells/TextCell/TextCell';
 import { HighlightCell } from 'component/common/Table/cells/HighlightCell/HighlightCell';
 import { TimeAgoCell } from 'component/common/Table/cells/TimeAgoCell/TimeAgoCell';
 import PermissionIconButton from 'component/common/PermissionIconButton/PermissionIconButton';
-import { Add, Delete, Edit } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import Delete from '@mui/icons-material/Delete';
+import Edit from '@mui/icons-material/Edit';
 import { ADMIN } from 'component/providers/AccessProvider/permissions';
 import { MainHeader } from 'component/common/MainHeader/MainHeader';
 import { useRequiredPathParam } from 'hooks/useRequiredPathParam';
@@ -34,6 +41,8 @@ import {
     UG_EDIT_USERS_BTN_ID,
     UG_REMOVE_USER_BTN_ID,
 } from 'utils/testIds';
+import { useScimSettings } from 'hooks/api/getters/useScimSettings/useScimSettings';
+import { scimGroupTooltip } from '../group-constants';
 
 export const groupUsersPlaceholder: IGroupUser[] = Array(15).fill({
     name: 'Name of the user',
@@ -44,11 +53,11 @@ export type PageQueryType = Partial<
     Record<'sort' | 'order' | 'search', string>
 >;
 
-const defaultSort: SortingRule<string> = { id: 'joinedAt' };
+const defaultSort: SortingRule<string> = { id: 'joinedAt', desc: true };
 
 const { value: storedParams, setValue: setStoredParams } = createLocalStorage(
     'Group:v1',
-    defaultSort
+    defaultSort,
 );
 
 export const Group: VFC = () => {
@@ -60,6 +69,11 @@ export const Group: VFC = () => {
     const [editUsersOpen, setEditUsersOpen] = useState(false);
     const [removeUserOpen, setRemoveUserOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<IGroupUser>();
+
+    const {
+        settings: { enabled: scimEnabled },
+    } = useScimSettings();
+    const isScimGroup = scimEnabled && Boolean(group?.scimId);
 
     const columns = useMemo(
         () => [
@@ -91,7 +105,6 @@ export const Group: VFC = () => {
                 Header: 'Joined',
                 accessor: 'joinedAt',
                 Cell: DateCell,
-                sortType: 'date',
                 maxWidth: 150,
             },
             {
@@ -108,11 +121,10 @@ export const Group: VFC = () => {
                 Cell: ({ row: { original: user } }: any) => (
                     <TimeAgoCell
                         value={user.seenAt}
-                        emptyText="Never"
-                        title={date => `Last login: ${date}`}
+                        emptyText='Never'
+                        title={(date) => `Last login: ${date}`}
                     />
                 ),
-                sortType: 'date',
                 maxWidth: 150,
             },
             {
@@ -122,7 +134,11 @@ export const Group: VFC = () => {
                 Cell: ({ row: { original: rowUser } }: any) => (
                     <ActionCell>
                         <Tooltip
-                            title="Remove user from group"
+                            title={
+                                isScimGroup
+                                    ? scimGroupTooltip
+                                    : 'Remove user from group'
+                            }
                             arrow
                             describeChild
                         >
@@ -133,6 +149,7 @@ export const Group: VFC = () => {
                                         setSelectedUser(rowUser);
                                         setRemoveUserOpen(true);
                                     }}
+                                    disabled={isScimGroup}
                                 >
                                     <Delete />
                                 </IconButton>
@@ -156,7 +173,7 @@ export const Group: VFC = () => {
                 searchable: true,
             },
         ],
-        [setSelectedUser, setRemoveUserOpen]
+        [setSelectedUser, setRemoveUserOpen],
     );
 
     const [searchParams, setSearchParams] = useSearchParams();
@@ -185,7 +202,7 @@ export const Group: VFC = () => {
             searchedData?.length === 0 && loading
                 ? groupUsersPlaceholder
                 : searchedData,
-        [searchedData, loading]
+        [searchedData, loading],
     );
 
     const {
@@ -204,7 +221,7 @@ export const Group: VFC = () => {
             disableMultiSort: true,
         },
         useSortBy,
-        useFlexLayout
+        useFlexLayout,
     );
 
     useEffect(() => {
@@ -240,7 +257,9 @@ export const Group: VFC = () => {
                                     data-loading
                                     permission={ADMIN}
                                     tooltipProps={{
-                                        title: 'Edit group',
+                                        title: isScimGroup
+                                            ? scimGroupTooltip
+                                            : 'Edit group',
                                     }}
                                 >
                                     <Edit />
@@ -296,9 +315,15 @@ export const Group: VFC = () => {
                                             onClick={() => {
                                                 setEditUsersOpen(true);
                                             }}
-                                            maxWidth="700px"
+                                            maxWidth='700px'
                                             Icon={Add}
                                             permission={ADMIN}
+                                            disabled={isScimGroup}
+                                            tooltipProps={{
+                                                title: isScimGroup
+                                                    ? scimGroupTooltip
+                                                    : '',
+                                            }}
                                         >
                                             Edit users
                                         </ResponsiveButton>

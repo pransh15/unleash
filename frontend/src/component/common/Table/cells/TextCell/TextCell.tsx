@@ -1,15 +1,17 @@
-import { FC } from 'react';
-import { Box, styled, SxProps, Theme } from '@mui/material';
+import type React from 'react';
+import type { FC } from 'react';
+import { Box, styled, type SxProps, type Theme } from '@mui/material';
 
 interface ITextCellProps {
     value?: string | null;
     lineClamp?: number;
     'data-testid'?: string;
     sx?: SxProps<Theme>;
+    children?: React.ReactNode;
 }
 
 const StyledWrapper = styled(Box, {
-    shouldForwardProp: prop => prop !== 'lineClamp',
+    shouldForwardProp: (prop) => prop !== 'lineClamp',
 })<{ lineClamp?: number }>(({ theme, lineClamp }) => ({
     padding: theme.spacing(1, 2),
     display: '-webkit-box',
@@ -22,6 +24,11 @@ const StyledWrapper = styled(Box, {
     },
 }));
 
+const StyledSpan = styled('span')(() => ({
+    display: 'inline-block',
+    maxWidth: '100%',
+}));
+
 export const TextCell: FC<ITextCellProps> = ({
     value,
     children,
@@ -30,8 +37,8 @@ export const TextCell: FC<ITextCellProps> = ({
     'data-testid': testid,
 }) => (
     <StyledWrapper lineClamp={lineClamp} sx={sx}>
-        <span data-loading="true" data-testid={testid}>
+        <StyledSpan data-loading='true' data-testid={testid}>
             {children ?? value}
-        </span>
+        </StyledSpan>
     </StyledWrapper>
 );

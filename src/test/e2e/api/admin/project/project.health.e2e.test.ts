@@ -1,20 +1,31 @@
-import dbInit from '../../../helpers/database-init';
-import { setupAppWithCustomConfig } from '../../../helpers/test-helper';
+import dbInit, { type ITestDb } from '../../../helpers/database-init';
+import {
+    type IUnleashTest,
+    setupAppWithCustomConfig,
+} from '../../../helpers/test-helper';
 import getLogger from '../../../../fixtures/no-logger';
+import type { IUser } from '../../../../../lib/types';
+import { extractAuditInfoFromUser } from '../../../../../lib/util';
 
-let app;
-let db;
-let user;
+let app: IUnleashTest;
+let db: ITestDb;
+let user: IUser;
 
 beforeAll(async () => {
-    db = await dbInit('project_health_api_serial', getLogger);
-    app = await setupAppWithCustomConfig(db.stores, {
-        experimental: {
-            flags: {
-                strictSchemaValidation: true,
+    db = await dbInit('project_health_api_serial', getLogger, {
+        dbInitMethod: 'legacy' as const,
+    });
+    app = await setupAppWithCustomConfig(
+        db.stores,
+        {
+            experimental: {
+                flags: {
+                    strictSchemaValidation: true,
+                },
             },
         },
-    });
+        db.rawDatabase,
+    );
     user = await db.stores.userStore.insert({
         name: 'Some Name',
         email: 'test@getunleash.io',
@@ -32,7 +43,11 @@ test('Project with no stale toggles should have 100% health rating', async () =>
         name: 'Health rating',
         description: 'Fancy',
     };
-    await app.services.projectService.createProject(project, user);
+    await app.services.projectService.createProject(
+        project,
+        user,
+        extractAuditInfoFromUser(user),
+    );
     await app.request
         .post('/api/admin/projects/fresh/features')
         .send({
@@ -68,7 +83,11 @@ test('Health rating endpoint yields stale, potentially stale and active count on
         name: 'Health rating',
         description: 'Fancy',
     };
-    await app.services.projectService.createProject(project, user);
+    await app.services.projectService.createProject(
+        project,
+        user,
+        extractAuditInfoFromUser(user),
+    );
     await app.request
         .post(`/api/admin/projects/${project.id}/features`)
         .send({
@@ -111,7 +130,11 @@ test('Health rating endpoint does not include archived toggles when calculating 
         name: 'Health rating',
         description: 'Fancy',
     };
-    await app.services.projectService.createProject(project, user);
+    await app.services.projectService.createProject(
+        project,
+        user,
+        extractAuditInfoFromUser(user),
+    );
     await app.request
         .post(`/api/admin/projects/${project.id}/features`)
         .send({
@@ -172,7 +195,11 @@ test('Health rating endpoint correctly handles potentially stale toggles', async
         name: 'Health rating',
         description: 'Fancy',
     };
-    await app.services.projectService.createProject(project, user);
+    await app.services.projectService.createProject(
+        project,
+        user,
+        extractAuditInfoFromUser(user),
+    );
     await app.request
         .post(`/api/admin/projects/${project.id}/features`)
         .send({
@@ -318,8 +345,8 @@ test('Update update_at when setHealth runs', async () => {
         .expect(200)
         .expect('Content-Type', /json/)
         .expect((res) => {
-            let now = new Date().getTime();
-            let updatedAt = new Date(res.body.updatedAt).getTime();
+            const now = new Date().getTime();
+            const updatedAt = new Date(res.body.updatedAt).getTime();
             expect(now - updatedAt).toBeLessThan(5000);
         });
 });

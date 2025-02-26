@@ -1,6 +1,6 @@
 import { makeStyles } from 'tss-react/mui';
-import { Theme } from '@mui/material';
-import { CSSProperties } from 'react';
+import type { Theme } from '@mui/material';
+import type { CSSProperties } from 'react';
 
 export const focusable = (theme: Theme) => ({
     '&:focus-visible': {
@@ -104,7 +104,7 @@ export const fadeInTopLeave: CSSProperties = {
  * Please extract styles below into MUI fragments as shown above
  * @deprecated
  */
-export const useThemeStyles = makeStyles()(theme => ({
+export const useThemeStyles = makeStyles()((theme) => ({
     focusable: {
         '&:focus-visible': {
             outline: 0,

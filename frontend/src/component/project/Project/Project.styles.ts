@@ -6,9 +6,8 @@ export const StyledDiv = styled('div')(() => ({
 }));
 
 export const StyledTopRow = styled('div')(() => ({
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
     width: '100%',
 }));
 
@@ -18,9 +17,9 @@ export const StyledColumn = styled('div')(() => ({
 }));
 
 export const StyledName = styled('span')(({ theme }) => ({
-    fontSize: theme.typography.h1.fontSize,
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+    overflow: 'hidden',
 }));
 
 export const StyledTitle = styled('span')(({ theme }) => ({
@@ -35,7 +34,7 @@ export const StyledText = styled(StyledTitle)(({ theme }) => ({
 export const StyledFavoriteIconButton = styled(FavoriteIconButton)(
     ({ theme }) => ({
         marginLeft: theme.spacing(-1.5),
-    })
+    }),
 );
 
 export const StyledHeader = styled('div')(({ theme }) => ({
@@ -54,12 +53,12 @@ export const StyledInnerContainer = styled('div')(({ theme }) => ({
 export const StyledProjectTitle = styled('span')(({ theme }) => ({
     margin: 0,
     width: '100%',
-    fontSize: theme.fontSizes.mainHeader,
+    fontSize: theme.typography.h1.fontSize,
     fontWeight: 'bold',
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
     gap: theme.spacing(2),
+    overflow: 'hidden',
 }));
 
 export const StyledSeparator = styled('div')(({ theme }) => ({
@@ -75,13 +74,13 @@ export const StyledTabContainer = styled('div')(({ theme }) => ({
 export const StyledTab = styled(Tab)(({ theme }) => ({
     textTransform: 'none',
     fontSize: theme.fontSizes.bodySize,
-    flexGrow: 1,
     flexBasis: 0,
     [theme.breakpoints.down('md')]: {
         paddingLeft: theme.spacing(1),
         paddingRight: theme.spacing(1),
+        minWidth: 170,
     },
     [theme.breakpoints.up('md')]: {
-        minWidth: 160,
+        minWidth: 170,
     },
 }));

@@ -1,6 +1,6 @@
 import { basePath } from 'utils/formatPath';
 import { createPersistentGlobalStateHook } from './usePersistentGlobalState';
-import React from 'react';
+import type React from 'react';
 
 export interface ILocationSettings {
     locale: string;
@@ -25,5 +25,5 @@ const createInitialValue = (): ILocationSettings => {
 
 const useGlobalState = createPersistentGlobalStateHook<ILocationSettings>(
     `${basePath}:useLocationSettings:v1`,
-    createInitialValue()
+    createInitialValue(),
 );

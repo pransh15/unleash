@@ -2,39 +2,24 @@ import Webhook from './webhook';
 import SlackAddon from './slack';
 import TeamsAddon from './teams';
 import DatadogAddon from './datadog';
-import Addon from './addon';
-import { LogProvider } from '../logger';
+import NewRelicAddon from './new-relic';
+import type Addon from './addon';
 import SlackAppAddon from './slack-app';
-import { IFlagResolver } from '../types';
+import type { IAddonConfig } from '../types';
 
 export interface IAddonProviders {
     [key: string]: Addon;
 }
 
-export const getAddons: (args: {
-    getLogger: LogProvider;
-    unleashUrl: string;
-    flagResolver: IFlagResolver;
-}) => IAddonProviders = ({ getLogger, unleashUrl, flagResolver }) => {
-    const slackAppAddonEnabled = flagResolver.isEnabled('slackAppAddon');
-
-    const slackAddon = new SlackAddon({ getLogger, unleashUrl });
-
-    if (slackAppAddonEnabled) {
-        slackAddon.definition.deprecated =
-            'This addon is deprecated. Please try the new Slack App addon instead.';
-    }
-
+export const getAddons: (args: IAddonConfig) => IAddonProviders = (args) => {
     const addons: Addon[] = [
-        new Webhook({ getLogger }),
-        slackAddon,
-        new TeamsAddon({ getLogger, unleashUrl }),
-        new DatadogAddon({ getLogger, unleashUrl }),
+        new Webhook(args),
+        new SlackAddon(args),
+        new SlackAppAddon(args),
+        new TeamsAddon(args),
+        new DatadogAddon(args),
+        new NewRelicAddon(args),
     ];
-
-    if (slackAppAddonEnabled) {
-        addons.push(new SlackAppAddon({ getLogger, unleashUrl }));
-    }
 
     return addons.reduce((map, addon) => {
         // eslint-disable-next-line no-param-reassign

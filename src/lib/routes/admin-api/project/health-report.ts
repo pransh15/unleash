@@ -1,18 +1,18 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import Controller from '../../controller';
-import { IUnleashServices } from '../../../types/services';
-import { IUnleashConfig } from '../../../types/option';
-import ProjectHealthService from '../../../services/project-health-service';
-import { Logger } from '../../../logger';
-import { IProjectParam } from '../../../types/model';
+import type { IUnleashServices } from '../../../types/services';
+import type { IUnleashConfig } from '../../../types/option';
+import type ProjectHealthService from '../../../services/project-health-service';
+import type { Logger } from '../../../logger';
+import type { IProjectParam } from '../../../types/model';
 import { NONE } from '../../../types/permissions';
-import { OpenApiService } from '../../../services/openapi-service';
+import type { OpenApiService } from '../../../services/openapi-service';
 import { createResponseSchema } from '../../../openapi/util/create-response-schema';
 import { getStandardResponses } from '../../../openapi/util/standard-responses';
 import { serializeDates } from '../../../types/serialize-dates';
 import {
     healthReportSchema,
-    HealthReportSchema,
+    type HealthReportSchema,
 } from '../../../openapi/spec/health-report-schema';
 
 export default class ProjectHealthReport extends Controller {
@@ -42,10 +42,11 @@ export default class ProjectHealthReport extends Controller {
             middleware: [
                 openApiService.validPath({
                     tags: ['Projects'],
+                    deprecated: true,
                     operationId: 'getProjectHealthReport',
                     summary: 'Get a health report for a project.',
                     description:
-                        'This endpoint returns a health report for the specified project. This data is used for [the technical debt dashboard](https://docs.getunleash.io/reference/technical-debt#the-technical-debt-dashboard)',
+                        'This endpoint returns a health report for the specified project. This data is used for [the technical debt insights](https://docs.getunleash.io/reference/technical-debt)',
                     responses: {
                         200: createResponseSchema('healthReportSchema'),
                         ...getStandardResponses(401, 403, 404),
@@ -60,9 +61,8 @@ export default class ProjectHealthReport extends Controller {
         res: Response<HealthReportSchema>,
     ): Promise<void> {
         const { projectId } = req.params;
-        const overview = await this.projectHealthService.getProjectHealthReport(
-            projectId,
-        );
+        const overview =
+            await this.projectHealthService.getProjectHealthReport(projectId);
         this.openApiService.respondWithValidation(
             200,
             res,

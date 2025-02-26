@@ -1,9 +1,7 @@
-import { useState, VFC } from 'react';
+import { useState, type VFC } from 'react';
 import { IconButton } from '@mui/material';
-import {
-    Star as StarIcon,
-    StarBorder as StarBorderIcon,
-} from '@mui/icons-material';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { TooltipResolver } from '../../TooltipResolver/TooltipResolver';
 
@@ -33,18 +31,19 @@ export const FavoriteIconHeader: VFC<IFavoriteIconHeaderProps> = ({
             <IconButton
                 sx={{
                     mx: -0.75,
+                    my: -1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: 1.25,
                 }}
                 onClick={onToggle}
-                size="small"
+                size='small'
             >
                 <ConditionallyRender
                     condition={internalState}
-                    show={<StarIcon fontSize="small" />}
-                    elseShow={<StarBorderIcon fontSize="small" />}
+                    show={<StarIcon fontSize='small' />}
+                    elseShow={<StarBorderIcon fontSize='small' />}
                 />
             </IconButton>
         </TooltipResolver>

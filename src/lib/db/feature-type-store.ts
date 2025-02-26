@@ -1,9 +1,9 @@
-import { Logger, LogProvider } from '../logger';
-import {
+import type { Logger, LogProvider } from '../logger';
+import type {
     IFeatureType,
     IFeatureTypeStore,
 } from '../types/stores/feature-type-store';
-import { Db } from './db';
+import type { Db } from './db';
 
 const COLUMNS = ['id', 'name', 'description', 'lifetime_days'];
 const TABLE = 'feature_types';
@@ -41,7 +41,7 @@ class FeatureTypeStore implements IFeatureTypeStore {
 
     async get(id: string): Promise<IFeatureType> {
         const row = await this.db(TABLE).where({ id }).first();
-        return this.rowToFeatureType(row);
+        return row ? this.rowToFeatureType(row) : row;
     }
 
     async getByName(name: string): Promise<IFeatureType> {

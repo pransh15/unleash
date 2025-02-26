@@ -1,4 +1,4 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
 
 export const clientApplicationSchema = {
     $id: '#/components/schemas/clientApplicationSchema',
@@ -25,10 +25,34 @@ export const clientApplicationSchema = {
             example: 'unleash-client-java:7.0.0',
         },
         environment: {
-            description: `The SDK's configured 'environment' property. Deprecated. This property  does **not** control which Unleash environment the SDK gets toggles for. To control Unleash environments, use the SDKs API key.`,
+            description: `The SDK's configured 'environment' property. This property was deprecated in v5. This property  does **not** control which Unleash environment the SDK gets toggles for. To control Unleash environments, use the SDKs API key.`,
             deprecated: true,
             type: 'string',
             example: 'development',
+        },
+        platformName: {
+            description:
+                'The platform the application is running on. For languages that compile to binaries, this can be omitted',
+            type: 'string',
+            example: '.NET Core',
+        },
+        platformVersion: {
+            description:
+                'The version of the platform the application is running on. Languages that compile to binaries, this is expected to be the compiler version used to assemble the binary.',
+            type: 'string',
+            example: '3.1',
+        },
+        yggdrasilVersion: {
+            description:
+                'The semantic version of the Yggdrasil engine used by the client. If the client is using a native engine this can be omitted.',
+            type: 'string',
+            example: '1.0.0',
+        },
+        specVersion: {
+            description:
+                'The version of the Unleash client specification the client supports',
+            type: 'string',
+            example: '3.0.0',
         },
         interval: {
             type: 'number',

@@ -1,10 +1,9 @@
 import useProjects from 'hooks/api/getters/useProjects/useProjects';
-import { IProjectCard } from 'interfaces/project';
+import type { ProjectSchema } from 'openapi';
 import GeneralSelect, {
-    ISelectOption,
-    IGeneralSelectProps,
+    type ISelectOption,
+    type IGeneralSelectProps,
 } from 'component/common/GeneralSelect/GeneralSelect';
-import React from 'react';
 
 interface IFeatureProjectSelectProps
     extends Omit<IGeneralSelectProps, 'options'> {
@@ -26,11 +25,14 @@ const FeatureProjectSelect = ({
         return null;
     }
 
-    const formatOption = (project: IProjectCard) => {
+    const formatOption = (project: ProjectSchema) => {
         return {
             key: project.id,
             label: project.name,
-            title: project.description,
+            title: project.description || '',
+            sx: {
+                whiteSpace: 'pre-line',
+            },
         };
     };
 
@@ -38,19 +40,19 @@ const FeatureProjectSelect = ({
 
     if (filter) {
         options = projects
-            .filter(project => filter(project.id))
+            .filter((project) => filter(project.id))
             .map(formatOption);
     } else {
         options = projects.map(formatOption);
     }
 
-    if (value && !options.find(o => o.key === value)) {
+    if (value && !options.find((o) => o.key === value)) {
         options.push({ key: value, label: value });
     }
 
     return (
         <GeneralSelect
-            label="Project"
+            label='Project'
             options={options}
             value={value}
             onChange={onChange}

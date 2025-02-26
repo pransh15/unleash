@@ -1,9 +1,10 @@
-import { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from 'json-schema-to-ts';
+import { tagSchema } from './tag-schema';
 
 export const createFeatureSchema = {
     $id: '#/components/schemas/createFeatureSchema',
     type: 'object',
-    description: 'Data used to create a new feature toggle.',
+    description: 'Data used to create a new feature flag.',
     required: ['name'],
     properties: {
         name: {
@@ -12,10 +13,16 @@ export const createFeatureSchema = {
             description: 'Unique feature name',
         },
         type: {
-            type: 'string',
+            enum: [
+                'experiment',
+                'kill-switch',
+                'release',
+                'operational',
+                'permission',
+            ],
             example: 'release',
             description:
-                "The feature toggle's [type](https://docs.getunleash.io/reference/feature-toggle-types). One of experiment, kill-switch, release, operational, or permission",
+                "The feature flag's [type](https://docs.getunleash.io/reference/feature-toggles#feature-flag-types). One of experiment, kill-switch, release, operational, or permission",
         },
         description: {
             type: 'string',
@@ -30,8 +37,19 @@ export const createFeatureSchema = {
             description:
                 '`true` if the impression data collection is enabled for the feature, otherwise `false`.',
         },
+        tags: {
+            type: 'array',
+            description: 'Tags to add to the feature.',
+            items: {
+                $ref: '#/components/schemas/tagSchema',
+            },
+        },
     },
-    components: {},
+    components: {
+        schemas: {
+            tagSchema,
+        },
+    },
 } as const;
 
 export type CreateFeatureSchema = FromSchema<typeof createFeatureSchema>;

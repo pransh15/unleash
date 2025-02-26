@@ -1,8 +1,9 @@
-import React, { FC, useState } from 'react';
+import type React from 'react';
+import { type FC, useState } from 'react';
 import { Box, Button, IconButton, styled, Typography } from '@mui/material';
 import Input from 'component/common/Input/Input';
-import { IChangeRequest } from '../../changeRequest.types';
-import { Edit } from '@mui/icons-material';
+import type { ChangeRequestType } from '../../changeRequest.types';
+import Edit from '@mui/icons-material/Edit';
 import { ConditionallyRender } from 'component/common/ConditionallyRender/ConditionallyRender';
 import { useChangeRequestApi } from 'hooks/api/actions/useChangeRequestApi/useChangeRequestApi';
 import { formatUnknownError } from 'utils/formatUnknownError';
@@ -25,9 +26,10 @@ export const StyledHeader = styled(Typography)(({ theme }) => ({
 }));
 
 export const ChangeRequestTitle: FC<{
-    environmentChangeRequest: IChangeRequest;
+    environmentChangeRequest: ChangeRequestType;
     title: string;
     setTitle: React.Dispatch<React.SetStateAction<string>>;
+    children?: React.ReactNode;
 }> = ({ environmentChangeRequest, title, setTitle, children }) => {
     const [isDisabled, setIsDisabled] = useState(true);
     const { updateTitle } = useChangeRequestApi();
@@ -43,11 +45,11 @@ export const ChangeRequestTitle: FC<{
             await updateTitle(
                 environmentChangeRequest.project,
                 environmentChangeRequest.id,
-                title
+                title,
             );
             setToastData({
                 type: 'success',
-                title: 'Change request title updated!',
+                text: 'Change request title updated!',
             });
         } catch (error: unknown) {
             setToastApiError(formatUnknownError(error));
@@ -60,11 +62,11 @@ export const ChangeRequestTitle: FC<{
                 show={children}
                 elseShow={
                     <Input
-                        label="Change request title"
-                        id="group-name"
+                        label='Change request title'
+                        id='group-name'
                         value={title}
                         fullWidth
-                        onChange={e => setTitle(e.target.value)}
+                        onChange={(e) => setTitle(e.target.value)}
                         disabled={isDisabled}
                     />
                 }
@@ -82,16 +84,16 @@ export const ChangeRequestTitle: FC<{
                 show={
                     <>
                         <Button
-                            variant="contained"
-                            color="primary"
-                            sx={theme => ({ marginLeft: theme.spacing(2) })}
+                            variant='contained'
+                            color='primary'
+                            sx={(theme) => ({ marginLeft: theme.spacing(2) })}
                             onClick={() => saveTitle()}
                         >
                             Save
                         </Button>
                         <Button
-                            sx={theme => ({ marginLeft: theme.spacing(1) })}
-                            variant="outlined"
+                            sx={(theme) => ({ marginLeft: theme.spacing(1) })}
+                            variant='outlined'
                             onClick={toggleEditState}
                         >
                             Cancel

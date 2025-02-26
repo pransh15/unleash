@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { styled, Typography } from '@mui/material';
 
 import {
@@ -24,12 +24,12 @@ const StyledIDContainer = styled('div')(({ theme }) => ({
 export const MetaWidget: FC<IMetaWidgetProps> = ({ id, description }) => {
     return (
         <StyledProjectInfoWidgetContainer>
-            <StyledWidgetTitle>Project Meta</StyledWidgetTitle>
-            <StyledIDContainer>
+            <StyledWidgetTitle data-loading>Project Meta</StyledWidgetTitle>
+            <StyledIDContainer data-loading>
                 <Typography
-                    component="span"
-                    variant="body2"
-                    color="text.secondary"
+                    component='span'
+                    variant='body2'
+                    color='text.secondary'
                 >
                     ID:
                 </Typography>{' '}
@@ -39,9 +39,10 @@ export const MetaWidget: FC<IMetaWidgetProps> = ({ id, description }) => {
                 condition={Boolean(description)}
                 show={
                     <Typography
-                        variant="body2"
+                        data-loading
+                        variant='body2'
                         sx={{
-                            marginTop: theme => theme.spacing(1.5),
+                            marginTop: (theme) => theme.spacing(1.5),
                             marginBottom: 0,
                             textAlign: 'left',
                         }}
@@ -51,9 +52,9 @@ export const MetaWidget: FC<IMetaWidgetProps> = ({ id, description }) => {
                 }
             />
             <ConditionallyRender
-                condition={!Boolean(description)}
+                condition={!description}
                 show={
-                    <WidgetFooterLink to={`/projects/${id}/edit`}>
+                    <WidgetFooterLink to={`/projects/${id}/settings`}>
                         Add description
                     </WidgetFooterLink>
                 }

@@ -5,10 +5,10 @@
  */
 
 /**
- * The schema version used to describe the feature toggle types listed in the `types` property.
+ * The schema version used to describe the feature flag types listed in the `types` property.
  */
 export type FeatureTypesSchemaVersion =
-    typeof FeatureTypesSchemaVersion[keyof typeof FeatureTypesSchemaVersion];
+    (typeof FeatureTypesSchemaVersion)[keyof typeof FeatureTypesSchemaVersion];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const FeatureTypesSchemaVersion = {
